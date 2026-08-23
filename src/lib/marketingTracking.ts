@@ -90,6 +90,16 @@ export function extractMarketingAttribution(url: URL) {
   };
 }
 
+export function sanitizeReferrer(raw: string): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    return `${url.origin}${url.pathname}`.slice(0, 2048);
+  } catch {
+    return undefined;
+  }
+}
+
 function getOrCreateId(storage: Storage, key: string): string {
   const current = storage.getItem(key);
   if (current) return current.slice(0, 200);
@@ -115,12 +125,7 @@ export function buildMarketingPayload(
     const attribution = extractMarketingAttribution(new URL(window.location.href));
     const anonymousId = getOrCreateId(localStorage, ANON_ID_KEY);
     const sessionId = getOrCreateId(sessionStorage, SESSION_ID_KEY);
-    let referrer: string | undefined;
-    try {
-      referrer = document.referrer ? document.referrer.slice(0, 2048) : undefined;
-    } catch {
-      referrer = undefined;
-    }
+    const referrer = sanitizeReferrer(document.referrer);
 
     return {
       eventName,
