@@ -9,7 +9,7 @@ type Table<Row, Insert = Partial<Row>, Update = Partial<Insert>> = {
   Relationships: [];
 };
 
-type WSRow = { id: string; name: string; owner_id: string; created_at: string };
+type WSRow = { id: string; name: string; owner_id: string; slug: string; created_at: string };
 type MemberRow = { workspace_id: string; user_id: string; role: 'owner'|'admin'|'editor'|'reviewer'|'viewer'; created_at: string };
 type BrandRow = { id:string; workspace_id:string; name:string; website_url:string|null; description:string|null; positioning:string|null; voice:Json; created_at:string; updated_at:string };
 type AudienceRow = { id:string; workspace_id:string; brand_id:string; code:string; name:string; description:string|null; jobs_to_be_done:Json; pains:Json; anxieties:Json; desired_outcomes:Json; buying_triggers:Json; objections:Json; search_intents:Json; evidence_status:'hypothesis'|'research'|'observed'|'validated'; evidence:Json; active:boolean; created_at:string; updated_at:string };
