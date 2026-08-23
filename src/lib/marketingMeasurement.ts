@@ -22,6 +22,23 @@ export interface MarketingHealthDiagnosis {
   tone: 'good' | 'warn' | 'critical';
 }
 
+function normalizeHealth(data: Record<string, unknown>): MarketingMeasurementHealth {
+  return {
+    workspace_id: String(data.workspace_id ?? ''),
+    event_count: Number(data.event_count ?? 0),
+    utm_coverage: Number(data.utm_coverage ?? 0),
+    campaign_id_coverage: Number(data.campaign_id_coverage ?? 0),
+    content_id_coverage: Number(data.content_id_coverage ?? 0),
+    attribution_coverage: Number(data.attribution_coverage ?? 0),
+    tracking_error_rate: Number(data.tracking_error_rate ?? 0),
+    latest_event_at: data.latest_event_at ? String(data.latest_event_at) : null,
+    score: Number(data.score ?? 0),
+    reliability: String(data.reliability ?? 'unreliable') as MarketingMeasurementHealth['reliability'],
+    rate_metrics_mature: Boolean(data.rate_metrics_mature),
+    min_rate_sample: Number(data.min_rate_sample ?? 100),
+  };
+}
+
 export async function getMarketingMeasurementHealth(
   workspaceId: string,
 ): Promise<MarketingMeasurementHealth | null> {
@@ -34,21 +51,18 @@ export async function getMarketingMeasurementHealth(
 
   if (error) throw error;
   if (!data) return null;
+  return normalizeHealth(data as Record<string, unknown>);
+}
 
-  return {
-    ...data,
-    event_count: Number(data.event_count ?? 0),
-    utm_coverage: Number(data.utm_coverage ?? 0),
-    campaign_id_coverage: Number(data.campaign_id_coverage ?? 0),
-    content_id_coverage: Number(data.content_id_coverage ?? 0),
-    attribution_coverage: Number(data.attribution_coverage ?? 0),
-    tracking_error_rate: Number(data.tracking_error_rate ?? 0),
-    score: Number(data.score ?? 0),
-    min_rate_sample: Number(data.min_rate_sample ?? 100),
-    latest_event_at: data.latest_event_at ? String(data.latest_event_at) : null,
-    reliability: data.reliability as MarketingMeasurementHealth['reliability'],
-    rate_metrics_mature: Boolean(data.rate_metrics_mature),
-  } as MarketingMeasurementHealth;
+export async function listMarketingMeasurementHealth(): Promise<MarketingMeasurementHealth[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('marketing_measurement_health_live')
+    .select('*')
+    .order('score', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(row => normalizeHealth(row as Record<string, unknown>));
 }
 
 export function diagnoseMarketingHealth(
