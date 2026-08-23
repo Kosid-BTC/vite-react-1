@@ -3,6 +3,7 @@ import {
   canonicalMarketingEvent,
   extractMarketingAttribution,
   marketingConsentGranted,
+  sanitizeReferrer,
 } from '../marketingTracking';
 
 describe('marketingTracking', () => {
@@ -39,6 +40,11 @@ describe('marketingTracking', () => {
       utmContent: undefined,
       segmentCode: undefined,
     });
+  });
+
+  it('ตัด query/hash จาก referrer เพื่อลดการเก็บข้อมูลเกินจำเป็น', () => {
+    expect(sanitizeReferrer('https://example.com/path?a=secret#section')).toBe('https://example.com/path');
+    expect(sanitizeReferrer('not-a-url')).toBeUndefined();
   });
 
   it('first-party analytics เปิดเฉพาะเมื่อ consent = all', () => {
