@@ -1,0 +1,38 @@
+:root {
+  color-scheme: light;
+  --bg: #f7f8fb;
+  --surface: #ffffff;
+  --text: #172033;
+  --muted: #667085;
+  --border: #e4e7ec;
+  --primary: #0f766e;
+  --primary-strong: #115e59;
+  --danger: #b42318;
+  --radius: 18px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--text); }
+a { color: inherit; }
+.shell { max-width: 1080px; margin: 0 auto; padding: 24px 20px 64px; }
+.eyebrow { color: var(--primary); font-weight: 600; margin: 0 0 8px; }
+h1 { font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.08; margin: 0 0 12px; }
+h2 { margin-top: 0; }
+.muted { color: var(--muted); }
+.stack { display: grid; gap: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.primary { display: inline-flex; justify-content: center; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 12px; border: 0; background: var(--primary); color: white; text-decoration: none; font: inherit; font-weight: 600; cursor: pointer; }
+.primary:hover { background: var(--primary-strong); }
+.secondary { display: inline-flex; min-height: 44px; align-items: center; padding: 0 16px; border: 1px solid var(--border); border-radius: 12px; background: white; text-decoration: none; }
+.field { display: grid; gap: 6px; }
+input, select, textarea { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #d0d5dd; border-radius: 10px; font: inherit; background: white; }
+textarea { min-height: 108px; resize: vertical; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.badge { display: inline-flex; padding: 5px 9px; border-radius: 999px; background: #ecfdf3; color: #027a48; font-size: .85rem; }
+.warning { background: #fffaeb; color: #b54708; }
+.blocking { background: #fef3f2; color: var(--danger); }
+@media (max-width: 640px) {
+  .shell { padding: 18px 16px 48px; }
+  .primary { width: 100%; }
+}
