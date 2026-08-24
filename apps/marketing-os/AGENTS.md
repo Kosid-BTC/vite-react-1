@@ -2,6 +2,12 @@
 
 These instructions extend the repository-level `AGENTS.md` for work inside `apps/marketing-os`.
 
+For any content-generation task, also read and follow:
+
+`docs/marketing/CEO-AI-CONTENT-DNA.md`
+
+The Content DNA is mandatory for `content_agent`, `creative_brief_agent`, AI Chat content generation, Content Generator, campaign copy, hooks, scripts, captions, and landing-page creative logic.
+
 ## Architecture decision
 
 Use a **manager/orchestrator pattern** for the core marketing workflow. The orchestrator owns the run, applies global guardrails, and calls specialist agents as tools. Do not let specialist agents publish, change budgets, bypass RLS, or write protected analytics directly.
@@ -74,6 +80,75 @@ Specialists return structured outputs, not free-form operational commands. Outpu
 
 An agent may recommend a write, but deterministic application code performs the write after permission and validation checks.
 
+## Content Agent contract
+
+`content_agent` must use CEO AI Thailand as a **Business Growth Content Engine**, not a generic content writer.
+
+Before generating the final content, it must determine:
+- Objective: Awareness / Engagement / Lead / Conversion / Retention
+- Audience
+- Pain Point
+- Recommended Story Model
+- Recommended Writing Style
+- short Reason
+
+Supported story models include:
+- AIDA
+- PAS
+- Storytelling
+- Hard Truth
+- Before / After
+- Myth / Reality
+- Educational
+- Case Study
+
+Supported writing styles include:
+- Conversational
+- Business Storytelling
+- Educational Authority
+- Empowerment
+- Hard Truth
+- Sales Psychology
+
+Default content output should include:
+1. Content Strategy
+2. at least 3 Hook options + one `Recommended Hook`
+3. Main Content adapted to platform
+4. CTA matched to readiness stage
+5. Measurement recommendations
+6. 3 Alternative Angles using different story/writing styles
+
+For short-form video, structure scripts by time windows and return both spoken copy and on-screen text. The first hook normally lands within 0–2 seconds. Recommended video length from the Content DNA is 8–45 seconds unless the user specifies otherwise.
+
+Every content item should follow:
+
+`Problem → Insight → Framework → Action → Tool → Measurement`
+
+And every AI-related content item should follow:
+
+`Problem First → AI Second`
+
+Do not generate generic AI-tool list content without a business process and business outcome.
+
+Golden rule:
+
+> คนดู Content นี้แล้ว ธุรกิจของเขาดีขึ้นตรงไหน
+
+If the only outcome is “ได้ความรู้”, revise the content toward a decision, action, measurable signal, or growth step.
+
+## Creative Brief Agent contract
+
+`creative_brief_agent` must preserve the strategy/content context and translate it into creative direction without inventing new commercial claims.
+
+It should consider at least one Share Trigger where appropriate:
+- Practical Value
+- Social Currency
+- Surprise
+- Identity
+- Emotion
+
+Emotion may support hope, confidence, aspiration, pride, or legitimate concern, but must never manufacture fear, shame, panic, fake urgency, or false scarcity.
+
 ## Evidence rules
 
 Marketing agents must distinguish:
@@ -84,9 +159,11 @@ Marketing agents must distinguish:
 
 Do not upgrade evidence state without a deterministic rule or approved human action. Never present model inference as observed customer behavior.
 
+Any content containing numbers, research, market data, statistics, laws, trends, news, reports, case outcomes, or social proof must be source-verified before publishing. Explicitly distinguish Fact / Estimate / Opinion where relevant.
+
 ## Guardrails
 
-All agents must follow repository marketing instructions for `/start`.
+All agents must follow repository marketing instructions for `/start` and the Content DNA.
 
 Never generate or approve:
 - fabricated testimonials
@@ -132,7 +209,14 @@ Evals should test at minimum:
 - required human approval
 - no protected writes from model output
 - deterministic failure when measurement health is insufficient
+- `content_agent` produces strategy + hooks + content + CTA + measurement + alternative angles
+- AI content uses `Problem First → AI Second`
+- unsupported numeric hooks escalate to compliance instead of being treated as facts
 
 ## Product principle
 
 Agent-to-agent exists to improve customer understanding and learning velocity, not to maximize autonomous output volume.
+
+CEO AI Thailand content system loop:
+
+`Think → Build → Measure → Learn → Grow`
