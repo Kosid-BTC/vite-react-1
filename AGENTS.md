@@ -4,6 +4,12 @@
 
 For all work related to `https://ceoaithailand.org/start` and CEO AI Marketing OS, use these rules before legacy copy in the repository.
 
+The detailed CEO AI Thailand Content & Marketing DNA is stored in:
+
+`docs/marketing/CEO-AI-CONTENT-DNA.md`
+
+For content generation, AI Chat, Content Generator, campaign copy, scripts, hooks, captions, landing-page messaging, and Marketing Automation, read and follow that document together with this file.
+
 ### Primary acquisition audiences
 1. `employee` — salaried workers who want to start a side business or add income.
 2. `graduate` — new graduates who want to start a business.
@@ -17,11 +23,14 @@ For all work related to `https://ceoaithailand.org/start` and CEO AI Marketing O
 - ISO/standards/PDPA become relevant downstream or when explicit search intent indicates `audit`.
 - Do not use unsupported superlatives, guarantees, fabricated testimonials, fake scarcity, fake urgency or unverifiable statistics.
 - Do not treat old 35–65 audience observations as the intended target market.
+- Apply `Problem First → AI Second` from the Content DNA.
+- Every content item must connect to `Business Problem → Action → Product → Measurement`.
 
 ### CTA hierarchy
 - General acquisition: idea/business validation first.
 - Profit calculator is appropriate when the user already has a product/cost context.
 - Every destination link must preserve attribution metadata: `seg`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, and relevant campaign/content IDs.
+- Match CTA intensity to readiness stage; do not hard-sell every post.
 
 ## Ethical AI Marketing principles
 
@@ -99,6 +108,38 @@ The following principles are derived from the user's 25-point synthesis of “Da
 ### 15. Owned-channel resilience
 - Website, first-party analytics, customer/lead data and reusable content assets are strategic owned infrastructure.
 - Do not make the operating model dependent on a single social/ad platform.
+
+## Content generation contract
+
+When generating a new content item, the default reasoning/output flow is:
+
+1. Pre-Content Analysis
+   - Objective
+   - Audience
+   - Pain Point
+   - Recommended Story Model
+   - Recommended Writing Style
+   - short Reason
+2. Hook
+   - generate at least 3 options
+   - mark one `Recommended Hook`
+3. Main Content
+   - adapt to platform
+   - for video, structure by time windows with spoken copy + on-screen text
+4. CTA
+   - match readiness stage
+5. Measurement
+   - recommend relevant metrics subject to Measurement Health/data-maturity gates
+6. Alternative Angles
+   - propose 3 distinct angles using different story/writing styles
+
+Preferred content models include AIDA, PAS, Storytelling, Before/After, Myth/Reality, Hard Truth, Educational, and Case Study. Preferred writing archetypes include Conversational, Business Storytelling, Educational Authority, Empowerment, Hard Truth, and Sales Psychology.
+
+Golden rule: if the content only gives knowledge but does not support a decision, action, data signal, or growth step, revise it.
+
+CEO AI Thailand content loop:
+
+`Think → Build → Measure → Learn → Grow`
 
 ## Marketing intelligence object
 
