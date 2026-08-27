@@ -1,196 +1,204 @@
-# Search Ownership Continuous Improvement Loop
+# CEO AI Thailand — Search Ownership Continuous Improvement Loop
 
-Status: implementation baseline
+## Strategic decision chain
 
-Canonical entity: **CEO AI Thailand**
+The Search Ownership system is a continuous learning loop, not a one-time SEO project:
 
-Decision: **PROCEED_WITH_CONTROLS**
+`Google Brand Confusion → Crisis-to-Opportunity → Semantic Decomposition → Risk/Opportunity → PROCEED_WITH_CONTROLS → Canonical Entity → Search Ownership → Category Ownership → ECI → Growth Core/NBA → Human Action → Measurement → Learning → Next Cycle`
 
-## Why this exists
+## Canonical entity
 
-The Search Ownership program starts from a brand-confusion signal: search systems can interpret `ceoaithailand` as a broad semantic cluster around CEO + AI + Thailand instead of resolving it to one brand entity.
+- Canonical brand: **CEO AI Thailand**
+- Aliases: `ceoaithailand`, `CEOAIThailand`, `CEO AI ไทย`
+- Category hypothesis: **AI Business Operating System**
+- Primary users: employees starting side businesses, new graduates, aspiring entrepreneurs, and Thai SMEs entering growth/systemization.
 
-The product decision is to turn that ambiguity into an evidence-led growth opportunity rather than escape adjacent semantic space or use keyword stuffing.
+Aliases help query resolution but never replace the canonical display name.
 
-## Loop
+## Improvement cycle
 
-```text
-Google Brand Confusion
-        ↓
-Crisis → Opportunity Classification
-        ↓
-Semantic Decomposition
-BRAND / CATEGORY / PROBLEM / ADJACENT
-        ↓
-Risk / Opportunity Assessment
-        ↓
-PROCEED_WITH_CONTROLS
-        ↓
-Canonical Entity Control
-        ↓
-Search Ownership
-        ↓
-Category Ownership
-        ↓
-Entity Confusion Index (ECI)
-        ↓
-Growth Core Evidence
-        ↓
-Diagnosis
-        ↓
-Next Best Action
-        ↓
-Human Decision
-        ↓
-Controlled Action
-        ↓
-Measurement
-        ↓
-Learning
-        └──────────────→ next observation cycle
-```
+1. **Observe** — capture Google/Search ambiguity as evidence.
+2. **Opportunity classify** — determine whether ambiguity exposes meaningful semantic demand.
+3. **Risk/Opportunity assess** — apply `PROCEED_WITH_CONTROLS`, never automatic conquest.
+4. **Canonical Entity control** — normalize owned entity signals.
+5. **Search Ownership measure** — measure branded/owned visibility only from trusted evidence.
+6. **Category Ownership** — test association with intended commercial category.
+7. **ECI** — calculate Entity Confusion Index only with complete evidence.
+8. **Growth Core diagnosis** — convert observations into evidence-backed diagnosis.
+9. **NBA proposal** — propose one highest-value next action.
+10. **Human decision** — approve, reject, or request controlled changes.
+11. **Action** — execute content/schema/profile/landing experiments.
+12. **Measure** — collect outcome evidence.
+13. **Learning** — record what was learned.
+14. **Next cycle** — use outcomes as new observations.
 
-## Current repository audit
+## Approved UX/UI contract
 
-The repository package is already named `ceo-ai-thailand` and uses React + TypeScript + Vite. The build script runs TypeScript, Vite, and an SEO prerender step. Preserve this architecture for this workstream.
+The primary dashboard follows the approved combined mockup and Law of UX:
 
-The Cloudflare Worker in `src/server.ts` already provides server-side SEO behavior including `/sitemap.xml`, `/llms.txt`, `/faq`, `/mit24`, homepage schema injection, and dynamic marketplace SEO. Do not build a second SEO runtime.
+- light analytics workspace with purple CEO AI Thailand visual identity
+- top summary metrics, but provider metrics remain `—` until trusted connections exist
+- Search & Entity Health is visually dominant
+- ECI direction is explicit: lower is better
+- 4 Search Rings stay visible as the strategic map: Brand, Category, Problem, Adjacent
+- Top Issue and Next Best Action appear before raw detail
+- one dominant CTA: **สร้าง Action Plan**
+- Content Factory exposes Text → Image, Text → Video, Image → Video
+- Growth Core / NBA / Approval / Measure / Learning appear as one continuous improvement cycle
+- advanced charts and tables remain supporting detail
+- mobile stacks content progressively and keeps the cycle horizontally scrollable
 
-`src/lib/seoData.ts` is documented as the shared SEO source of truth for Worker and client. The new Entity Registry should be consolidated into this existing flow rather than leaving duplicated brand strings long-term.
+### UX laws
 
-## Phase plan
+- **Hick’s Law:** one primary action per decision context
+- **Fitts’s Law:** large targets for Action Plan and production actions
+- **Progressive Disclosure:** advanced evidence follows the decision surface
+- **Goal Gradient:** Improvement Cycle communicates progress/current stage
+- **Law of Proximity/Common Region:** Search Health, Content Factory, and NBA are grouped by job
+- **Tesler’s Law:** system owns complexity/classification; people own decisions
+- **Doherty Threshold:** future provider sync/generation must expose immediate progress states
 
-### Phase A — Repository skill + durable instructions
+## Truth-first dashboard behavior
 
-- `.agents/skills/ceoai-search-ownership/SKILL.md`
-- root `AGENTS.md`
+The approved mockups contain illustrative values. Production UI must not treat those values as facts.
 
-Purpose: make the strategic rationale, evidence rules, cycle, and verification repeatable for Codex.
+Until trusted Search Evidence is connected:
 
-### Phase B — Entity Registry + deterministic domain engine
+- Organic Impressions = `—`
+- Search CTR = `—`
+- Search Ownership = `—`
+- Owned SERP Coverage = `—`
+- ECI = `INSUFFICIENT_DATA`
+- Measurement Health shows missing data connections
 
-Initial implementation:
+Existing first-party business/funnel values may be displayed when they already exist in workspace state.
 
-- `src/lib/searchOwnership.ts`
-- canonical entity registry
-- Search Ring classifier
-- ECI v1
-- deterministic diagnosis
-- deterministic NBA proposal mapping
-- explicit cycle states
+Rule:
 
-Next consolidation task: make `seoData.ts`, homepage metadata, Entity Hub, and structured-data builders consume the canonical Entity Registry rather than duplicate brand identity strings.
+`No Evidence → No fabricated marketing conclusion`
 
-### Phase C — Search Evidence
+## Search Ownership rings
 
-Add trusted evidence contracts and provider ingestion boundaries.
+### Ring 1 — Brand
+Own branded queries and verified official properties.
 
-Required principles:
+### Ring 2 — Category
+Build association with `AI Business Operating System`, `AI สำหรับ SME ไทย`, and other qualified category demand.
 
-- GSC/SERP metrics are provider/server evidence.
-- browser clients cannot fabricate trusted metrics.
-- every observation has workspace, source, time, provenance, and reliability.
-- missing evidence remains `INSUFFICIENT_DATA` or `UNAVAILABLE`.
+### Ring 3 — Problem
+Capture real business problems such as starting a business, first customer, validation, pricing, and marketing measurement.
 
-Before schema work, inspect existing Supabase Marketing Measurement/Growth Core tables and reuse them.
+### Ring 4 — Adjacent
+Create neutral semantic bridges for terms such as Digital CEO / AI CEO / CEO Thailand without implying affiliation or attacking third parties.
 
-### Phase D — Growth Core / NBA integration
+## Entity Confusion Index
 
-Map Search Evidence into the existing chain:
+ECI is an internal CEO AI Thailand metric, not a Google metric.
 
-`Observation -> Evidence -> Diagnosis -> NBA Proposal -> Human Decision -> Action -> Outcome -> Learning`
+`EntityStrength = 0.30*B + 0.25*S + 0.20*O + 0.15*Q + 0.10*A`
 
-Do not create a parallel recommendation engine.
+`ECI = 100 - EntityStrength`
 
-### Phase E — Search Health Dashboard
+Where B = Brand Consistency, S = Structured Entity Consistency, O = Owned SERP Coverage, Q = Branded Query Dominance, and A = Association Accuracy.
 
-Law-of-UX hierarchy:
-
-1. Entity Recognition
-2. Search Ownership
-3. Qualified Demand
-4. Main Problem
-5. Why It Matters
-6. Next Best Action
-7. one primary CTA
-
-Advanced metrics are progressive disclosure.
-
-### Phase F — Improvement learning loop
-
-Persist action hypothesis, review window, outcome, reliability, and learning. Feed validated learning into the next cycle without rewriting historical evidence.
-
-## ECI v1
-
-```text
-EntityStrength =
-  0.30 * BrandConsistency
-+ 0.25 * StructuredEntityConsistency
-+ 0.20 * OwnedSerpCoverage
-+ 0.15 * BrandedQueryDominance
-+ 0.10 * AssociationAccuracy
-
-ECI = 100 - EntityStrength
-```
-
-Lower ECI is better.
+Bands:
 
 - 0–20 CLEAR
 - 21–40 LOW_CONFUSION
 - 41–60 CAUTION
 - 61–100 HIGH_CONFUSION
 
-No complete evidence = no ECI number.
+Missing required input returns `INSUFFICIENT_DATA`.
 
-## Business outcome model
+## Search Evidence architecture
 
-Search ranking is not the north star.
+Planned trusted sources:
 
-```text
-Search Visibility
-    ↓
-Qualified Visit
-    ↓
-Intent Event
-    ↓
-Activation
-    ↓
-Lead
-    ↓
-Customer
-    ↓
-Learning
-```
+- Google Search Console
+- measured SERP observations
+- site/entity audits
+- verified official social audits
+- manually verified evidence
 
-## Content automation rule
+Provider metrics must be ingested through a trusted server boundary. Ordinary browser clients must not fabricate GSC/SERP values.
 
-Use:
+## Search → Growth Core
 
-`Evidence -> Search Intent -> Existing Content Gap -> Unique Insight -> Useful Content -> Human Review -> Publish -> Measure`
+Search does not own a second recommendation engine.
 
-Do not use:
+Use existing Growth Core contracts:
 
-`Keyword -> mass generation -> automatic publication`
+`Search Observation → Evidence → Diagnosis → NBA Proposal → Human Decision → Controlled Action → Experiment/Outcome → Learning`
 
-Search evidence may drive Article, Short Post, Carousel, Text-to-Image, Text-to-Video, Image-to-Video, and YouTube/Social derivatives, but asset lineage must be preserved.
+AI may observe, classify, diagnose, propose, and generate drafts. AI may not approve itself or change Business Genome/strategy directly.
 
-## Known audit items for the next implementation pass
+## Content Factory relationship
 
-1. Consolidate canonical brand strings in `seoData.ts` into the Entity Registry.
-2. Create/confirm one canonical Entity Hub and include it in sitemap/structured-data relationships.
-3. Audit all `sameAs` values and include only verified official properties.
-4. Audit SEO-visible factual claims in `llms.txt`, homepage copy, structured data, pricing, review/rating data, and social proof. Mark each as VERIFIED / NEEDS_EVIDENCE / REMOVE_OR_REWRITE.
-5. Inspect Supabase schema before adding Search Evidence or improvement-cycle tables.
-6. Preserve existing marketplace SEO and real-review guardrails.
+Content follows:
 
-## Verification
+`Audience × Pain × Search Intent × Evidence × Content Pillar × Funnel Stage`
 
-Run before completion:
+Production modes include Text → Image, Text → Video, and Image → Video.
 
-```bash
-npm run lint
-npm run test:run
-npm run build
-```
+Content creation is evidence-led and human-reviewed. The default must never be keyword → mass article generation → auto publish.
 
-Production deployment and production database mutations are outside this branch unless explicitly authorized.
+## Implementation phases
+
+### Phase A — Foundation — implemented
+
+- repo-scoped Skill
+- Codex `AGENTS.md`
+- Canonical Entity Registry
+- deterministic Search Ring classifier
+- ECI v1
+- Search Evidence type contract
+- deterministic Search diagnosis / NBA foundation
+- cycle state machine
+- focused unit tests
+
+### Phase B — Dashboard UX — implemented on feature branch
+
+- unified Search & Entity Intelligence dashboard
+- responsive KPI cards
+- Search & Entity Health panel
+- 4 Search Rings visualization
+- Top Issue + NBA action surface
+- ECI empty/reliability state
+- branded-query evidence table
+- Measurement Health panel
+- Content Factory entry points
+- AI Insight surface
+- continuous Improvement Cycle visualization
+
+### Phase C — Entity infrastructure — next
+
+- consolidate canonical strings in `seoData.ts` into Entity Registry
+- create/confirm one canonical Entity Hub
+- normalize Organization/WebSite structured graph
+- run claim-safety audit
+- normalize internal entity links
+
+### Phase D — Search Evidence
+
+- inspect existing Supabase Marketing/Growth Core schema first
+- add minimum forward-compatible Search observation structures only if needed
+- implement trusted GSC/SERP ingestion
+- persist provenance and reliability states
+- no production mutation without authorization
+
+### Phase E — Growth Core integration
+
+- Search Evidence → existing Evidence nodes
+- diagnosis snapshot
+- NBA proposal
+- Human Decision
+- controlled Action
+- Experiment / Outcome / Learning
+
+### Phase F — Live Search Health
+
+Replace dashboard placeholders with trusted aggregates only after evidence maturity gates pass.
+
+## Definition of done
+
+The cycle is production-ready only when canonical entity signals are consistent, trusted Search Evidence is ingested with provenance, ECI is never fabricated, Growth Core consumes Search Evidence rather than a parallel engine, every material NBA preserves human authority, Content Factory uses evidence and intent rather than keyword volume, dashboard surfaces Next Best Action before raw metrics, outcomes feed a new cycle, RLS/multi-tenant isolation remain intact, lint/tests/build pass, and all production mutations are explicit and authorized.
