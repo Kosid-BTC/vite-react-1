@@ -1,21 +1,21 @@
-# React + TypeScript + Vite
+# CEO AI Thailand
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Production-oriented React + TypeScript + Vite application for CEO AI Thailand.
 
-While this project uses React, Vite supports many popular JS frameworks. [See all the supported frameworks](https://vitejs.dev/guide/#scaffolding-your-first-vite-project).
+## Search Ownership & Entity Intelligence
 
-## Deploy Your Own
+The active Search Growth workstream is developed on:
 
-Deploy your own Vite project with Vercel.
+`feat/search-ownership-improvement-loop`
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/framework-boilerplates/vite-react&template=vite-react)
+Development contract:
 
-_Live Example: https://vite-react-example.vercel.app_
+- `.agents/skills/ceoai-search-ownership/SKILL.md`
+- `AGENTS.md`
+- `docs/search-ownership-improvement-loop.md`
 
-### Deploying From Your Terminal
+The primary dashboard on that branch follows the approved combined Search & Entity Intelligence UX and implements the continuous loop:
 
-You can deploy your new Vite project with a single command from your terminal using [Vercel CLI](https://vercel.com/download):
+`Observe → Opportunity → Risk/Opportunity → Canonical Entity → Search Ownership → Category Ownership → ECI → Growth Core/NBA → Human Action → Measure → Learn → Next Cycle`
 
-```shell
-$ vercel
-```
+Run locally with the repository scripts in `package.json`.
