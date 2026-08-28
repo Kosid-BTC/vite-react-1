@@ -45,3 +45,13 @@ Return `P1_0_1_PRICING_RECONCILIATION: PASS` only when the current package set i
 - Scale ฿5,900/month
 
 Then proceed to P1.1: Trusted Marketing Outcome Evidence → Growth Core bridge.
+
+## P1.1 preconditions
+
+P1.1 must reuse the existing Growth Core lifecycle and Human Decision semantics:
+
+`Trusted Evidence → Diagnosis → NBA → Human Decision → Action → Outcome → Learning`
+
+Marketing outcome evidence may enter Growth Core only after Measurement Health authorizes `DIAGNOSE`. If the gate returns `COLLECT_MORE_EVIDENCE`, no strategic diagnosis/NBA may be created.
+
+No duplicate recommender, no automatic approval, no automatic pricing/landing mutation, and no production deployment are authorized by this gate.
