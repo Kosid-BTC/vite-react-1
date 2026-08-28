@@ -6,6 +6,7 @@ import { marketingFromDe24 } from '../lib/marketingStrategy';
 import { isSupabaseEnabled, supabase } from '../lib/supabase';
 import { withSkillDirectives } from '../lib/skillDirectives';
 import { trackAiCall } from '../lib/usage';
+import MarketingControlCenter from '../components/MarketingControlCenter';
 
 interface Props { data: AppData; onUpdate: (d: AppData) => void; onNavigate?: (p: PageId) => void; }
 
@@ -187,6 +188,8 @@ export default function Marketing({ data, onUpdate, onNavigate }: Props) {
           <Badge tone="neutral">{campaigns.filter(c => c.status === 'active').length} แคมเปญกำลังดำเนิน</Badge>
         </>}
       />
+
+      <MarketingControlCenter data={data} />
 
       <BuyingTriggers data={data} onUpdate={onUpdate} />
 

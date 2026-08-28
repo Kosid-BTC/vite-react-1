@@ -146,7 +146,7 @@ const PLANS: Plan[] = [
 ];
 
 // แพ็กรายปี — จ่ายเท่า ~10 เดือน (ประหยัด ~17% และลด churn)
-const YEARLY_PRICE: Record<PlanId, number> = { free: 0, starter: 3900, growth: 14900, scale: 59000 };
+const YEARLY_PRICE: Record<PlanId, number> = { free: 0, starter: 7900, growth: 14900, scale: 59000 };
 
 export default function Billing({ data, onUpdate, wsId }: Props) {
   // PLG: usage meter + referral link
