@@ -103,6 +103,16 @@ jobs:
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           node apps/marketing-os/scripts/verify-phase1-vertical-slice.mjs
 
+      - name: P1.2.1 Trusted Evidence persistence verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          node apps/marketing-os/scripts/verify-trusted-evidence-local.mjs
+
       - name: Stop disposable local Supabase
         if: always()
         run: npx --yes supabase@2.40.0 stop --no-backup
