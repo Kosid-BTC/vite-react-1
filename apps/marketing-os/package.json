@@ -10,6 +10,7 @@
     "test:p1-4": "tsx scripts/verify-p1-4-outcome-learning.ts",
     "test:p2-0": "tsx scripts/verify-p2-0-creative-automation.ts",
     "test:p2-1": "tsx scripts/verify-p2-1-voice-subtitles.ts",
+    "test:p2-2": "tsx scripts/verify-p2-2-content-calendar.ts",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
