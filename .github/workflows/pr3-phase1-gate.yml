@@ -65,6 +65,10 @@ jobs:
         working-directory: apps/marketing-os
         run: npm run test:p2-2
 
+      - name: P2.3 Scheduler foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p2-3
+
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
