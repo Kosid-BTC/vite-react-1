@@ -12,6 +12,7 @@
     "test:p2-1": "tsx scripts/verify-p2-1-voice-subtitles.ts",
     "test:p2-2": "tsx scripts/verify-p2-2-content-calendar.ts",
     "test:p2-3": "tsx scripts/verify-p2-3-scheduler.ts",
+    "test:p3-0": "tsx scripts/verify-p3-0-analytics-foundation.ts",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
