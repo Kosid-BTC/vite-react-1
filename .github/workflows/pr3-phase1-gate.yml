@@ -91,6 +91,28 @@ jobs:
       - name: Migration reset / reapply #2
         run: npx --yes supabase@2.40.0 db reset --local
 
+      - name: Generate local Supabase database types
+        run: npx --yes supabase@2.40.0 gen types typescript --local > apps/marketing-os/src/types/database.types.generated.ts
+
+      - name: Checked-in generated-type parity verification
+        id: generated-type-parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          diff -u apps/marketing-os/src/types/database.types.ts apps/marketing-os/src/types/database.types.generated.ts
+
+      - name: Upload generated database types on parity failure
+        if: failure() && steps.generated-type-parity.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-generated-database-types
+          path: apps/marketing-os/src/types/database.types.generated.ts
+          if-no-files-found: error
+
+      - name: Remove generated comparison file
+        if: always()
+        run: rm -f apps/marketing-os/src/types/database.types.generated.ts
+
       - name: Authenticated JWT RLS CRUD verification
         shell: bash
         run: |
