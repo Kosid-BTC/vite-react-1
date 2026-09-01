@@ -6,6 +6,7 @@
     "build": "next build",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:p1-3": "tsx scripts/verify-p1-3-decision-boundary.ts",
     "db:types": "supabase gen types typescript --linked > src/types/database.types.ts"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "supabase": "^2.40.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.0"
   }
 }
