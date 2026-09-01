@@ -45,6 +45,10 @@ jobs:
         working-directory: apps/marketing-os
         run: npm install --no-audit --no-fund
 
+      - name: P1.3 Growth decision boundary verification
+        working-directory: apps/marketing-os
+        run: npm run test:p1-3
+
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
