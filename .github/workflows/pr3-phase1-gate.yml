@@ -69,6 +69,10 @@ jobs:
         working-directory: apps/marketing-os
         run: npm run test:p2-3
 
+      - name: P3.0 Analytics foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p3-0
+
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
