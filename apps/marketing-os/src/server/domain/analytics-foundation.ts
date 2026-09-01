@@ -51,11 +51,8 @@ function assertNonNegativeInteger(value: number, field: string): void {
 }
 
 function normalizeObservation(observation: FunnelObservation): FunnelObservation {
-  const eventId = observation.eventId.trim();
-  if (!eventId) {
-    return { ...observation, eventId: "" };
-  }
   assertNonNegativeInteger(observation.observedCount, "observedCount");
+  const eventId = observation.eventId.trim();
   return { ...observation, eventId };
 }
 
