@@ -53,6 +53,10 @@ jobs:
         working-directory: apps/marketing-os
         run: npm run test:p1-4
 
+      - name: P2.0 Creative automation foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p2-0
+
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
