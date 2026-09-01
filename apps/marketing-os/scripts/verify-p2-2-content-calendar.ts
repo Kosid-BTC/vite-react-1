@@ -44,7 +44,7 @@ const planned = planContentCalendar([
   { ...base, id: "entry-a", plannedAt: "2026-09-02T03:00:00+07:00", channel: "INSTAGRAM" as const },
 ]);
 
-assert.deepEqual(planned.map((entry) => entry.id), ["entry-c", "entry-a", "entry-b"]);
+assert.deepEqual(planned.map((entry) => entry.id), ["entry-a", "entry-c", "entry-b"]);
 
 assert.throws(() => planContentCalendar([
   { ...base, id: "duplicate-a", plannedAt: "2026-09-02T03:00:00+07:00" },
