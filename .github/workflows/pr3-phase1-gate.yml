@@ -57,6 +57,10 @@ jobs:
         working-directory: apps/marketing-os
         run: npm run test:p2-0
 
+      - name: P2.1 Voice subtitles foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p2-1
+
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
