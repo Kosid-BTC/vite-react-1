@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- apps/marketing-os/package-lock.json; then
+          if [ -z "$(git status --porcelain -- apps/marketing-os/package-lock.json)" ]; then
             echo 'No lockfile change to commit.'
             exit 0
           fi
