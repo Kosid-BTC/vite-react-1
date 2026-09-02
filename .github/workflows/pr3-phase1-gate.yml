@@ -77,6 +77,10 @@ jobs:
         working-directory: apps/marketing-os
         run: npm run test:p3-1
 
+      - name: P3.2 Attribution foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p3-2
+
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
