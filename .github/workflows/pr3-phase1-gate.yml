@@ -77,6 +77,8 @@ jobs:
       - name: Marketing OS build
         working-directory: apps/marketing-os
         run: npm run build
+      - name: Marketing OS Docker image build
+        run: docker build -t ceo-ai-marketing-os:ci apps/marketing-os
       - name: Diff whitespace check
         run: git diff --check origin/main...HEAD
 
