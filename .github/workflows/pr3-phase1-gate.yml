@@ -68,6 +68,9 @@ jobs:
       - name: P3.3 Lead sales intelligence verification
         working-directory: apps/marketing-os
         run: npm run test:p3-3
+      - name: P3.4 Next Best Action verification
+        working-directory: apps/marketing-os
+        run: npm run test:p3-4
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
