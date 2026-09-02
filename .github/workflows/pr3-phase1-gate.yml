@@ -37,7 +37,7 @@ jobs:
         run: npm run lint
       - name: Install Marketing OS dependencies
         working-directory: apps/marketing-os
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: P1.3 Growth decision boundary verification
         working-directory: apps/marketing-os
         run: npm run test:p1-3
@@ -112,7 +112,7 @@ jobs:
           cp apps/marketing-os/src/types/database.types.ts /tmp/database.types.curated.ts
           cp apps/marketing-os/src/types/database.types.generated.ts apps/marketing-os/src/types/database.types.ts
           cd apps/marketing-os
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm run typecheck
           npm run build
       - name: Restore curated type contract and remove generated comparison file
