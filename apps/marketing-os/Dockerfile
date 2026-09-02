@@ -7,8 +7,8 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000
 
-COPY package.json ./
-RUN npm install --include=dev --no-audit --no-fund
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
 
