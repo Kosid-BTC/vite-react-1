@@ -50,6 +50,7 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      create_workspace: { Args: { p_name: string }; Returns: string };
       marketing_content_ready: { Args: { p_content: string; p_workspace: string }; Returns: boolean };
       seed_ceo_ai_marketing_strategy: { Args: { p_workspace: string }; Returns: string };
     };
