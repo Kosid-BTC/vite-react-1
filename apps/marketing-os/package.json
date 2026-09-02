@@ -15,6 +15,7 @@
     "test:p3-0": "tsx scripts/verify-p3-0-analytics-foundation.ts",
     "test:p3-1": "tsx scripts/verify-p3-1-experiment-engine.ts",
     "test:p3-2": "tsx scripts/verify-p3-2-attribution.ts",
+    "test:p3-3": "tsx scripts/verify-p3-3-lead-sales-intelligence.ts",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
