@@ -8,7 +8,7 @@ ENV NODE_ENV=production \
     PORT=3000
 
 COPY package.json ./
-RUN npm install --no-audit --no-fund
+RUN npm install --include=dev --no-audit --no-fund
 
 COPY . .
 
