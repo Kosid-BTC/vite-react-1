@@ -74,6 +74,9 @@ jobs:
       - name: Dashboard Business Growth Closed Loop verification
         working-directory: apps/marketing-os
         run: npm run test:dashboard-closed-loop
+      - name: Release security inventory foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:release-security
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
