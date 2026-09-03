@@ -37,7 +37,7 @@ jobs:
         run: npm run lint
       - name: Install Marketing OS dependencies
         working-directory: apps/marketing-os
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: P1.3 Growth decision boundary verification
         working-directory: apps/marketing-os
         run: npm run test:p1-3
@@ -71,6 +71,9 @@ jobs:
       - name: P3.4 Next Best Action verification
         working-directory: apps/marketing-os
         run: npm run test:p3-4
+      - name: Dashboard Business Growth Closed Loop verification
+        working-directory: apps/marketing-os
+        run: npm run test:dashboard-closed-loop
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
@@ -112,7 +115,7 @@ jobs:
           cp apps/marketing-os/src/types/database.types.ts /tmp/database.types.curated.ts
           cp apps/marketing-os/src/types/database.types.generated.ts apps/marketing-os/src/types/database.types.ts
           cd apps/marketing-os
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm run typecheck
           npm run build
       - name: Restore curated type contract and remove generated comparison file
@@ -132,6 +135,16 @@ jobs:
           export SUPABASE_ANON_KEY="$ANON_KEY"
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           node apps/marketing-os/scripts/verify-phase1-rls.mjs
+      - name: Release candidate tenant isolation verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          cd apps/marketing-os
+          npm run test:tenant-isolation
       - name: Authenticated Phase 1 vertical slice verification
         shell: bash
         run: |
