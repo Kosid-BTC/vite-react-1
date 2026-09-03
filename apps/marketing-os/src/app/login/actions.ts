@@ -57,7 +57,7 @@ export async function resendConfirmation(formData: FormData) {
     type: 'signup',
     email,
     options: origin
-      ? { emailRedirectTo: `${origin}/login?confirmed=1&next=${encodeURIComponent(next)}` }
+      ? { emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent('/login?confirmed=1')}` }
       : undefined,
   });
 
@@ -66,6 +66,31 @@ export async function resendConfirmation(formData: FormData) {
   }
 
   redirect(`/login?confirmation=sent&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim();
+
+  if (!email) {
+    redirect('/login?error=missing_email');
+  }
+
+  const origin = await requestOrigin();
+  if (!origin) {
+    redirect(`/login?error=reset_unavailable&email=${encodeURIComponent(email)}`);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=${encodeURIComponent('/account/update-password')}`,
+  });
+
+  if (error) {
+    redirect(`/login?error=reset_failed&email=${encodeURIComponent(email)}`);
+  }
+
+  // Do not reveal whether the account exists.
+  redirect(`/login?recovery=sent&email=${encodeURIComponent(email)}`);
 }
 
 export async function signOut() {
