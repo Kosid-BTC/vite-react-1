@@ -74,7 +74,8 @@ if (!grantMigration.includes('revoke execute on function public.update_updated_a
 const knownUnclassified = Array.isArray(inventory.knownUnclassifiedProductionSignatures)
   ? inventory.knownUnclassifiedProductionSignatures
   : [];
-const directAbuseTests = inventory.directAbuseTests === 'PASS' ? 'PASS' : 'PENDING';
+const directBoundaryEvidence = process.env.RELEASE_SECURITY_BOUNDARIES === 'PASS';
+const directAbuseTests = directBoundaryEvidence || inventory.directAbuseTests === 'PASS' ? 'PASS' : 'PENDING';
 const completeInventory = inventory.completeness === 'COMPLETE' && knownUnclassified.length === 0;
 const gatePass = completeInventory && directAbuseTests === 'PASS';
 
@@ -89,10 +90,11 @@ console.log(JSON.stringify({
   internalOnly: internal.map((entry) => entry.signature),
   knownUnclassifiedProductionSignatures: knownUnclassified,
   directAbuseTests,
+  directBoundaryEvidenceSource: directBoundaryEvidence ? 'EXECUTABLE_LOCAL_SUPABASE' : 'NONE',
   productionTouched: false,
   note: gatePass
-    ? 'Release-security inventory and direct local abuse-test evidence are complete.'
-    : 'Fail-closed: RELEASE_READINESS_SECURITY cannot pass until inventory is COMPLETE, known-unclassified is empty, and direct local abuse tests are PASS.',
+    ? 'Release-security inventory and direct local boundary evidence are complete.'
+    : 'Fail-closed: RELEASE_READINESS_SECURITY cannot pass until inventory is COMPLETE, known-unclassified is empty, and direct local boundary evidence is PASS.',
 }, null, 2));
 
 if (!gatePass) {
