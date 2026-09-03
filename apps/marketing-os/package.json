@@ -19,6 +19,7 @@
     "test:p3-4": "tsx scripts/verify-p3-4-next-best-action.ts",
     "test:dashboard-closed-loop": "tsx scripts/verify-dashboard-business-growth-closed-loop.ts",
     "test:tenant-isolation": "node scripts/verify-release-candidate-tenant-isolation.mjs",
+    "test:release-security": "node scripts/verify-release-readiness-security.mjs",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
