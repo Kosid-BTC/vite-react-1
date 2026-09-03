@@ -74,9 +74,6 @@ jobs:
       - name: Dashboard Business Growth Closed Loop verification
         working-directory: apps/marketing-os
         run: npm run test:dashboard-closed-loop
-      - name: Release security inventory foundation verification
-        working-directory: apps/marketing-os
-        run: npm run test:release-security
       - name: Marketing OS typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
@@ -87,6 +84,9 @@ jobs:
         run: docker build -t ceo-ai-marketing-os:ci apps/marketing-os
       - name: Diff whitespace check
         run: git diff --check origin/main...HEAD
+      - name: Release security fail-closed verification
+        working-directory: apps/marketing-os
+        run: npm run test:release-security
 
   authenticated-rls:
     name: Authenticated JWT / RLS integration
