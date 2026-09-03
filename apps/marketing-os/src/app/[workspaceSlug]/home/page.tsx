@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getMarketingService } from '@/server/services';
+import { createInsufficientEvidenceDashboardModel } from '@/server/domain/dashboard-growth-loop';
 
 const growthLoop = [
   { key: 'SEE', title: 'เห็นข้อมูลจริง', detail: 'First-party evidence และเหตุการณ์ที่ตรวจสอบย้อนกลับได้' },
@@ -15,6 +16,7 @@ export default async function HomePage({ params }: { params: Promise<{ workspace
   const { workspaceSlug } = await params;
   const service = await getMarketingService();
   const data = await service.getHome(workspaceSlug);
+  const controlCenter = createInsufficientEvidenceDashboardModel(data.workspace.id);
 
   return (
     <main className="shell stack dashboard-shell">
@@ -29,10 +31,10 @@ export default async function HomePage({ params }: { params: Promise<{ workspace
         </div>
       </header>
 
-      <section className="card stack action-hero" aria-labelledby="next-action">
+      <section className="card stack action-hero" aria-labelledby="primary-work">
         <div className="action-hero-copy">
-          <span className="badge">Next Best Action</span>
-          <h2 id="next-action">{data.primaryAction.title}</h2>
+          <span className="badge">งานหลักวันนี้</span>
+          <h2 id="primary-work">{data.primaryAction.title}</h2>
           <p className="muted">{data.primaryAction.description}</p>
         </div>
         <div className="actions">
@@ -40,6 +42,46 @@ export default async function HomePage({ params }: { params: Promise<{ workspace
             ดำเนินการต่อ
           </Link>
         </div>
+      </section>
+
+      <section className="card stack" aria-labelledby="control-center-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Executive Control Center</p>
+            <h2 id="control-center-title">Marketing Health → Top Issue → NBA → Funnel → Campaign/Landing → Evidence Health → Experiment → Learning</h2>
+          </div>
+          <p className="muted section-note">ค่าเริ่มต้นของส่วนนี้เป็น fail-closed: ไม่มีหลักฐาน = ไม่มีคะแนนสมมติ และไม่มีข้อสรุปเชิงกลยุทธ์</p>
+        </div>
+
+        <div className="grid" aria-label="Governed business growth control center">
+          {controlCenter.stages.map((stage) => (
+            <article className="card stack" key={stage.stage}>
+              <div className="actions">
+                <span className="badge">{stage.evidence.truthState}</span>
+                <span className="badge warning">{stage.evidence.measurementHealth}</span>
+              </div>
+              <div>
+                <p className="eyebrow">{stage.stage.replaceAll('_', ' ')}</p>
+                <h3>{stage.title}</h3>
+                <p className="muted">{stage.summary}</p>
+              </div>
+              <p className="muted">
+                ค่า: {stage.displayValue ?? '—'} · Freshness: {stage.evidence.freshness} · Evidence: {stage.evidence.evidenceIds.length || 'ยังไม่มี'}
+              </p>
+            </article>
+          ))}
+        </div>
+
+        <aside className="decision-guardrail" aria-label="Governed Next Best Action">
+          <div>
+            <strong>Next Best Action เดียวที่ระบบอนุญาตตอนนี้</strong>
+            <p>{controlCenter.primaryNba.title} — {controlCenter.primaryNba.summary}</p>
+          </div>
+          <div>
+            <strong>Human Approval: Required</strong>
+            <p>สถานะ {controlCenter.primaryNba.status} · executable=false · ไม่มีการ publish, spend หรือ mutate ระบบภายนอกอัตโนมัติ</p>
+          </div>
+        </aside>
       </section>
 
       <section className="card stack" aria-labelledby="growth-loop-title">
