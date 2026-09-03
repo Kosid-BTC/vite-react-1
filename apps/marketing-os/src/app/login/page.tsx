@@ -1,4 +1,4 @@
-import { signIn } from './actions';
+import { resendConfirmation, signIn } from './actions';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -10,6 +10,25 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   const params = await searchParams;
   const next = first(params.next) ?? '/';
   const error = first(params.error);
+  const email = first(params.email) ?? '';
+  const confirmation = first(params.confirmation);
+  const confirmed = first(params.confirmed);
+
+  const message = error === 'missing_credentials'
+    ? 'กรุณากรอกอีเมลและรหัสผ่านให้ครบ'
+    : error === 'email_not_confirmed'
+      ? 'บัญชีนี้ยังไม่ได้ยืนยันอีเมล กรุณาส่งอีเมลยืนยันใหม่ด้านล่าง'
+      : error === 'missing_email'
+        ? 'กรุณากรอกอีเมลก่อนส่งลิงก์ยืนยันใหม่'
+        : error === 'resend_failed'
+          ? 'ส่งอีเมลยืนยันใหม่ไม่สำเร็จ กรุณาลองอีกครั้งภายหลัง'
+          : error
+            ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
+            : confirmation === 'sent'
+              ? 'ส่งอีเมลยืนยันใหม่แล้ว กรุณาตรวจสอบกล่องจดหมายและกดลิงก์ล่าสุดเท่านั้น'
+              : confirmed === '1'
+                ? 'ยืนยันอีเมลแล้ว กรุณาเข้าสู่ระบบด้วยอีเมลและรหัสผ่านเดิม'
+                : null;
 
   return (
     <main className="shell" style={{ maxWidth: 520, paddingTop: 72 }}>
@@ -20,11 +39,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
           <p className="muted">ใช้บัญชีที่ได้รับสิทธิ์ใน Workspace ของคุณ</p>
         </header>
 
-        {error && (
-          <p role="alert" className="muted">
-            {error === 'missing_credentials'
-              ? 'กรุณากรอกอีเมลและรหัสผ่านให้ครบ'
-              : 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'}
+        {message && (
+          <p role="status" className="muted">
+            {message}
           </p>
         )}
 
@@ -32,7 +49,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
           <input type="hidden" name="next" value={next} />
           <label className="stack" style={{ gap: 6 }}>
             <span>อีเมล</span>
-            <input name="email" type="email" autoComplete="email" required />
+            <input name="email" type="email" autoComplete="email" defaultValue={email} required />
           </label>
           <label className="stack" style={{ gap: 6 }}>
             <span>รหัสผ่าน</span>
@@ -40,6 +57,20 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
           </label>
           <button className="primary" type="submit">เข้าสู่ระบบ</button>
         </form>
+
+        {(error === 'email_not_confirmed' || confirmation === 'sent' || error === 'resend_failed') && (
+          <form action={resendConfirmation} className="stack" aria-label="ส่งอีเมลยืนยันใหม่">
+            <input type="hidden" name="next" value={next} />
+            <label className="stack" style={{ gap: 6 }}>
+              <span>อีเมลสำหรับยืนยัน</span>
+              <input name="email" type="email" autoComplete="email" defaultValue={email} required />
+            </label>
+            <button type="submit">ส่งอีเมลยืนยันใหม่</button>
+            <p className="muted" style={{ margin: 0 }}>
+              ใช้ลิงก์จากอีเมลฉบับล่าสุดเท่านั้น ลิงก์เก่าอาจหมดอายุหรือถูกใช้ไปแล้ว
+            </p>
+          </form>
+        )}
       </section>
     </main>
   );
