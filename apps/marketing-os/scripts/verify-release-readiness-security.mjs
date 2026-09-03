@@ -74,18 +74,31 @@ if (!grantMigration.includes('revoke execute on function public.update_updated_a
 const knownUnclassified = Array.isArray(inventory.knownUnclassifiedProductionSignatures)
   ? inventory.knownUnclassifiedProductionSignatures
   : [];
+const directAbuseTests = inventory.directAbuseTests === 'PASS' ? 'PASS' : 'PENDING';
+const completeInventory = inventory.completeness === 'COMPLETE' && knownUnclassified.length === 0;
+const gatePass = completeInventory && directAbuseTests === 'PASS';
 
 console.log(JSON.stringify({
-  gate: 'RELEASE_READINESS_SECURITY_INVENTORY_FOUNDATION',
-  status: 'PASS',
-  releaseReadinessSecurity: 'UNVERIFIED',
+  gate: 'RELEASE_READINESS_SECURITY',
+  status: gatePass ? 'PASS' : 'FAIL',
+  releaseReadinessSecurity: gatePass ? 'VERIFIED_PASS' : 'UNVERIFIED',
   completeness: inventory.completeness,
   classifiedFunctions: inventory.functions.length,
   publicAnonAllowed: anonAllowed.map((entry) => entry.signature),
   serviceOnly: serviceOnly.map((entry) => entry.signature),
   internalOnly: internal.map((entry) => entry.signature),
   knownUnclassifiedProductionSignatures: knownUnclassified,
-  directAbuseTests: 'PENDING',
+  directAbuseTests,
   productionTouched: false,
-  note: 'This foundation gate cannot classify RELEASE_READINESS_SECURITY VERIFIED PASS until inventory is COMPLETE and local direct abuse tests pass.',
+  note: gatePass
+    ? 'Release-security inventory and direct local abuse-test evidence are complete.'
+    : 'Fail-closed: RELEASE_READINESS_SECURITY cannot pass until inventory is COMPLETE, known-unclassified is empty, and direct local abuse tests are PASS.',
 }, null, 2));
+
+if (!gatePass) {
+  const blockers = [];
+  if (inventory.completeness !== 'COMPLETE') blockers.push(`inventory.completeness=${inventory.completeness}`);
+  if (knownUnclassified.length > 0) blockers.push(`knownUnclassified=${knownUnclassified.join(',')}`);
+  if (directAbuseTests !== 'PASS') blockers.push(`directAbuseTests=${directAbuseTests}`);
+  throw new Error(`RELEASE_READINESS_SECURITY fail-closed gate blocked: ${blockers.join('; ')}`);
+}
