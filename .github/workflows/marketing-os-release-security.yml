@@ -1,0 +1,63 @@
+name: Marketing OS Release Security
+
+on:
+  push:
+    branches:
+      - feat/marketing-os-phase1
+    paths:
+      - 'apps/marketing-os/config/security-definer-classification.json'
+      - 'apps/marketing-os/scripts/verify-release-security-boundaries-local.mjs'
+      - 'apps/marketing-os/scripts/verify-release-readiness-security.mjs'
+      - 'apps/marketing-os/package.json'
+      - 'apps/marketing-os/package-lock.json'
+      - 'supabase/migrations/**'
+      - '.github/workflows/marketing-os-release-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-security:
+    name: Local release-security evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/marketing-os/package-lock.json
+      - name: Install Marketing OS dependencies
+        working-directory: apps/marketing-os
+        run: npm ci --no-audit --no-fund
+      - name: Verify Docker
+        run: docker info
+      - name: Start disposable local Supabase
+        run: npx --yes supabase@2.40.0 start
+      - name: Migration reset / reapply #1
+        run: npx --yes supabase@2.40.0 db reset --local
+      - name: Migration reset / reapply #2
+        run: npx --yes supabase@2.40.0 db reset --local
+      - name: Direct local authorization-boundary verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          cd apps/marketing-os
+          npm run test:release-security-boundaries
+          echo "RELEASE_SECURITY_BOUNDARIES=PASS" >> "$GITHUB_ENV"
+      - name: Release security fail-closed classification
+        working-directory: apps/marketing-os
+        run: npm run test:release-security
+      - name: Stop disposable local Supabase
+        if: always()
+        run: npx --yes supabase@2.40.0 stop --no-backup
