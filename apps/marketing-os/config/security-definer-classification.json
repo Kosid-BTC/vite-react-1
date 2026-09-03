@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "gate": "RELEASE_READINESS_SECURITY_INVENTORY",
+  "completeness": "PARTIAL",
+  "source": {
+    "migration": "supabase/migrations/0027_reconcile_prod_rpc_grants.sql",
+    "marketingMigration": "supabase/migrations/202608230101_marketing_os_roles_helpers.sql"
+  },
+  "categories": [
+    "PUBLIC_ANON_ALLOWED",
+    "AUTHENTICATED_ALLOWED",
+    "SERVICE_ONLY",
+    "INTERNAL_ONLY"
+  ],
+  "functions": [
+    {"signature":"public.lead_count(text)","classification":"PUBLIC_ANON_ALLOWED","reason":"Public storefront social-proof count only"},
+    {"signature":"public.create_workspace(text)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated workspace bootstrap"},
+    {"signature":"public.ensure_default_workspace()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated default-workspace bootstrap"},
+    {"signature":"public.invite_member(uuid,text)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member-management RPC with internal guard"},
+    {"signature":"public.list_members(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member listing with workspace guard"},
+    {"signature":"public.set_member_role(uuid,uuid,text)","classification":"AUTHENTICATED_ALLOWED","reason":"Owner-guarded role mutation"},
+    {"signature":"public.remove_member(uuid,uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member mutation with internal guard"},
+    {"signature":"public.admin_list_workspaces()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated app-admin RPC with internal admin guard"},
+    {"signature":"public.admin_skill_adoption()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated app-admin RPC with internal admin guard"},
+    {"signature":"public.is_app_admin()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated authorization helper"},
+    {"signature":"public.is_member(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated RLS helper"},
+    {"signature":"public.delete_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Owner-guarded optional RPC"},
+    {"signature":"public.workspace_role_for(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS role helper"},
+    {"signature":"public.can_edit_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS authorization helper"},
+    {"signature":"public.can_review_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS authorization helper"},
+    {"signature":"public.can_manage_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS authorization helper"},
+    {"signature":"public.update_updated_at()","classification":"INTERNAL_ONLY","reason":"Trigger function; direct client execution is not required"}
+  ],
+  "knownUnclassifiedProductionSignatures": [
+    "public.has_org_role",
+    "public.is_org_member",
+    "public.is_service_role"
+  ],
+  "notes": "Fail-closed inventory foundation. PARTIAL is intentional until every production SECURITY DEFINER signature is reconciled against repository migrations and direct abuse tests. This file must not be used to claim RELEASE_READINESS_SECURITY VERIFIED PASS."
+}
