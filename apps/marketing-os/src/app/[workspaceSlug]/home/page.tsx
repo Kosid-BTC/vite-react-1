@@ -1,143 +1,224 @@
 import Link from 'next/link';
 import { getMarketingService } from '@/server/services';
-import { createInsufficientEvidenceDashboardModel } from '@/server/domain/dashboard-growth-loop';
 
-const growthLoop = [
-  { key: 'SEE', title: 'เห็นข้อมูลจริง', detail: 'First-party evidence และเหตุการณ์ที่ตรวจสอบย้อนกลับได้' },
-  { key: 'UNDERSTAND', title: 'เข้าใจสถานการณ์', detail: 'Measurement Health, Funnel และ Segmentation ก่อนตีความ' },
-  { key: 'DECIDE', title: 'ตัดสินใจ', detail: 'AI เสนอทางเลือกจากหลักฐาน แต่คนเป็นผู้อนุมัติ' },
-  { key: 'VALIDATE', title: 'ทดลอง', detail: 'Hypothesis และ Experiment Plan ที่วัดผลได้' },
-  { key: 'ACT', title: 'ลงมือทำ', detail: 'Campaign / Sales Action หลังผ่าน Human Approval' },
-  { key: 'MEASURE', title: 'วัดผล', detail: 'Observed Outcome, Attribution และ Revenue Evidence' },
-  { key: 'LEARN', title: 'เรียนรู้', detail: 'สรุปสิ่งที่เกิดขึ้นและสร้าง Next Best Action รอบถัดไป' },
+const metrics = [
+  { icon: '◎', label: 'Website Visitors', accent: 'blue' },
+  { icon: 'f', label: 'Facebook Reach', accent: 'blue' },
+  { icon: '▶', label: 'YouTube Views', accent: 'red' },
+  { icon: '●', label: 'Leads (Qualified)', accent: 'green' },
+  { icon: '◉', label: 'Conversion Rate', accent: 'pink' },
+  { icon: '฿', label: 'Revenue (Estimate)', accent: 'green' },
 ] as const;
+
+const sidebarGroups = [
+  { title: '', items: [{ label: 'Dashboard', key: 'dashboard' }] },
+  { title: 'STRATEGY', items: [{ label: 'Audience' }, { label: 'Message Pillars' }, { label: 'Brand Guardrails' }] },
+  { title: 'CONTENT FACTORY', items: [{ label: 'Content Calendar' }, { label: 'Content Items' }, { label: 'Create Content' }] },
+  { title: 'APPROVAL', items: [{ label: 'Review & Approve' }, { label: 'Content Library' }] },
+  { title: 'DISTRIBUTION', items: [{ label: 'Channels' }, { label: 'Publishing' }, { label: 'UTM & Tracking' }] },
+  { title: 'ANALYTICS', items: [{ label: 'Overview' }, { label: 'Campaigns', key: 'campaigns' }, { label: 'Content Performance' }, { label: 'Audience Insights' }, { label: 'Attribution' }] },
+  { title: 'EXPERIMENTS', items: [{ label: 'A/B Tests' }] },
+  { title: 'AI INSIGHTS', items: [{ label: 'Business Genome' }, { label: 'Next Best Actions' }] },
+  { title: 'SYSTEM', items: [{ label: 'Environment' }, { label: 'RLS / Security' }, { label: 'Production Readiness' }] },
+] as const;
+
+function Sparkline({ accent }: { accent: string }) {
+  return (
+    <svg className={`sparkline sparkline-${accent}`} viewBox="0 0 150 34" aria-hidden="true">
+      <polyline points="2,27 18,23 32,24 47,16 62,19 76,10 91,13 108,7 123,16 138,11 148,15" />
+    </svg>
+  );
+}
+
+function MetricCard({ icon, label, accent }: { icon: string; label: string; accent: string }) {
+  return (
+    <article className="metric-card">
+      <div className="metric-head">
+        <span className={`metric-icon metric-icon-${accent}`}>{icon}</span>
+        <span className="metric-label">{label}</span>
+      </div>
+      <div className="metric-value-row">
+        <strong className="metric-value">—</strong>
+        <span className="truth-chip">UNAVAILABLE</span>
+      </div>
+      <Sparkline accent={accent} />
+      <p className="metric-foot">ยังไม่มีหลักฐาน Production สำหรับช่วงเวลานี้</p>
+    </article>
+  );
+}
 
 export default async function HomePage({ params }: { params: Promise<{ workspaceSlug: string }> }) {
   const { workspaceSlug } = await params;
   const service = await getMarketingService();
   const data = await service.getHome(workspaceSlug);
-  const controlCenter = createInsufficientEvidenceDashboardModel(data.workspace.id);
+  const recommendationQueue = [data.primaryAction, ...data.actions.filter((action) => action.id !== data.primaryAction.id)].slice(0, 5);
 
   return (
-    <main className="shell stack dashboard-shell">
-      <header className="dashboard-header">
-        <div>
-          <p className="eyebrow">CEO AI Thailand · Business Growth Closed Loop</p>
-          <h1>วันนี้ควรทำอะไรต่อ?</h1>
-          <p className="muted">{data.workspace.name} — เริ่มจากหลักฐานจริง แล้วพาธุรกิจไปสู่การตัดสินใจที่วัดผลได้</p>
-        </div>
-        <div className="evidence-chip" aria-label="Evidence-first governance">
-          Evidence First · Human Approval
-        </div>
-      </header>
-
-      <section className="card stack action-hero" aria-labelledby="primary-work">
-        <div className="action-hero-copy">
-          <span className="badge">งานหลักวันนี้</span>
-          <h2 id="primary-work">{data.primaryAction.title}</h2>
-          <p className="muted">{data.primaryAction.description}</p>
-        </div>
-        <div className="actions">
-          <Link className="primary" href={data.primaryAction.action_href ?? `/${workspaceSlug}/campaigns/new`}>
-            ดำเนินการต่อ
-          </Link>
-        </div>
-      </section>
-
-      <section className="card stack" aria-labelledby="control-center-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Executive Control Center</p>
-            <h2 id="control-center-title">Marketing Health → Top Issue → NBA → Funnel → Campaign/Landing → Evidence Health → Experiment → Learning</h2>
-          </div>
-          <p className="muted section-note">ค่าเริ่มต้นของส่วนนี้เป็น fail-closed: ไม่มีหลักฐาน = ไม่มีคะแนนสมมติ และไม่มีข้อสรุปเชิงกลยุทธ์</p>
+    <main className="marketing-app-shell">
+      <aside className="app-sidebar" aria-label="เมนูหลัก">
+        <div className="brand-lockup">
+          <div className="brand-mark" aria-hidden="true"><span>A</span></div>
+          <div><strong>CEO AI</strong><small>THAILAND</small></div>
+          <span className="sidebar-menu-icon">☷</span>
         </div>
 
-        <div className="grid" aria-label="Governed business growth control center">
-          {controlCenter.stages.map((stage) => (
-            <article className="card stack" key={stage.stage}>
-              <div className="actions">
-                <span className="badge">{stage.evidence.truthState}</span>
-                <span className="badge warning">{stage.evidence.measurementHealth}</span>
-              </div>
-              <div>
-                <p className="eyebrow">{stage.stage.replaceAll('_', ' ')}</p>
-                <h3>{stage.title}</h3>
-                <p className="muted">{stage.summary}</p>
-              </div>
-              <p className="muted">
-                ค่า: {stage.displayValue ?? '—'} · Freshness: {stage.evidence.freshness} · Evidence: {stage.evidence.evidenceIds.length || 'ยังไม่มี'}
-              </p>
-            </article>
+        <nav className="sidebar-nav">
+          {sidebarGroups.map((group, groupIndex) => (
+            <section className="sidebar-group" key={`${group.title}-${groupIndex}`}>
+              {group.title && <p className="sidebar-section-title">{group.title}</p>}
+              {group.items.map((item) => {
+                const href = item.key === 'dashboard'
+                  ? `/${workspaceSlug}/home`
+                  : item.key === 'campaigns'
+                    ? `/${workspaceSlug}/campaigns`
+                    : null;
+                const active = item.key === 'dashboard';
+                return href ? (
+                  <Link className={`sidebar-item ${active ? 'active' : ''}`} href={href} key={item.label}>
+                    <span className="sidebar-dot" />{item.label}
+                  </Link>
+                ) : (
+                  <span className="sidebar-item muted-item" aria-disabled="true" key={item.label}>
+                    <span className="sidebar-dot" />{item.label}
+                  </span>
+                );
+              })}
+              {group.title === 'CONTENT FACTORY' && (
+                <div className="sidebar-subitems" aria-label="Create Content">
+                  <span>Text to Image</span><span>Text to Video</span><span>Image to Video</span>
+                </div>
+              )}
+            </section>
           ))}
-        </div>
+        </nav>
 
-        <aside className="decision-guardrail" aria-label="Governed Next Best Action">
-          <div>
-            <strong>Next Best Action เดียวที่ระบบอนุญาตตอนนี้</strong>
-            <p>{controlCenter.primaryNba.title} — {controlCenter.primaryNba.summary}</p>
-          </div>
-          <div>
-            <strong>Human Approval: Required</strong>
-            <p>สถานะ {controlCenter.primaryNba.status} · executable=false · ไม่มีการ publish, spend หรือ mutate ระบบภายนอกอัตโนมัติ</p>
-          </div>
-        </aside>
-      </section>
-
-      <section className="card stack" aria-labelledby="growth-loop-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Growth Operating System</p>
-            <h2 id="growth-loop-title">SEE → UNDERSTAND → DECIDE → VALIDATE → ACT → MEASURE → LEARN</h2>
-          </div>
-          <p className="muted section-note">ระบบไม่สร้างตัวเลขหรือความมั่นใจขึ้นเอง หากหลักฐานไม่พอ ระบบต้องบอกให้เก็บข้อมูลเพิ่มก่อน</p>
-        </div>
-
-        <ol className="growth-loop" aria-label="Business Growth Closed Loop">
-          {growthLoop.map((stage, index) => (
-            <li className="growth-stage" key={stage.key}>
-              <div className="growth-stage-index">{String(index + 1).padStart(2, '0')}</div>
-              <div>
-                <p className="growth-stage-key">{stage.key}</p>
-                <h3>{stage.title}</h3>
-                <p className="muted">{stage.detail}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="decision-guardrail" aria-label="Decision guardrails">
-        <div>
-          <strong>Measurement Health ก่อนคำแนะนำเชิงธุรกิจ</strong>
-          <p>ข้อมูลยังไม่พร้อม = แสดงจำนวนจริงและสิ่งที่ต้องเก็บเพิ่ม แทนการสรุป Conversion, CPA, ROAS หรือ LTV/CAC เกินหลักฐาน</p>
-        </div>
-        <div>
-          <strong>AI เสนอ · คนอนุมัติ</strong>
-          <p>Experiment winner, Next Best Action, Campaign และ Sales Action ยังต้องผ่าน Human Review ก่อนนำไปใช้</p>
-        </div>
-      </section>
-
-      {data.actions.length > 1 && (
-        <section aria-labelledby="queue-title">
-          <div className="section-heading compact-heading">
-            <div>
-              <p className="eyebrow">Work Queue</p>
-              <h2 id="queue-title">งานถัดไป</h2>
-            </div>
-          </div>
-          <div className="grid">
-            {data.actions.slice(1).map((action) => (
-              <article className="card" key={action.id}>
-                <p className="eyebrow">Priority {action.priority}</p>
-                <h3>{action.title}</h3>
-                {action.description && <p className="muted">{action.description}</p>}
-                {action.action_href && <Link className="secondary" href={action.action_href}>เปิดงาน</Link>}
-              </article>
-            ))}
-          </div>
+        <section className="environment-card">
+          <div className="environment-row"><span>Environment</span><strong>PRODUCTION</strong></div>
+          <small>Workspace</small>
+          <p>{data.workspace.name}</p>
+          <span className="health-line">● System connected</span>
         </section>
-      )}
+      </aside>
+
+      <section className="app-main">
+        <header className="topbar">
+          <div className="global-search">⌕ <span>Search campaigns, content, or anything...</span></div>
+          <div className="topbar-actions">
+            <span className="notification">♧<b>0</b></span>
+            <div className="profile-avatar">TC</div>
+            <div className="profile-copy"><strong>Tanawat C.</strong><small>Marketing Admin</small></div>
+          </div>
+        </header>
+
+        <div className="dashboard-content">
+          <section className="dashboard-title-row">
+            <div>
+              <h1>CEO AI Thailand</h1>
+              <p>Marketing OS</p>
+            </div>
+            <div className="title-actions">
+              <span className="date-filter">1 – 31 ส.ค. 2026　▣</span>
+              <Link className="reference-primary" href={`/${workspaceSlug}/campaigns/new`}>＋ สร้างแคมเปญใหม่</Link>
+            </div>
+          </section>
+
+          <section className="welcome-row">
+            <div>
+              <h2>สวัสดีครับ Tanawat</h2>
+              <p>นี่คือภาพรวมการตลาดของคุณวันนี้ พร้อมคำแนะนำจาก AI</p>
+            </div>
+            <div className="connection-strip" aria-label="สถานะระบบเชื่อมต่อ">
+              <span className="connection-pill ok">✓ ทุกระบบทำงานปกติ</span>
+              <span className="connection-pill"><b>◎</b> Website <small>ยังไม่มีข้อมูลวัดผล</small></span>
+              <span className="connection-pill"><b>f</b> Facebook <small>ยังไม่มีข้อมูลวัดผล</small></span>
+              <span className="connection-pill"><b>▶</b> YouTube <small>ยังไม่มีข้อมูลวัดผล</small></span>
+              <span className="connection-pill genome"><b>◌</b> Business Genome <small>UNAVAILABLE</small></span>
+            </div>
+          </section>
+
+          <section className="metric-grid" aria-label="Marketing KPIs">
+            {metrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}
+          </section>
+
+          <section className="dashboard-grid-primary">
+            <article className="panel performance-panel">
+              <div className="panel-heading">
+                <div><h2>Performance Overview</h2><div className="tab-row"><span className="tab active">ภาพรวม</span><span className="tab">Website</span><span className="tab">Facebook</span><span className="tab">YouTube</span></div></div>
+                <span className="panel-filter">30 วันล่าสุด　⌄</span>
+              </div>
+              <div className="performance-body">
+                <div className="chart-area">
+                  <div className="chart-legend"><span className="legend-purple">● Website Visitors</span><span className="legend-blue">● Facebook Reach</span><span className="legend-pink">● YouTube Views</span><span className="legend-green">● Leads</span></div>
+                  <div className="empty-chart">
+                    <svg viewBox="0 0 700 250" preserveAspectRatio="none" aria-hidden="true">
+                      {[40, 85, 130, 175, 220].map((y) => <line key={y} x1="0" y1={y} x2="700" y2={y} />)}
+                    </svg>
+                    <div className="empty-chart-copy"><strong>ยังไม่มีข้อมูล Performance ที่วัดได้</strong><span>Measurement Health: UNAVAILABLE</span></div>
+                  </div>
+                </div>
+                <aside className="traffic-source">
+                  <h3>Traffic Sources</h3>
+                  <div className="donut-empty"><span>—</span><small>Total Visitors</small></div>
+                  <ul><li><i className="facebook" />Facebook <b>—</b></li><li><i className="youtube" />YouTube <b>—</b></li><li><i className="search" />Google Search <b>—</b></li><li><i className="direct" />Direct <b>—</b></li><li><i className="other" />Other <b>—</b></li></ul>
+                </aside>
+              </div>
+            </article>
+
+            <aside className="panel ai-panel">
+              <div className="panel-heading compact"><h2>✦ AI แนะนำสำหรับคุณ</h2><span>ทั้งหมด</span></div>
+              <div className="recommendation-list">
+                {recommendationQueue.map((action, index) => (
+                  <article className="recommendation" key={action.id}>
+                    <span className={`recommendation-icon r${(index % 4) + 1}`}>{index + 1}</span>
+                    <div><strong>{action.title}</strong><p>{action.description || 'คำแนะนำนี้อ้างอิงจากงานที่มีอยู่ใน Workspace'}</p></div>
+                    {action.action_href ? <Link href={action.action_href}>ดำเนินการ</Link> : <span className="disabled-action">UNAVAILABLE</span>}
+                  </article>
+                ))}
+                {recommendationQueue.length === 0 && <p className="empty-state">ยังไม่มี Next Best Action ที่มีหลักฐานเพียงพอ</p>}
+              </div>
+            </aside>
+          </section>
+
+          <section className="dashboard-grid-secondary">
+            <article className="panel genome-panel">
+              <div className="panel-heading compact"><div><h2>◉ Business Genome</h2><p>ตัวแบบธุรกิจและกลยุทธ์ของคุณ</p></div><span className="status-active">Evidence required</span></div>
+              <div className="genome-body">
+                <div className="dna-placeholder">DNA</div>
+                <div className="genome-fields">
+                  <div><small>Latest Version</small><strong>UNAVAILABLE</strong></div>
+                  <div><small>Target Market</small><strong>ยังไม่มีหลักฐาน</strong></div>
+                  <div><small>Value Proposition</small><strong>ยังไม่มีหลักฐาน</strong></div>
+                  <div><small>Growth Strategy</small><strong>ยังไม่มีหลักฐาน</strong></div>
+                  <div><small>Key Differentiator</small><strong>ยังไม่มีหลักฐาน</strong></div>
+                </div>
+              </div>
+            </article>
+
+            <article className="panel mit-panel">
+              <div className="panel-heading compact"><div><h2>▣ MIT 24 Steps</h2><p>แผนการดำเนินงาน 24 ขั้นตอน</p></div><span>ดูทั้งหมด</span></div>
+              <div className="mit-body">
+                <div className="progress-ring"><strong>—</strong><small>/24</small></div>
+                <ol><li>Market Research <span>UNAVAILABLE</span></li><li>Customer Analysis <span>UNAVAILABLE</span></li><li>Positioning <span>UNAVAILABLE</span></li><li>Content Strategy <span>UNAVAILABLE</span></li><li>Channel Setup <span>UNAVAILABLE</span></li><li>Campaign Launch <span>UNAVAILABLE</span></li></ol>
+              </div>
+            </article>
+
+            <article className="panel recent-panel">
+              <div className="panel-heading compact"><h2>Recent Activity</h2><span>ทั้งหมด</span></div>
+              <div className="activity-list">
+                {data.actions.slice(0, 5).map((action, index) => <div className="activity-item" key={action.id}><span>{index + 1}</span><div><strong>{action.title}</strong><p>{action.description || 'Workspace activity'}</p></div><small>LIVE</small></div>)}
+                {data.actions.length === 0 && <p className="empty-state">ยังไม่มีกิจกรรมล่าสุด</p>}
+              </div>
+            </article>
+          </section>
+
+          <section className="panel platform-panel">
+            <div className="panel-heading compact"><div><h2>การเชื่อมต่อกับแพลตฟอร์ม</h2><p>เชื่อมต่อแล้ว 0/3 แพลตฟอร์มที่มีหลักฐานยืนยันใน Dashboard</p></div></div>
+            <div className="platform-grid"><div><b>◎</b><span><strong>Website</strong><small>UNVERIFIED</small></span></div><div><b>f</b><span><strong>Facebook</strong><small>UNVERIFIED</small></span></div><div><b>▶</b><span><strong>YouTube</strong><small>UNVERIFIED</small></span></div></div>
+          </section>
+
+          <footer className="dashboard-footer"><span>CEO AI Thailand　·　Marketing OS　·　Reference UI V2</span><span>Powered by AI　|　Built for Sustainable Growth</span></footer>
+        </div>
+      </section>
     </main>
   );
 }
