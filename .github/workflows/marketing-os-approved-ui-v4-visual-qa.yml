@@ -1,0 +1,137 @@
+name: Marketing OS Approved UI V4 Authenticated Visual QA
+
+on:
+  push:
+    branches:
+      - feat/marketing-os-approved-ui-v4
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-os-approved-ui-v4-visual-qa
+  cancel-in-progress: true
+
+jobs:
+  visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Assert exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "UI_SHA_VERIFIED=$GITHUB_SHA"
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/marketing-os/package-lock.json
+      - name: Install Marketing OS dependencies
+        working-directory: apps/marketing-os
+        run: npm ci --no-audit --no-fund
+      - name: Verify Docker
+        run: docker info
+      - name: Start disposable local Supabase
+        run: npx --yes supabase@2.40.0 start
+      - name: Reset local database twice
+        run: |
+          npx --yes supabase@2.40.0 db reset --local
+          npx --yes supabase@2.40.0 db reset --local
+      - name: Generate ephemeral QA credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          qa_password="$(openssl rand -hex 20)"
+          echo "::add-mask::$qa_password"
+          echo "QA_EMAIL=visual-qa@ceoai.local" >> "$GITHUB_ENV"
+          echo "QA_PASSWORD=$qa_password" >> "$GITHUB_ENV"
+      - name: Seed disposable authenticated QA user and workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export QA_SUPABASE_URL="$API_URL"
+          export QA_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          cd apps/marketing-os
+          node --input-type=module <<'NODE'
+          import { createClient } from '@supabase/supabase-js';
+          const admin = createClient(process.env.QA_SUPABASE_URL, process.env.QA_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+          const created = await admin.auth.admin.createUser({ email: process.env.QA_EMAIL, password: process.env.QA_PASSWORD, email_confirm: true });
+          if (created.error || !created.data.user) throw created.error ?? new Error('user create failed');
+          const userId = created.data.user.id;
+          const workspace = await admin.from('workspaces').insert({ name: 'CEO AI Thailand', slug: 'ceo-ai-thailand-visual-qa', owner_id: userId }).select('id').single();
+          if (workspace.error || !workspace.data) throw workspace.error ?? new Error('workspace create failed');
+          const member = await admin.from('workspace_members').insert({ workspace_id: workspace.data.id, user_id: userId, role: 'owner' });
+          if (member.error) throw member.error;
+          console.log('VISUAL_QA_SEED=PASS');
+          NODE
+      - name: Build authenticated QA app
+        working-directory: apps/marketing-os
+        run: npm run build
+      - name: Install Playwright Chromium
+        working-directory: apps/marketing-os
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start app
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx next start -H 127.0.0.1 -p 3000 > /tmp/marketing-os-v4.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/login >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/marketing-os-v4.log
+          exit 1
+      - name: Login and capture desktop/mobile dashboard screenshots
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-qa-artifacts
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: 1 });
+          await page.goto('http://127.0.0.1:3000/login', { waitUntil: 'networkidle' });
+          await page.locator('input[name="email"]').first().fill(process.env.QA_EMAIL);
+          await page.locator('input[name="password"]').fill(process.env.QA_PASSWORD);
+          await page.locator('form').first().locator('button[type="submit"]').click();
+          await page.waitForURL(url => !url.pathname.startsWith('/login'), { timeout: 15000 });
+          await page.waitForLoadState('networkidle');
+          if (!(await page.locator('text=Performance Overview').first().isVisible())) throw new Error('Dashboard did not render Performance Overview');
+          if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Expected exactly six KPI cards');
+          await page.screenshot({ path: 'visual-qa-artifacts/desktop-1536x1024.png', fullPage: true });
+          await page.setViewportSize({ width: 390, height: 844 });
+          await page.waitForTimeout(500);
+          const pBox = await page.locator('.performance-panel').boundingBox();
+          const aBox = await page.locator('.ai-panel').boundingBox();
+          if (!pBox || !aBox || pBox.y >= aBox.y) throw new Error('Mobile hierarchy regression: Performance must precede AI Recommendations');
+          if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Mobile must retain all six KPI cards');
+          await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: true });
+          console.log('AUTHENTICATED_VISUAL_QA_CAPTURE=PASS');
+          await browser.close();
+          NODE
+      - name: Upload visual QA screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-ui-v4-visual-qa-${{ github.sha }}
+          path: apps/marketing-os/visual-qa-artifacts/*.png
+          if-no-files-found: error
+          retention-days: 7
+      - name: Stop disposable local Supabase
+        if: always()
+        run: npx --yes supabase@2.40.0 stop --no-backup
