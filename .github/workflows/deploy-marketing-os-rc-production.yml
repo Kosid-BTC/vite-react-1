@@ -14,7 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TOKEN_PRIMARY: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TOKEN_ACCESS: ${{ secrets.VERCEL_ACCESS_TOKEN }}
+      VERCEL_TOKEN_API: ${{ secrets.VERCEL_API_TOKEN }}
+      VERCEL_TOKEN_CLI: ${{ secrets.VERCEL_CLI_TOKEN }}
       RC_SHA: 2bd740b9e743d58a2163893a57cf59f3ea7d89d7
       VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
       VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
@@ -32,15 +35,21 @@ jobs:
           test "$(git rev-parse HEAD)" = "$RC_SHA"
           echo "RC_SHA_VERIFIED=$RC_SHA"
 
-      - name: Verify Vercel deployment credential
+      - name: Resolve Vercel deployment credential
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${VERCEL_TOKEN:-}" ]; then
-            echo "VERCEL_TOKEN is not configured in GitHub Actions secrets." >&2
+          token="${VERCEL_TOKEN_PRIMARY:-}"
+          source_name="VERCEL_TOKEN"
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_ACCESS:-}" ]; then token="$VERCEL_TOKEN_ACCESS"; source_name="VERCEL_ACCESS_TOKEN"; fi
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_API:-}" ]; then token="$VERCEL_TOKEN_API"; source_name="VERCEL_API_TOKEN"; fi
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_CLI:-}" ]; then token="$VERCEL_TOKEN_CLI"; source_name="VERCEL_CLI_TOKEN"; fi
+          if [ -z "$token" ]; then
+            echo "No supported Vercel deployment credential is configured in GitHub Actions secrets." >&2
             exit 78
           fi
-          echo "VERCEL_TOKEN_PRESENT=true"
+          echo "VERCEL_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "VERCEL_CREDENTIAL_SOURCE=$source_name"
 
       - name: Setup Node
         uses: actions/setup-node@v4
