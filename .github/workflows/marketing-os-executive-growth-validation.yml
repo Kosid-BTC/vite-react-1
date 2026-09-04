@@ -1,0 +1,71 @@
+name: Marketing OS Executive Growth Validation
+
+on:
+  push:
+    branches:
+      - feat/marketing-os-executive-growth-v3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-os-executive-growth-validation
+  cancel-in-progress: true
+
+jobs:
+  validate-executive-growth:
+    name: Executive Growth build and regression validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Assert exact branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "UI_SHA_VERIFIED=${GITHUB_SHA}"
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/marketing-os/package-lock.json
+      - name: Install Marketing OS dependencies
+        working-directory: apps/marketing-os
+        run: npm ci --no-audit --no-fund
+      - name: Marketing OS typecheck
+        working-directory: apps/marketing-os
+        run: npm run typecheck
+      - name: Marketing OS dashboard closed-loop regression
+        working-directory: apps/marketing-os
+        run: npm run test:dashboard-closed-loop
+      - name: Marketing OS auth recovery regression
+        working-directory: apps/marketing-os
+        run: npm run test:auth-recovery
+      - name: Marketing OS build
+        working-directory: apps/marketing-os
+        run: npm run build
+      - name: Reference structure assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          page='apps/marketing-os/src/app/[workspaceSlug]/home/page.tsx'
+          css='apps/marketing-os/src/app/executive-growth.css'
+          grep -q 'ภาพรวมธุรกิจ' "$page"
+          grep -q 'Growth Activity' "$page"
+          grep -q 'Business Health' "$page"
+          grep -q 'Next Best Actions' "$page"
+          grep -q 'Conversion Funnel' "$page"
+          grep -q 'Acquisition Mix' "$page"
+          grep -q '3 สิ่งที่ควรทำวันนี้' "$page"
+          grep -q 'grid-template-columns: 188px' "$css"
+          grep -q '.eg-sidebar' "$css"
+          grep -q '.eg-mobile' "$css"
+          echo 'EXECUTIVE_GROWTH_REFERENCE_STRUCTURE=PASS'
+      - name: Diff whitespace check
+        run: git diff --check origin/feat/marketing-os-phase1...HEAD
