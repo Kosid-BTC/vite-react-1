@@ -52,6 +52,18 @@ jobs:
           export SUPABASE_URL="$API_URL"
           export SUPABASE_ANON_KEY="$ANON_KEY"
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+
+          # Production currently contains these backend-only tables out-of-band, while the clean
+          # repository schema does not. Materialize disposable local fixtures, then re-run the
+          # exact release migration so its conditional least-privilege grants are exercised.
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          create table if not exists public.youtube_projects (id uuid primary key default gen_random_uuid());
+          create table if not exists public.youtube_quota (id uuid primary key default gen_random_uuid());
+          alter table public.youtube_projects enable row level security;
+          alter table public.youtube_quota enable row level security;
+          SQL
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260904072500_release_security_reconcile.sql
+
           cd apps/marketing-os
           npm run test:release-security-boundaries
           echo "RELEASE_SECURITY_BOUNDARIES=PASS" >> "$GITHUB_ENV"
