@@ -15,9 +15,9 @@ concurrency:
 
 jobs:
   validate-executive-growth:
-    name: Executive Growth build and regression validation
+    name: Executive Growth build, regression, and visual artifact validation
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout exact branch head
         uses: actions/checkout@v4
@@ -57,6 +57,7 @@ jobs:
           home='apps/marketing-os/src/app/[workspaceSlug]/home/page.tsx'
           view='apps/marketing-os/src/components/executive-growth-dashboard.tsx'
           qa='apps/marketing-os/src/app/visual-qa/executive-growth/page.tsx'
+          middleware='apps/marketing-os/src/middleware.ts'
           css='apps/marketing-os/src/app/executive-growth.css'
           grep -q 'ExecutiveGrowthDashboard' "$home"
           grep -q 'ภาพรวมธุรกิจ' "$view"
@@ -69,9 +70,56 @@ jobs:
           grep -q "'รายงาน'" "$view"
           grep -q 'AI Business Copilot' "$view"
           grep -q "VERCEL_ENV === 'production'" "$qa"
+          grep -q "VISUAL_QA_PREFIX" "$middleware"
           grep -q 'grid-template-columns: 188px' "$css"
           grep -q '.eg-sidebar' "$css"
           grep -q '.eg-mobile' "$css"
           echo 'EXECUTIVE_GROWTH_REFERENCE_STRUCTURE=PASS'
+      - name: Start local visual QA server
+        working-directory: apps/marketing-os
+        shell: bash
+        env:
+          VERCEL_ENV: preview
+        run: |
+          set -euo pipefail
+          npm start -- -p 3000 > /tmp/marketing-os-visual-qa.log 2>&1 &
+          echo $! > /tmp/marketing-os-visual-qa.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/visual-qa/executive-growth >/tmp/visual-qa.html; then
+              grep -q 'ภาพรวมธุรกิจ' /tmp/visual-qa.html
+              echo 'VISUAL_QA_SERVER=READY'
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/marketing-os-visual-qa.log >&2
+          exit 1
+      - name: Capture desktop and mobile visual QA artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          if [ -z "$chrome" ]; then
+            echo 'No Chrome/Chromium binary available on runner.' >&2
+            exit 1
+          fi
+          mkdir -p visual-qa-artifacts
+          "$chrome" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1280,820 --virtual-time-budget=1500 --screenshot=visual-qa-artifacts/executive-growth-desktop.png http://127.0.0.1:3000/visual-qa/executive-growth
+          "$chrome" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=390,844 --virtual-time-budget=1500 --screenshot=visual-qa-artifacts/executive-growth-mobile.png http://127.0.0.1:3000/visual-qa/executive-growth
+          test -s visual-qa-artifacts/executive-growth-desktop.png
+          test -s visual-qa-artifacts/executive-growth-mobile.png
+          echo 'VISUAL_QA_SCREENSHOTS=CAPTURED'
+      - name: Upload visual QA screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: executive-growth-visual-qa-${{ github.sha }}
+          path: visual-qa-artifacts/*.png
+          if-no-files-found: error
+          retention-days: 7
+      - name: Stop local visual QA server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/marketing-os-visual-qa.pid ]; then kill "$(cat /tmp/marketing-os-visual-qa.pid)" 2>/dev/null || true; fi
       - name: Diff whitespace check
         run: git diff --check origin/feat/marketing-os-phase1...HEAD
