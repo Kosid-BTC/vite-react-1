@@ -2,8 +2,18 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PUBLIC_PATHS = new Set(['/login', '/auth/confirm']);
+const VISUAL_QA_PREFIX = '/visual-qa/';
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Visual-QA pages contain no customer data and are rendered from safe fixture data.
+  // The route itself returns notFound() in production; bypassing auth here lets CI
+  // screenshot the exact presentational component without requiring user credentials.
+  if (pathname.startsWith(VISUAL_QA_PREFIX)) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -27,7 +37,6 @@ export async function middleware(request: NextRequest) {
 
   // getUser() verifies the session with Supabase Auth and also refreshes stale cookies.
   const { data: { user } } = await supabase.auth.getUser();
-  const pathname = request.nextUrl.pathname;
 
   if (!user && !PUBLIC_PATHS.has(pathname)) {
     const loginUrl = request.nextUrl.clone();
