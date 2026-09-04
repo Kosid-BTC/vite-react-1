@@ -94,8 +94,8 @@ jobs:
           key_match = re.search(r'SUPABASE_PUBLISHABLE_KEY:\s*(\S+)', source)
           if not url_match or not key_match:
               raise SystemExit('Unable to resolve verified public Supabase runtime config')
-          url = url_match.group(1).strip('"\'')
-          key = key_match.group(1).strip('"\'')
+          url = url_match.group(1).strip().strip('"').strip("'")
+          key = key_match.group(1).strip().strip('"').strip("'")
           if not url.startswith('https://') or not key.startswith('sb_publishable_'):
               raise SystemExit('Resolved Supabase runtime config has unexpected format')
           env_file = Path('apps/marketing-os/.vercel/.env.preview.local')
@@ -104,8 +104,6 @@ jobs:
           kept = [line for line in existing.splitlines() if not line.startswith('NEXT_PUBLIC_SUPABASE_URL=') and not line.startswith('NEXT_PUBLIC_SUPABASE_ANON_KEY=')]
           kept += [f'NEXT_PUBLIC_SUPABASE_URL="{url}"', f'NEXT_PUBLIC_SUPABASE_ANON_KEY="{key}"']
           env_file.write_text('\n'.join(kept) + '\n')
-          with open(Path(subprocess.check_output(['bash','-lc','printf %s "$GITHUB_ENV"'], text=True).strip()), 'a') as handle:
-              handle.write(f'SUPABASE_PUBLIC_URL_FOR_MASK={url}\n')
           print('SUPABASE_PREVIEW_PUBLIC_CONFIG=VERIFIED')
           PY
           grep -q '^NEXT_PUBLIC_SUPABASE_URL=' apps/marketing-os/.vercel/.env.preview.local
