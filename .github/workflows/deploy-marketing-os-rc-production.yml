@@ -19,8 +19,7 @@ jobs:
       VERCEL_TOKEN_API: ${{ secrets.VERCEL_API_TOKEN }}
       VERCEL_TOKEN_CLI: ${{ secrets.VERCEL_CLI_TOKEN }}
       RC_SHA: 2bd740b9e743d58a2163893a57cf59f3ea7d89d7
-      VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
-      VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
+      VERCEL_PROJECT_NAME: ceo-ai-marketing-os
       VERCEL_TEAM_SLUG: kosid-btcs-projects
     steps:
       - name: Checkout exact release candidate
@@ -63,13 +62,21 @@ jobs:
         working-directory: apps/marketing-os
         run: npm ci --no-audit --no-fund
 
+      - name: Verify Vercel account and team access
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes vercel@latest whoami --token="$VERCEL_TOKEN"
+          npx --yes vercel@latest project ls --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+
       - name: Link exact Vercel project
         working-directory: apps/marketing-os
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .vercel
-          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          rm -rf .vercel
+          npx --yes vercel@latest link --yes --project="$VERCEL_PROJECT_NAME" --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
           npx --yes vercel@latest pull --yes --environment=production --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
 
       - name: Build production artifact
