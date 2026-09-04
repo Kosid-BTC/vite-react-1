@@ -1,0 +1,51 @@
+name: Marketing OS Reference UI Validation
+
+on:
+  push:
+    branches:
+      - feat/marketing-os-reference-ui-v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-reference-ui:
+    name: Reference UI build and regression validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install root dependencies
+        run: npm ci
+      - name: Root regression suite
+        run: npm run test:run
+      - name: Root build
+        run: npm run build
+      - name: Root lint
+        run: npm run lint
+      - name: Install Marketing OS dependencies
+        working-directory: apps/marketing-os
+        run: npm ci --no-audit --no-fund
+      - name: Marketing OS typecheck
+        working-directory: apps/marketing-os
+        run: npm run typecheck
+      - name: Marketing OS dashboard closed-loop regression
+        working-directory: apps/marketing-os
+        run: npm run test:dashboard-closed-loop
+      - name: Marketing OS auth recovery regression
+        working-directory: apps/marketing-os
+        run: npm run test:auth-recovery
+      - name: Marketing OS build
+        working-directory: apps/marketing-os
+        run: npm run build
+      - name: Diff whitespace check
+        run: git diff --check origin/feat/marketing-os-phase1...HEAD
