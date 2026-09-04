@@ -130,7 +130,7 @@ jobs:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
         run: |
           set -euo pipefail
-          npx --yes vercel@latest curl /login --deployment "$DEPLOYMENT_URL" --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" > /tmp/login.html
+          npx --yes vercel@latest --scope="$VERCEL_TEAM_SLUG" curl /login --deployment "$DEPLOYMENT_URL" > /tmp/login.html
           grep -q 'CEO AI Thailand' /tmp/login.html
           grep -q 'เข้าสู่ระบบ' /tmp/login.html
           echo "CORRECT_PROJECT_PREVIEW_SMOKE=PASS"
