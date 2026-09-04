@@ -11,6 +11,7 @@ This document intentionally supersedes the light-sidebar / purple Marketing OS d
 - KPI strip: Business Health, Leads, Conversion, MRR.
 - Main area: Growth Activity chart on the left; Business Health and Next Best Actions stacked on the right.
 - Lower area: Conversion Funnel, Acquisition Mix, and Today operations.
+- Sidebar hierarchy ends with `รายงาน` and `AI Business Copilot` at the bottom.
 - Kanit is the primary UI font.
 
 ## Mobile
@@ -19,7 +20,7 @@ This document intentionally supersedes the light-sidebar / purple Marketing OS d
 - Main title: `ภาพรวมธุรกิจ`.
 - Dark Business Health hero card.
 - Leads + MRR summary cards.
-- `3 สิ่งที่ควรทำวันนี้` list.
+- `3 เรื่องที่ควรทำต่อ` list.
 - Compact Growth Trend section.
 
 ## Data integrity
