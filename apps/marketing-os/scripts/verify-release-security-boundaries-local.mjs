@@ -72,22 +72,22 @@ check(typeof wsA === 'string' && typeof wsB === 'string' && wsA !== wsB, 'expect
 const publicDenied = [
   ['create_workspace', { p_name: `Public-${runId}` }],
   ['ensure_default_workspace', {}],
-  ['list_members', { p_workspace_id: wsA }],
-  ['set_member_role', { p_workspace_id: wsA, p_user_id: ownerB.id, p_role: 'viewer' }],
-  ['remove_member', { p_workspace_id: wsA, p_user_id: ownerB.id }],
-  ['is_member', { p_workspace_id: wsA }],
+  ['list_members', { p_workspace: wsA }],
+  ['set_member_role', { p_workspace: wsA, p_user: ownerB.id, p_role: 'viewer' }],
+  ['remove_member', { p_workspace: wsA, p_user: ownerB.id }],
+  ['is_member', { ws: wsA }],
 ];
 for (const [fn, body] of publicDenied) await expectRejected(`unauthenticated RPC ${fn}`, await rpc(fn, body));
 
 await expectRejected('authenticated direct trigger helper invocation', await rpc('update_updated_at', {}, tokenA));
 
-const role = await rpc('workspace_role_for', { p_workspace_id: wsB }, tokenA);
+const role = await rpc('workspace_role_for', { p_workspace: wsB }, tokenA);
 check(role.response.ok && role.data === null, 'cross-workspace role disclosure', role.data);
 for (const helper of ['can_edit_workspace', 'can_review_workspace', 'can_manage_workspace']) {
-  const result = await rpc(helper, { p_workspace_id: wsB }, tokenA);
+  const result = await rpc(helper, { p_workspace: wsB }, tokenA);
   check(result.response.ok && result.data === false, `${helper} granted cross-workspace access`, result.data);
 }
-const members = await rpc('list_members', { p_workspace_id: wsB }, tokenA);
+const members = await rpc('list_members', { p_workspace: wsB }, tokenA);
 check(!members.response.ok || (Array.isArray(members.data) && members.data.length === 0), 'cross-workspace member disclosure', members.data);
 
 console.log(JSON.stringify({
