@@ -11,6 +11,7 @@ export class MarketingService {
       workspace,
       actions,
       primaryAction: actions[0] ?? {
+        id: 'primary-create-first-campaign',
         title: 'สร้าง Campaign แรก',
         description: 'เริ่มจากกลุ่มเป้าหมาย ปัญหา และสมมติฐานที่ต้องการทดสอบ',
         action_href: `/${workspace.slug}/campaigns/new`,
