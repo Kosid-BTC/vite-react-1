@@ -31,6 +31,21 @@ for (const entry of inventory.functions) {
   seen.add(entry.signature);
 }
 
+const requiredProductionObserved = [
+  'public.has_org_role(uuid,org_role[])',
+  'public.is_org_member(uuid)',
+  'public.is_service_role()',
+  'public.channel_refresh_token(uuid)',
+  'public.claim_job(text,text[])',
+  'public.complete_job(uuid,boolean,text)',
+  'public.reserve_quota(text,integer,integer)',
+  'public.reserve_quota_from_pool(integer)',
+  'public.store_channel_oauth(uuid,text)',
+];
+for (const signature of requiredProductionObserved) {
+  if (!seen.has(signature)) throw new Error(`Missing production-observed SECURITY DEFINER classification: ${signature}`);
+}
+
 const internal = inventory.functions.filter((entry) => entry.classification === 'INTERNAL_ONLY');
 const serviceOnly = inventory.functions.filter((entry) => entry.classification === 'SERVICE_ONLY');
 const anonAllowed = inventory.functions.filter((entry) => entry.classification === 'PUBLIC_ANON_ALLOWED');
@@ -40,6 +55,7 @@ if (anonAllowed.some((entry) => entry.signature !== 'public.lead_count(text)')) 
 
 const grantMigration = fs.readFileSync(path.join(repoRoot, 'supabase/migrations/0027_reconcile_prod_rpc_grants.sql'), 'utf8');
 const marketingMigration = fs.readFileSync(path.join(repoRoot, 'supabase/migrations/202608230101_marketing_os_roles_helpers.sql'), 'utf8');
+const releaseReconcileMigration = fs.readFileSync(path.join(repoRoot, 'supabase/migrations/20260904072500_release_security_reconcile.sql'), 'utf8');
 
 const requiredAnonRevokes = [
   'create_workspace(text)',
@@ -71,6 +87,27 @@ if (!grantMigration.includes('revoke execute on function public.update_updated_a
   throw new Error('Trigger helper update_updated_at must remain direct-client INTERNAL_ONLY');
 }
 
+for (const token of [
+  'revoke execute on function public.has_org_role(uuid, public.org_role[]) from anon, public',
+  'grant execute on function public.has_org_role(uuid, public.org_role[]) to authenticated',
+  'revoke execute on function public.is_org_member(uuid) from anon, public',
+  'grant execute on function public.is_org_member(uuid) to authenticated',
+  'revoke execute on function public.is_service_role() from anon, authenticated, service_role, public',
+  'revoke all on table public.youtube_projects from anon, authenticated',
+  'grant select, insert, update, delete on table public.youtube_projects to service_role',
+  'revoke all on table public.youtube_quota from anon, authenticated',
+  'grant select, insert, update, delete on table public.youtube_quota to service_role',
+]) {
+  if (!releaseReconcileMigration.includes(token)) throw new Error(`Missing release-security reconciliation evidence: ${token}`);
+}
+
+if (inventory.youtubeTables?.['public.youtube_projects'] !== 'SERVICE_ONLY' || inventory.youtubeTables?.['public.youtube_quota'] !== 'SERVICE_ONLY') {
+  throw new Error('youtube_projects and youtube_quota must be explicitly classified SERVICE_ONLY');
+}
+if (inventory.pgNetDisposition?.status !== 'JUSTIFIED_EXCEPTION_PENDING_POST_DEPLOY_RECHECK') {
+  throw new Error('pg_net requires an explicit controlled disposition');
+}
+
 const knownUnclassified = Array.isArray(inventory.knownUnclassifiedProductionSignatures)
   ? inventory.knownUnclassifiedProductionSignatures
   : [];
@@ -89,12 +126,14 @@ console.log(JSON.stringify({
   serviceOnly: serviceOnly.map((entry) => entry.signature),
   internalOnly: internal.map((entry) => entry.signature),
   knownUnclassifiedProductionSignatures: knownUnclassified,
+  youtubeTables: inventory.youtubeTables,
+  pgNetDisposition: inventory.pgNetDisposition,
   directAbuseTests,
   directBoundaryEvidenceSource: directBoundaryEvidence ? 'EXECUTABLE_LOCAL_SUPABASE' : 'NONE',
   productionTouched: false,
   note: gatePass
-    ? 'Release-security inventory and direct local boundary evidence are complete.'
-    : 'Fail-closed: RELEASE_READINESS_SECURITY cannot pass until inventory is COMPLETE, known-unclassified is empty, and direct local boundary evidence is PASS.',
+    ? 'Release-security inventory, reconciliation migration, and direct local boundary evidence are complete.'
+    : 'Fail-closed: RELEASE_READINESS_SECURITY cannot pass until inventory is COMPLETE, known-unclassified is empty, reconciliation evidence is present, and direct local boundary evidence is PASS.',
 }, null, 2));
 
 if (!gatePass) {
