@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import { getMarketingService } from '@/server/services';
 
+type SidebarNavItem = {
+  label: string;
+  key?: 'dashboard' | 'campaigns';
+};
+
+type SidebarGroup = {
+  title: string;
+  items: SidebarNavItem[];
+};
+
 const metrics = [
   { icon: '◎', label: 'Website Visitors', accent: 'blue' },
   { icon: 'f', label: 'Facebook Reach', accent: 'blue' },
@@ -10,7 +20,7 @@ const metrics = [
   { icon: '฿', label: 'Revenue (Estimate)', accent: 'green' },
 ] as const;
 
-const sidebarGroups = [
+const sidebarGroups: SidebarGroup[] = [
   { title: '', items: [{ label: 'Dashboard', key: 'dashboard' }] },
   { title: 'STRATEGY', items: [{ label: 'Audience' }, { label: 'Message Pillars' }, { label: 'Brand Guardrails' }] },
   { title: 'CONTENT FACTORY', items: [{ label: 'Content Calendar' }, { label: 'Content Items' }, { label: 'Create Content' }] },
@@ -20,7 +30,7 @@ const sidebarGroups = [
   { title: 'EXPERIMENTS', items: [{ label: 'A/B Tests' }] },
   { title: 'AI INSIGHTS', items: [{ label: 'Business Genome' }, { label: 'Next Best Actions' }] },
   { title: 'SYSTEM', items: [{ label: 'Environment' }, { label: 'RLS / Security' }, { label: 'Production Readiness' }] },
-] as const;
+];
 
 function Sparkline({ accent }: { accent: string }) {
   return (
