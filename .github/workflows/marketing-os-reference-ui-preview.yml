@@ -1,0 +1,138 @@
+name: Marketing OS Reference UI Preview
+
+on:
+  push:
+    branches:
+      - feat/marketing-os-reference-ui-v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-os-reference-ui-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    name: Deploy exact reference UI head to correct Vercel preview project
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_TOKEN_PRIMARY: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TOKEN_ACCESS: ${{ secrets.VERCEL_ACCESS_TOKEN }}
+      VERCEL_TOKEN_API: ${{ secrets.VERCEL_API_TOKEN }}
+      VERCEL_TOKEN_CLI: ${{ secrets.VERCEL_CLI_TOKEN }}
+      VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
+      VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
+      VERCEL_TEAM_SLUG: kosid-btcs-projects
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "UI_SHA_VERIFIED=${GITHUB_SHA}"
+
+      - name: Resolve Vercel deployment credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="${VERCEL_TOKEN_PRIMARY:-}"
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_ACCESS:-}" ]; then token="$VERCEL_TOKEN_ACCESS"; fi
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_API:-}" ]; then token="$VERCEL_TOKEN_API"; fi
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_CLI:-}" ]; then token="$VERCEL_TOKEN_CLI"; fi
+          if [ -z "$token" ]; then
+            echo "No supported Vercel deployment credential is configured." >&2
+            exit 78
+          fi
+          echo "::add-mask::$token"
+          echo "VERCEL_TOKEN=$token" >> "$GITHUB_ENV"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/marketing-os/package-lock.json
+
+      - name: Install Marketing OS dependencies
+        working-directory: apps/marketing-os
+        run: npm ci --no-audit --no-fund
+
+      - name: Bind correct Vercel project
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .vercel
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          npx --yes vercel@latest pull --yes --environment=preview --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+
+      - name: Ensure preview Supabase public runtime config without printing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin 'ops/deploy-rc-2bd740b9:refs/remotes/origin/ops/deploy-rc-2bd740b9' --depth=1
+          python - <<'PY'
+          import re
+          import subprocess
+          from pathlib import Path
+
+          source = subprocess.check_output([
+              'git', 'show',
+              'refs/remotes/origin/ops/deploy-rc-2bd740b9:.github/workflows/deploy-marketing-os-rc-production.yml'
+          ], text=True)
+          url_match = re.search(r'SUPABASE_PUBLIC_URL:\s*(\S+)', source)
+          key_match = re.search(r'SUPABASE_PUBLISHABLE_KEY:\s*(\S+)', source)
+          if not url_match or not key_match:
+              raise SystemExit('Unable to resolve verified public Supabase runtime config')
+          url = url_match.group(1).strip('"\'')
+          key = key_match.group(1).strip('"\'')
+          if not url.startswith('https://') or not key.startswith('sb_publishable_'):
+              raise SystemExit('Resolved Supabase runtime config has unexpected format')
+          env_file = Path('apps/marketing-os/.vercel/.env.preview.local')
+          env_file.parent.mkdir(parents=True, exist_ok=True)
+          existing = env_file.read_text() if env_file.exists() else ''
+          kept = [line for line in existing.splitlines() if not line.startswith('NEXT_PUBLIC_SUPABASE_URL=') and not line.startswith('NEXT_PUBLIC_SUPABASE_ANON_KEY=')]
+          kept += [f'NEXT_PUBLIC_SUPABASE_URL="{url}"', f'NEXT_PUBLIC_SUPABASE_ANON_KEY="{key}"']
+          env_file.write_text('\n'.join(kept) + '\n')
+          with open(Path(subprocess.check_output(['bash','-lc','printf %s "$GITHUB_ENV"'], text=True).strip()), 'a') as handle:
+              handle.write(f'SUPABASE_PUBLIC_URL_FOR_MASK={url}\n')
+          print('SUPABASE_PREVIEW_PUBLIC_CONFIG=VERIFIED')
+          PY
+          grep -q '^NEXT_PUBLIC_SUPABASE_URL=' apps/marketing-os/.vercel/.env.preview.local
+          grep -q '^NEXT_PUBLIC_SUPABASE_ANON_KEY=' apps/marketing-os/.vercel/.env.preview.local
+
+      - name: Build preview artifact
+        working-directory: apps/marketing-os
+        run: npx --yes vercel@latest build --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+
+      - name: Deploy preview artifact
+        id: deploy
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$(npx --yes vercel@latest deploy --prebuilt --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "PREVIEW_DEPLOYMENT_URL=$url"
+
+      - name: Protected preview smoke test
+        working-directory: apps/marketing-os
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          npx --yes vercel@latest curl /login --deployment "$DEPLOYMENT_URL" --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" > /tmp/login.html
+          grep -q 'CEO AI Thailand' /tmp/login.html
+          grep -q 'เข้าสู่ระบบ' /tmp/login.html
+          echo "CORRECT_PROJECT_PREVIEW_SMOKE=PASS"
