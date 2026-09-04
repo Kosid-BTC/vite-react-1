@@ -5,14 +5,6 @@ on:
     branches:
       - feat/marketing-os-phase1
       - feat/marketing-os-reference-ui-v2
-    paths:
-      - 'apps/marketing-os/config/security-definer-classification.json'
-      - 'apps/marketing-os/scripts/verify-release-security-boundaries-local.mjs'
-      - 'apps/marketing-os/scripts/verify-release-readiness-security.mjs'
-      - 'apps/marketing-os/package.json'
-      - 'apps/marketing-os/package-lock.json'
-      - 'supabase/migrations/**'
-      - '.github/workflows/marketing-os-release-security.yml'
   workflow_dispatch:
 
 permissions:
