@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/marketing-os-phase1
+      - feat/marketing-os-reference-ui-v2
     paths:
       - 'apps/marketing-os/config/security-definer-classification.json'
       - 'apps/marketing-os/scripts/verify-release-security-boundaries-local.mjs'
