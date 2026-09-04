@@ -54,15 +54,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          page='apps/marketing-os/src/app/[workspaceSlug]/home/page.tsx'
+          home='apps/marketing-os/src/app/[workspaceSlug]/home/page.tsx'
+          view='apps/marketing-os/src/components/executive-growth-dashboard.tsx'
+          qa='apps/marketing-os/src/app/visual-qa/executive-growth/page.tsx'
           css='apps/marketing-os/src/app/executive-growth.css'
-          grep -q 'ภาพรวมธุรกิจ' "$page"
-          grep -q 'Growth Activity' "$page"
-          grep -q 'Business Health' "$page"
-          grep -q 'Next Best Actions' "$page"
-          grep -q 'Conversion Funnel' "$page"
-          grep -q 'Acquisition Mix' "$page"
-          grep -q '3 สิ่งที่ควรทำวันนี้' "$page"
+          grep -q 'ExecutiveGrowthDashboard' "$home"
+          grep -q 'ภาพรวมธุรกิจ' "$view"
+          grep -q 'Growth Activity' "$view"
+          grep -q 'Business Health' "$view"
+          grep -q 'Next Best Actions' "$view"
+          grep -q 'Conversion Funnel' "$view"
+          grep -q 'Acquisition Mix' "$view"
+          grep -q '3 เรื่องที่ควรทำต่อ' "$view"
+          grep -q "'รายงาน'" "$view"
+          grep -q 'AI Business Copilot' "$view"
+          grep -q "VERCEL_ENV === 'production'" "$qa"
           grep -q 'grid-template-columns: 188px' "$css"
           grep -q '.eg-sidebar' "$css"
           grep -q '.eg-mobile' "$css"
