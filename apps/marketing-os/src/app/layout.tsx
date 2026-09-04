@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Kanit } from 'next/font/google';
 import './globals.css';
+import './executive-growth.css';
 
 const kanit = Kanit({
   subsets: ['thai', 'latin'],
@@ -9,8 +10,8 @@ const kanit = Kanit({
 });
 
 export const metadata: Metadata = {
-  title: 'CEO AI Marketing OS',
-  description: 'วางแผน สร้าง ทดสอบ และพัฒนาการตลาดอย่างเป็นระบบ',
+  title: 'CEO AI Thailand — Executive Growth Dashboard',
+  description: 'ภาพรวมธุรกิจและ Next Best Actions สำหรับ CEO AI Thailand',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
