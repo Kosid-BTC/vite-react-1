@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Kanit } from 'next/font/google';
 import './globals.css';
 import './reference-ui-v2.css';
+import './approved-ui-v4.css';
 
 const kanit = Kanit({
   subsets: ['thai', 'latin'],
