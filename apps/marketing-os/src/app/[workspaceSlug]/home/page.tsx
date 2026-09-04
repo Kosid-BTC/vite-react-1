@@ -143,7 +143,7 @@ export default async function HomePage({ params }: { params: Promise<{ workspace
               <p>Marketing OS</p>
             </div>
             <div className="title-actions">
-              <span className="date-filter">30 วันล่าสุด　▣</span>
+              <span className="date-filter">30 วันล่าสุด ▣</span>
               <Link className="reference-primary" href={`/${workspaceSlug}/campaigns/new`}>＋ สร้างแคมเปญใหม่</Link>
             </div>
           </section>
@@ -175,7 +175,7 @@ export default async function HomePage({ params }: { params: Promise<{ workspace
                     <h2>Performance Overview</h2>
                     <div className="tab-row"><span className="tab active">ภาพรวม</span><span className="tab">Website</span><span className="tab">Facebook</span><span className="tab">YouTube</span></div>
                   </div>
-                  <span className="panel-filter">30 วันล่าสุด　⌄</span>
+                  <span className="panel-filter">30 วันล่าสุด ⌄</span>
                 </div>
                 <div className="performance-body">
                   <div className="chart-area">
@@ -251,7 +251,7 @@ export default async function HomePage({ params }: { params: Promise<{ workspace
             </aside>
           </section>
 
-          <footer className="dashboard-footer"><span>CEO AI Thailand　·　Marketing OS　·　Reference UI V2</span><span>Powered by AI　|　Built for Sustainable Growth</span></footer>
+          <footer className="dashboard-footer"><span>CEO AI Thailand · Marketing OS · Reference UI V2</span><span>Powered by AI | Built for Sustainable Growth</span></footer>
         </div>
       </section>
     </main>
