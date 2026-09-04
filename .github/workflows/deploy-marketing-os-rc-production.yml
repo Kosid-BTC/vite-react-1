@@ -21,6 +21,7 @@ jobs:
       RC_SHA: 2bd740b9e743d58a2163893a57cf59f3ea7d89d7
       VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
       VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
+      VERCEL_TEAM_SLUG: kosid-btcs-projects
     steps:
       - name: Checkout exact release candidate
         uses: actions/checkout@v4
@@ -69,11 +70,11 @@ jobs:
           set -euo pipefail
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx --yes vercel@latest pull --yes --environment=production --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
 
       - name: Build production artifact
         working-directory: apps/marketing-os
-        run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@latest build --prod --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
 
       - name: Deploy production artifact
         id: deploy
@@ -81,7 +82,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          url="$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          url="$(npx --yes vercel@latest deploy --prebuilt --prod --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "DEPLOYMENT_URL=$url"
 
