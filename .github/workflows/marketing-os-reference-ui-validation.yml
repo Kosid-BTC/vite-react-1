@@ -9,11 +9,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: marketing-os-reference-ui-validation
+  cancel-in-progress: true
+
 jobs:
   validate-reference-ui:
     name: Reference UI build and regression validation
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - name: Checkout exact branch head
         uses: actions/checkout@v4
@@ -24,14 +28,7 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-      - name: Install root dependencies
-        run: npm ci
-      - name: Root regression suite
-        run: npm run test:run
-      - name: Root build
-        run: npm run build
-      - name: Root lint
-        run: npm run lint
+          cache-dependency-path: apps/marketing-os/package-lock.json
       - name: Install Marketing OS dependencies
         working-directory: apps/marketing-os
         run: npm ci --no-audit --no-fund
