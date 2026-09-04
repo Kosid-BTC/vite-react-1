@@ -15,12 +15,12 @@ const sidebarItems = [
   'ลูกค้าและ CRM',
   'การเงิน',
   'AI Workspace',
-  'ระบบ',
+  'รายงาน',
 ] as const;
 
 const unavailableKpis = [
   { label: 'Business Health', suffix: '/ 100' },
-  { label: 'Leads', suffix: '' },
+  { label: 'Leads เดือนนี้', suffix: '' },
   { label: 'Conversion', suffix: '%' },
   { label: 'MRR', suffix: '฿' },
 ] as const;
@@ -38,7 +38,7 @@ export function ExecutiveGrowthDashboard({
     <main className="eg-shell">
       <aside className="eg-sidebar" aria-label="Executive Growth navigation">
         <div className="eg-brand">
-          <div className="eg-brand-mark">C</div>
+          <div className="eg-brand-mark" aria-hidden="true" />
           <div className="eg-brand-copy">
             <strong>CEO AI Thailand</strong>
             <small>EXECUTIVE GROWTH OS</small>
@@ -63,12 +63,12 @@ export function ExecutiveGrowthDashboard({
           <header className="eg-page-head">
             <div>
               <h1>ภาพรวมธุรกิจ</h1>
-              <p>{workspaceName} · ข้อมูล Production ที่ยังไม่ยืนยันจะแสดงเป็น UNAVAILABLE</p>
+              <p>{workspaceName} · ข้อมูลที่ยังไม่ยืนยันจะแสดงเป็น UNAVAILABLE</p>
             </div>
-            <div className="eg-head-tools" aria-label="Dashboard filters">
-              <span className="eg-head-tool">วันนี้</span>
-              <span className="eg-head-tool">เดือนนี้</span>
-              <span className="eg-head-tool">ทุกช่องทาง</span>
+            <div className="eg-head-tools" aria-label="Executive controls">
+              <span className="eg-head-tool">ค้นหา</span>
+              <span className="eg-head-tool">แจ้งเตือน</span>
+              <span className="eg-head-tool">บัญชีผู้ใช้งาน</span>
             </div>
           </header>
 
@@ -91,7 +91,7 @@ export function ExecutiveGrowthDashboard({
               <div className="eg-panel-head">
                 <div>
                   <h2>Growth Activity</h2>
-                  <p>Traffic, Leads และ Conversion — 30 วันล่าสุด</p>
+                  <p>Traffic, leads และ conversion 30 วันล่าสุด</p>
                 </div>
                 <div className="eg-tabs"><span className="eg-tab">Traffic</span><span className="eg-tab alt">Leads</span></div>
               </div>
@@ -162,14 +162,14 @@ export function ExecutiveGrowthDashboard({
 
         <div className="eg-mobile">
           <header className="eg-mobile-top">
-            <div className="eg-mobile-brand"><span className="eg-brand-mark">C</span><span>CEO AI</span></div>
+            <div className="eg-mobile-brand"><span className="eg-brand-mark" aria-hidden="true" /><span>CEO AI</span></div>
             <button className="eg-mobile-menu" type="button" aria-label="เปิดเมนู">≡</button>
           </header>
 
           <div className="eg-mobile-body">
             <div className="eg-mobile-title">
               <h1>ภาพรวมธุรกิจ</h1>
-              <p>{workspaceName}</p>
+              <p>สวัสดีครับ · {workspaceName}</p>
             </div>
 
             <section className="eg-mobile-health">
@@ -179,12 +179,12 @@ export function ExecutiveGrowthDashboard({
             </section>
 
             <section className="eg-mobile-kpis">
-              <article className="eg-card eg-mobile-kpi"><small>Leads</small><strong>—</strong><small>Production evidence</small></article>
-              <article className="eg-card eg-mobile-kpi"><small>MRR</small><strong>—</strong><small>Production evidence</small></article>
+              <article className="eg-card eg-mobile-kpi"><small>Leads</small><strong>—</strong><small>เดือนนี้</small></article>
+              <article className="eg-card eg-mobile-kpi"><small>MRR</small><strong>—</strong><small>เดือนนี้</small></article>
             </section>
 
             <section className="eg-card eg-mobile-section">
-              <h2>3 สิ่งที่ควรทำวันนี้</h2>
+              <h2>3 เรื่องที่ควรทำต่อ</h2>
               <ol className="eg-mobile-action-list">
                 {visibleActions.map((action, index) => (
                   <li key={action.id}>
@@ -196,7 +196,7 @@ export function ExecutiveGrowthDashboard({
             </section>
 
             <section className="eg-card eg-mobile-trend">
-              <div className="eg-mobile-trend-head"><h2>Growth Trend</h2><span>Measurement Health: UNAVAILABLE</span></div>
+              <div className="eg-mobile-trend-head"><h2>Growth Trend</h2><span>UNAVAILABLE</span></div>
               <div className="eg-mobile-trend-box">ยังไม่มีข้อมูล Trend ที่ยืนยันแล้ว</div>
             </section>
           </div>
