@@ -62,14 +62,6 @@ jobs:
         working-directory: apps/marketing-os
         run: npm ci --no-audit --no-fund
 
-      - name: Verify Vercel account and team access
-        working-directory: apps/marketing-os
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx --yes vercel@latest whoami --token="$VERCEL_TOKEN"
-          npx --yes vercel@latest project ls --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
-
       - name: Link exact Vercel project
         working-directory: apps/marketing-os
         shell: bash
