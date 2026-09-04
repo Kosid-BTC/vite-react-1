@@ -26,6 +26,7 @@ jobs:
       VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
       VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
       VERCEL_TEAM_SLUG: kosid-btcs-projects
+      PRODUCTION_ALIAS: https://ceo-ai-marketing-os.vercel.app
     steps:
       - name: Checkout exact release candidate
         uses: actions/checkout@v4
@@ -135,7 +136,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          url='${{ steps.deploy.outputs.url }}'
-          curl --fail --silent --show-error --location --max-time 30 "$url/login" >/tmp/login.html
-          grep -q 'CEO AI' /tmp/login.html
+          curl --fail --silent --show-error --location --max-time 30 "$PRODUCTION_ALIAS/login" >/tmp/login.html
+          grep -q 'CEO AI Thailand' /tmp/login.html
+          grep -q 'เข้าสู่ระบบ' /tmp/login.html
           echo "PRODUCTION_PUBLIC_SMOKE=PASS"
