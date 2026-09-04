@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/marketing-os-phase1
+      - feat/marketing-os-reference-ui-v2
   pull_request:
     branches:
       - main
