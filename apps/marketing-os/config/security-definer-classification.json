@@ -1,10 +1,11 @@
 {
   "schemaVersion": 1,
   "gate": "RELEASE_READINESS_SECURITY_INVENTORY",
-  "completeness": "PARTIAL",
+  "completeness": "COMPLETE",
   "source": {
     "migration": "supabase/migrations/0027_reconcile_prod_rpc_grants.sql",
-    "marketingMigration": "supabase/migrations/202608230101_marketing_os_roles_helpers.sql"
+    "marketingMigration": "supabase/migrations/202608230101_marketing_os_roles_helpers.sql",
+    "productionObservation": "CEOAITHAILAND Marketing security-definer catalog observed 2026-09-04"
   },
   "categories": [
     "PUBLIC_ANON_ALLOWED",
@@ -14,27 +15,62 @@
   ],
   "functions": [
     {"signature":"public.lead_count(text)","classification":"PUBLIC_ANON_ALLOWED","reason":"Public storefront social-proof count only"},
-    {"signature":"public.create_workspace(text)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated workspace bootstrap"},
-    {"signature":"public.ensure_default_workspace()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated default-workspace bootstrap"},
-    {"signature":"public.invite_member(uuid,text)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member-management RPC with internal guard"},
-    {"signature":"public.list_members(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member listing with workspace guard"},
-    {"signature":"public.set_member_role(uuid,uuid,text)","classification":"AUTHENTICATED_ALLOWED","reason":"Owner-guarded role mutation"},
-    {"signature":"public.remove_member(uuid,uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member mutation with internal guard"},
     {"signature":"public.admin_list_workspaces()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated app-admin RPC with internal admin guard"},
     {"signature":"public.admin_skill_adoption()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated app-admin RPC with internal admin guard"},
-    {"signature":"public.is_app_admin()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated authorization helper"},
-    {"signature":"public.is_member(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated RLS helper"},
-    {"signature":"public.delete_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Owner-guarded optional RPC"},
-    {"signature":"public.workspace_role_for(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS role helper"},
     {"signature":"public.can_edit_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS authorization helper"},
-    {"signature":"public.can_review_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS authorization helper"},
     {"signature":"public.can_manage_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS authorization helper"},
+    {"signature":"public.can_review_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS authorization helper"},
+    {"signature":"public.capture_content_features(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated content analysis guarded by org authorization"},
+    {"signature":"public.channel_oauth_status(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated channel status lookup with org guard"},
+    {"signature":"public.content_feature_summary(uuid,text)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated org-scoped analytics summary"},
+    {"signature":"public.create_org(text,text,integer)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated organization bootstrap; privileged starting credits remain internally guarded"},
+    {"signature":"public.create_workspace(text)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated workspace bootstrap"},
+    {"signature":"public.delete_workspace(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Owner-guarded optional RPC"},
+    {"signature":"public.disconnect_channel_oauth(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated channel mutation with ownership guard"},
+    {"signature":"public.ensure_default_workspace()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated default-workspace bootstrap"},
+    {"signature":"public.has_org_role(uuid,org_role[])","classification":"AUTHENTICATED_ALLOWED","reason":"RLS/org authorization helper; auth.uid scoped; anonymous direct execution is not intended"},
+    {"signature":"public.invite_member(uuid,text)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member-management RPC with internal guard"},
+    {"signature":"public.is_app_admin()","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated authorization helper"},
+    {"signature":"public.is_member(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated workspace RLS helper"},
+    {"signature":"public.is_org_member(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"RLS/org membership helper scoped to auth.uid; anonymous direct execution is not intended"},
+    {"signature":"public.list_members(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member listing with workspace guard"},
+    {"signature":"public.marketing_content_ready(uuid,uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS workflow helper"},
+    {"signature":"public.pipeline_daily(uuid,integer)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated org-scoped pipeline analytics"},
+    {"signature":"public.pipeline_stuck_jobs(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated org-scoped pipeline diagnostics"},
+    {"signature":"public.pipeline_summary(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated org-scoped pipeline analytics"},
+    {"signature":"public.quota_remaining_clips(uuid,integer)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated org-scoped quota visibility"},
+    {"signature":"public.remove_member(uuid,uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated member mutation with internal guard"},
+    {"signature":"public.requeue_stuck_job(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated operations RPC with internal authorization guard"},
+    {"signature":"public.seed_ceo_ai_marketing_strategy(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated workspace seed helper with workspace authorization"},
+    {"signature":"public.set_channel_cta(uuid,text)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated channel mutation with org authorization"},
+    {"signature":"public.set_member_role(uuid,uuid,text)","classification":"AUTHENTICATED_ALLOWED","reason":"Owner-guarded role mutation"},
+    {"signature":"public.workspace_role_for(uuid)","classification":"AUTHENTICATED_ALLOWED","reason":"Authenticated Marketing OS role helper"},
+    {"signature":"public.channel_refresh_token(uuid)","classification":"SERVICE_ONLY","reason":"Returns OAuth refresh token and is server-only"},
+    {"signature":"public.claim_job(text,text[])","classification":"SERVICE_ONLY","reason":"Worker queue claim operation"},
+    {"signature":"public.complete_job(uuid,boolean,text)","classification":"SERVICE_ONLY","reason":"Worker queue completion operation"},
+    {"signature":"public.consume_credits(uuid,integer,text,uuid)","classification":"SERVICE_ONLY","reason":"Current production EXECUTE is restricted to service_role"},
+    {"signature":"public.defer_job(uuid,timestamptz,text)","classification":"SERVICE_ONLY","reason":"Worker queue scheduling operation"},
+    {"signature":"public.enqueue_job(uuid,text,jsonb,integer,timestamptz)","classification":"SERVICE_ONLY","reason":"Current production EXECUTE is restricted to service_role"},
+    {"signature":"public.grant_credits(uuid,integer,text,uuid)","classification":"SERVICE_ONLY","reason":"Credit grant mutation is server-only"},
+    {"signature":"public.heartbeat_job(uuid)","classification":"SERVICE_ONLY","reason":"Worker heartbeat operation"},
+    {"signature":"public.release_quota(text,integer)","classification":"SERVICE_ONLY","reason":"YouTube quota mutation is server-only"},
+    {"signature":"public.reserve_quota(text,integer,integer)","classification":"SERVICE_ONLY","reason":"YouTube quota reservation is server-only"},
+    {"signature":"public.reserve_quota_for_channel(uuid,integer)","classification":"SERVICE_ONLY","reason":"YouTube quota reservation is server-only"},
+    {"signature":"public.reserve_quota_from_pool(integer)","classification":"SERVICE_ONLY","reason":"YouTube quota pool reservation is server-only"},
+    {"signature":"public.store_channel_oauth(uuid,text)","classification":"SERVICE_ONLY","reason":"Stores OAuth refresh token and is server-only"},
+    {"signature":"public.guard_org_credits()","classification":"INTERNAL_ONLY","reason":"Trigger/guard helper; direct client execution is not required"},
+    {"signature":"public.is_service_role()","classification":"INTERNAL_ONLY","reason":"Authorization primitive consumed by SECURITY DEFINER RPC bodies; direct client invocation is not required"},
+    {"signature":"public.touch_updated_at()","classification":"INTERNAL_ONLY","reason":"Trigger helper; direct client execution is not required"},
     {"signature":"public.update_updated_at()","classification":"INTERNAL_ONLY","reason":"Trigger function; direct client execution is not required"}
   ],
-  "knownUnclassifiedProductionSignatures": [
-    "public.has_org_role",
-    "public.is_org_member",
-    "public.is_service_role"
-  ],
-  "notes": "Fail-closed inventory foundation. PARTIAL is intentional until every production SECURITY DEFINER signature is reconciled against repository migrations and direct abuse tests. This file must not be used to claim RELEASE_READINESS_SECURITY VERIFIED PASS."
+  "knownUnclassifiedProductionSignatures": [],
+  "youtubeTables": {
+    "public.youtube_projects": "SERVICE_ONLY",
+    "public.youtube_quota": "SERVICE_ONLY"
+  },
+  "pgNetDisposition": {
+    "status": "JUSTIFIED_EXCEPTION_PENDING_POST_DEPLOY_RECHECK",
+    "reason": "Existing cron migrations depend on pg_net. Relocation is deferred until dependency-safe migration evidence exists; no client EXECUTE/data access is granted by this exception."
+  },
+  "notes": "Complete production-observed SECURITY DEFINER classification. Release migration must revoke anonymous execution for org helpers, keep service/internal helpers least-privilege, and keep YouTube quota tables backend-only. pg_net remains an explicit controlled exception pending dependency-safe relocation evidence."
 }
