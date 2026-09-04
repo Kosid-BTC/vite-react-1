@@ -1,143 +1,198 @@
 import Link from 'next/link';
 import { getMarketingService } from '@/server/services';
-import { createInsufficientEvidenceDashboardModel } from '@/server/domain/dashboard-growth-loop';
 
-const growthLoop = [
-  { key: 'SEE', title: 'เห็นข้อมูลจริง', detail: 'First-party evidence และเหตุการณ์ที่ตรวจสอบย้อนกลับได้' },
-  { key: 'UNDERSTAND', title: 'เข้าใจสถานการณ์', detail: 'Measurement Health, Funnel และ Segmentation ก่อนตีความ' },
-  { key: 'DECIDE', title: 'ตัดสินใจ', detail: 'AI เสนอทางเลือกจากหลักฐาน แต่คนเป็นผู้อนุมัติ' },
-  { key: 'VALIDATE', title: 'ทดลอง', detail: 'Hypothesis และ Experiment Plan ที่วัดผลได้' },
-  { key: 'ACT', title: 'ลงมือทำ', detail: 'Campaign / Sales Action หลังผ่าน Human Approval' },
-  { key: 'MEASURE', title: 'วัดผล', detail: 'Observed Outcome, Attribution และ Revenue Evidence' },
-  { key: 'LEARN', title: 'เรียนรู้', detail: 'สรุปสิ่งที่เกิดขึ้นและสร้าง Next Best Action รอบถัดไป' },
+const sidebarItems = [
+  'ภาพรวมธุรกิจ',
+  'Growth Engine',
+  'MIT 24 Steps',
+  'Marketing OS',
+  'ลูกค้าและ CRM',
+  'การเงิน',
+  'AI Workspace',
+  'ระบบ',
+] as const;
+
+const unavailableKpis = [
+  { label: 'Business Health', suffix: '/ 100' },
+  { label: 'Leads', suffix: '' },
+  { label: 'Conversion', suffix: '%' },
+  { label: 'MRR', suffix: '฿' },
 ] as const;
 
 export default async function HomePage({ params }: { params: Promise<{ workspaceSlug: string }> }) {
   const { workspaceSlug } = await params;
   const service = await getMarketingService();
   const data = await service.getHome(workspaceSlug);
-  const controlCenter = createInsufficientEvidenceDashboardModel(data.workspace.id);
+  const actions = [data.primaryAction, ...data.actions.filter((action) => action.id !== data.primaryAction.id)].slice(0, 3);
 
   return (
-    <main className="shell stack dashboard-shell">
-      <header className="dashboard-header">
-        <div>
-          <p className="eyebrow">CEO AI Thailand · Business Growth Closed Loop</p>
-          <h1>วันนี้ควรทำอะไรต่อ?</h1>
-          <p className="muted">{data.workspace.name} — เริ่มจากหลักฐานจริง แล้วพาธุรกิจไปสู่การตัดสินใจที่วัดผลได้</p>
-        </div>
-        <div className="evidence-chip" aria-label="Evidence-first governance">
-          Evidence First · Human Approval
-        </div>
-      </header>
-
-      <section className="card stack action-hero" aria-labelledby="primary-work">
-        <div className="action-hero-copy">
-          <span className="badge">งานหลักวันนี้</span>
-          <h2 id="primary-work">{data.primaryAction.title}</h2>
-          <p className="muted">{data.primaryAction.description}</p>
-        </div>
-        <div className="actions">
-          <Link className="primary" href={data.primaryAction.action_href ?? `/${workspaceSlug}/campaigns/new`}>
-            ดำเนินการต่อ
-          </Link>
-        </div>
-      </section>
-
-      <section className="card stack" aria-labelledby="control-center-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Executive Control Center</p>
-            <h2 id="control-center-title">Marketing Health → Top Issue → NBA → Funnel → Campaign/Landing → Evidence Health → Experiment → Learning</h2>
+    <main className="eg-shell">
+      <aside className="eg-sidebar" aria-label="Executive Growth navigation">
+        <div className="eg-brand">
+          <div className="eg-brand-mark">C</div>
+          <div className="eg-brand-copy">
+            <strong>CEO AI Thailand</strong>
+            <small>EXECUTIVE GROWTH OS</small>
           </div>
-          <p className="muted section-note">ค่าเริ่มต้นของส่วนนี้เป็น fail-closed: ไม่มีหลักฐาน = ไม่มีคะแนนสมมติ และไม่มีข้อสรุปเชิงกลยุทธ์</p>
         </div>
 
-        <div className="grid" aria-label="Governed business growth control center">
-          {controlCenter.stages.map((stage) => (
-            <article className="card stack" key={stage.stage}>
-              <div className="actions">
-                <span className="badge">{stage.evidence.truthState}</span>
-                <span className="badge warning">{stage.evidence.measurementHealth}</span>
-              </div>
-              <div>
-                <p className="eyebrow">{stage.stage.replaceAll('_', ' ')}</p>
-                <h3>{stage.title}</h3>
-                <p className="muted">{stage.summary}</p>
-              </div>
-              <p className="muted">
-                ค่า: {stage.displayValue ?? '—'} · Freshness: {stage.evidence.freshness} · Evidence: {stage.evidence.evidenceIds.length || 'ยังไม่มี'}
-              </p>
-            </article>
-          ))}
-        </div>
-
-        <aside className="decision-guardrail" aria-label="Governed Next Best Action">
-          <div>
-            <strong>Next Best Action เดียวที่ระบบอนุญาตตอนนี้</strong>
-            <p>{controlCenter.primaryNba.title} — {controlCenter.primaryNba.summary}</p>
-          </div>
-          <div>
-            <strong>Human Approval: Required</strong>
-            <p>สถานะ {controlCenter.primaryNba.status} · executable=false · ไม่มีการ publish, spend หรือ mutate ระบบภายนอกอัตโนมัติ</p>
-          </div>
-        </aside>
-      </section>
-
-      <section className="card stack" aria-labelledby="growth-loop-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Growth Operating System</p>
-            <h2 id="growth-loop-title">SEE → UNDERSTAND → DECIDE → VALIDATE → ACT → MEASURE → LEARN</h2>
-          </div>
-          <p className="muted section-note">ระบบไม่สร้างตัวเลขหรือความมั่นใจขึ้นเอง หากหลักฐานไม่พอ ระบบต้องบอกให้เก็บข้อมูลเพิ่มก่อน</p>
-        </div>
-
-        <ol className="growth-loop" aria-label="Business Growth Closed Loop">
-          {growthLoop.map((stage, index) => (
-            <li className="growth-stage" key={stage.key}>
-              <div className="growth-stage-index">{String(index + 1).padStart(2, '0')}</div>
-              <div>
-                <p className="growth-stage-key">{stage.key}</p>
-                <h3>{stage.title}</h3>
-                <p className="muted">{stage.detail}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="decision-guardrail" aria-label="Decision guardrails">
-        <div>
-          <strong>Measurement Health ก่อนคำแนะนำเชิงธุรกิจ</strong>
-          <p>ข้อมูลยังไม่พร้อม = แสดงจำนวนจริงและสิ่งที่ต้องเก็บเพิ่ม แทนการสรุป Conversion, CPA, ROAS หรือ LTV/CAC เกินหลักฐาน</p>
-        </div>
-        <div>
-          <strong>AI เสนอ · คนอนุมัติ</strong>
-          <p>Experiment winner, Next Best Action, Campaign และ Sales Action ยังต้องผ่าน Human Review ก่อนนำไปใช้</p>
-        </div>
-      </section>
-
-      {data.actions.length > 1 && (
-        <section aria-labelledby="queue-title">
-          <div className="section-heading compact-heading">
-            <div>
-              <p className="eyebrow">Work Queue</p>
-              <h2 id="queue-title">งานถัดไป</h2>
+        <nav className="eg-nav">
+          {sidebarItems.map((item, index) => (
+            <div className={`eg-nav-item ${index === 0 ? 'active' : ''}`} key={item}>
+              <span aria-hidden="true" />
+              {item}
             </div>
-          </div>
-          <div className="grid">
-            {data.actions.slice(1).map((action) => (
-              <article className="card" key={action.id}>
-                <p className="eyebrow">Priority {action.priority}</p>
-                <h3>{action.title}</h3>
-                {action.description && <p className="muted">{action.description}</p>}
-                {action.action_href && <Link className="secondary" href={action.action_href}>เปิดงาน</Link>}
+          ))}
+        </nav>
+
+        <div className="eg-sidebar-spacer" />
+        <div className="eg-copilot">AI Business Copilot</div>
+      </aside>
+
+      <section className="eg-main">
+        <div className="eg-desktop">
+          <header className="eg-page-head">
+            <div>
+              <h1>ภาพรวมธุรกิจ</h1>
+              <p>{data.workspace.name} · ข้อมูล Production ที่ยังไม่ยืนยันจะแสดงเป็น UNAVAILABLE</p>
+            </div>
+            <div className="eg-head-tools" aria-label="Dashboard filters">
+              <span className="eg-head-tool">วันนี้</span>
+              <span className="eg-head-tool">เดือนนี้</span>
+              <span className="eg-head-tool">ทุกช่องทาง</span>
+            </div>
+          </header>
+
+          <section className="eg-kpis" aria-label="Executive KPIs">
+            {unavailableKpis.map((kpi) => (
+              <article className="eg-card eg-kpi" key={kpi.label}>
+                <div className="eg-kpi-label">
+                  <span>{kpi.label}</span>
+                  <span className="eg-change">UNAVAILABLE</span>
+                </div>
+                <div className="eg-kpi-value">— {kpi.suffix && <small>{kpi.suffix}</small>}</div>
+                <div className="eg-kpi-foot"><span>Production evidence</span><span>ยังไม่มี</span></div>
+                <div className="eg-mini-bar"><i /></div>
               </article>
             ))}
+          </section>
+
+          <section className="eg-primary-grid">
+            <article className="eg-panel">
+              <div className="eg-panel-head">
+                <div>
+                  <h2>Growth Activity</h2>
+                  <p>Traffic, Leads และ Conversion — 30 วันล่าสุด</p>
+                </div>
+                <div className="eg-tabs"><span className="eg-tab">Traffic</span><span className="eg-tab alt">Leads</span></div>
+              </div>
+              <div className="eg-growth-chart">
+                <div className="eg-gridlines" aria-hidden="true" />
+                <div className="eg-no-data"><strong>ยังไม่มีข้อมูล Growth Activity ที่ยืนยันแล้ว</strong><span>Measurement Health: UNAVAILABLE</span></div>
+              </div>
+            </article>
+
+            <aside className="eg-side-stack">
+              <article className="eg-health-dark">
+                <small>Business Health</small>
+                <div className="eg-health-score">— <span>/ 100</span></div>
+                <div className="eg-mini-bar"><i /></div>
+                <div className="eg-health-note">ยังไม่มีหลักฐานเพียงพอสำหรับคำนวณคะแนน</div>
+              </article>
+
+              <article className="eg-panel eg-actions">
+                <div className="eg-panel-head"><h2>Next Best Actions</h2></div>
+                <ol className="eg-action-list">
+                  {actions.map((action, index) => (
+                    <li key={action.id}>
+                      <span className="eg-action-index">{index + 1}</span>
+                      <div className="eg-action-copy">
+                        <strong>{action.title}</strong>
+                        <small>{action.description || 'Human approval required before execution'}</small>
+                      </div>
+                      {action.action_href ? <Link className="eg-action-link" href={action.action_href}>เปิด</Link> : <span className="eg-action-link eg-unavailable">—</span>}
+                    </li>
+                  ))}
+                </ol>
+              </article>
+            </aside>
+          </section>
+
+          <section className="eg-lower-grid">
+            <article className="eg-card eg-small-panel">
+              <h3>Conversion Funnel</h3>
+              <div className="eg-rows">
+                <div className="eg-row"><span>Visitors</span><span className="eg-unavailable">—</span></div>
+                <div className="eg-row"><span>Leads</span><span className="eg-unavailable">—</span></div>
+                <div className="eg-row"><span>Qualified</span><span className="eg-unavailable">—</span></div>
+                <div className="eg-row"><span>Customers</span><span className="eg-unavailable">—</span></div>
+              </div>
+            </article>
+
+            <article className="eg-card eg-small-panel">
+              <h3>Acquisition Mix</h3>
+              <div className="eg-rows">
+                <div className="eg-row"><span>Organic</span><span className="eg-unavailable">—</span></div>
+                <div className="eg-row"><span>Paid</span><span className="eg-unavailable">—</span></div>
+                <div className="eg-row"><span>Referral</span><span className="eg-unavailable">—</span></div>
+                <div className="eg-row"><span>Direct</span><span className="eg-unavailable">—</span></div>
+              </div>
+            </article>
+
+            <article className="eg-card eg-small-panel">
+              <h3>วันนี้</h3>
+              <div className="eg-today">
+                <div className="eg-today-row"><span>Calendar</span><b className="eg-unavailable">UNAVAILABLE</b></div>
+                <div className="eg-today-row"><span>Gmail</span><b className="eg-unavailable">UNAVAILABLE</b></div>
+                <div className="eg-today-row"><span>AI Tasks</span><b>{actions.length} งาน</b></div>
+                <div className="eg-today-row"><span>Experiments</span><b className="eg-unavailable">UNAVAILABLE</b></div>
+              </div>
+            </article>
+          </section>
+        </div>
+
+        <div className="eg-mobile">
+          <header className="eg-mobile-top">
+            <div className="eg-mobile-brand"><span className="eg-brand-mark">C</span><span>CEO AI</span></div>
+            <button className="eg-mobile-menu" type="button" aria-label="เปิดเมนู">≡</button>
+          </header>
+
+          <div className="eg-mobile-body">
+            <div className="eg-mobile-title">
+              <h1>ภาพรวมธุรกิจ</h1>
+              <p>{data.workspace.name}</p>
+            </div>
+
+            <section className="eg-mobile-health">
+              <div className="eg-mobile-health-top"><small>Business Health</small><span className="eg-change">UNAVAILABLE</span></div>
+              <div className="eg-health-score">— <span>/ 100</span></div>
+              <div className="eg-mini-bar"><i /></div>
+            </section>
+
+            <section className="eg-mobile-kpis">
+              <article className="eg-card eg-mobile-kpi"><small>Leads</small><strong>—</strong><small>Production evidence</small></article>
+              <article className="eg-card eg-mobile-kpi"><small>MRR</small><strong>—</strong><small>Production evidence</small></article>
+            </section>
+
+            <section className="eg-card eg-mobile-section">
+              <h2>3 สิ่งที่ควรทำวันนี้</h2>
+              <ol className="eg-mobile-action-list">
+                {actions.map((action, index) => (
+                  <li key={action.id}>
+                    <span className="eg-action-index">{index + 1}</span>
+                    <div><strong>{action.title}</strong><small>{action.description || 'Human approval required'}</small></div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <section className="eg-card eg-mobile-trend">
+              <div className="eg-mobile-trend-head"><h2>Growth Trend</h2><span>Measurement Health: UNAVAILABLE</span></div>
+              <div className="eg-mobile-trend-box">ยังไม่มีข้อมูล Trend ที่ยืนยันแล้ว</div>
+            </section>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
     </main>
   );
 }
