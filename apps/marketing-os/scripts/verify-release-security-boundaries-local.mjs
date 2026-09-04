@@ -49,8 +49,8 @@ async function signIn(user) {
   return result.data.access_token;
 }
 
-function rpc(fn, body, token) {
-  return request(`/rest/v1/rpc/${fn}`, { method: 'POST', body, token });
+function rpc(fn, body, token, apikey = anonKey) {
+  return request(`/rest/v1/rpc/${fn}`, { method: 'POST', body, token, apikey });
 }
 
 async function expectRejected(label, result) {
@@ -79,7 +79,33 @@ const publicDenied = [
 ];
 for (const [fn, body] of publicDenied) await expectRejected(`unauthenticated RPC ${fn}`, await rpc(fn, body));
 
-await expectRejected('authenticated direct trigger helper invocation', await rpc('update_updated_at', {}, tokenA));
+// Internal-only primitives must not be callable directly by authenticated clients.
+for (const [fn, body] of [
+  ['update_updated_at', {}],
+  ['is_service_role', {}],
+  ['guard_org_credits', {}],
+  ['touch_updated_at', {}],
+]) {
+  await expectRejected(`authenticated direct internal RPC ${fn}`, await rpc(fn, body, tokenA));
+}
+
+// Representative service-only RPCs must reject authenticated clients before any mutation occurs.
+for (const [fn, body] of [
+  ['claim_job', { p_worker_id: `client-${runId}`, p_kinds: null }],
+  ['reserve_quota_from_pool', { p_units: 1 }],
+  ['channel_refresh_token', { p_channel_id: '00000000-0000-0000-0000-000000000000' }],
+]) {
+  await expectRejected(`authenticated service-only RPC ${fn}`, await rpc(fn, body, tokenA));
+}
+
+// YouTube credential/quota tables are intentionally backend-only: anon/authenticated Data API denied,
+// while service_role can read them. No production-like data is created by this verifier.
+for (const table of ['youtube_projects', 'youtube_quota']) {
+  await expectRejected(`anonymous backend-only table ${table}`, await request(`/rest/v1/${table}?select=*`, { apikey: anonKey }));
+  await expectRejected(`authenticated backend-only table ${table}`, await request(`/rest/v1/${table}?select=*`, { token: tokenA }));
+  const serviceRead = await request(`/rest/v1/${table}?select=*`, { token: serviceKey, apikey: serviceKey });
+  check(serviceRead.response.ok, `service_role cannot read backend-only table ${table}`, serviceRead.data);
+}
 
 const role = await rpc('workspace_role_for', { p_workspace: wsB }, tokenA);
 check(role.response.ok && role.data === null, 'cross-workspace role disclosure', role.data);
@@ -97,6 +123,12 @@ console.log(JSON.stringify({
   workspaces: 2,
   publicRpcDenials: publicDenied.map(([fn]) => fn),
   internalDirectInvocation: 'DENIED',
+  authenticatedServiceOnlyRpcInvocation: 'DENIED',
+  youtubeBackendOnlyAccess: {
+    anon: 'DENIED',
+    authenticated: 'DENIED',
+    serviceRoleRead: 'ALLOWED'
+  },
   crossWorkspaceAuthorization: 'DENIED',
   remoteSupabaseTouched: false,
   productionTouched: false
