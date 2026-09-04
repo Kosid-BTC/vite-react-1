@@ -1,0 +1,183 @@
+name: Marketing OS Approved UI V4 Full Non-Production Gate
+
+on:
+  push:
+    branches:
+      - feat/marketing-os-approved-ui-v4
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-os-approved-ui-v4-full-gate
+  cancel-in-progress: true
+
+jobs:
+  app-validation:
+    name: App validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Assert exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "UI_SHA_VERIFIED=$GITHUB_SHA"
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install root dependencies
+        run: npm ci
+      - name: Root regression suite
+        run: npm run test:run
+      - name: Root build
+        run: npm run build
+      - name: Root lint
+        run: npm run lint
+      - name: Install Marketing OS dependencies
+        working-directory: apps/marketing-os
+        run: npm ci --no-audit --no-fund
+      - name: P1.3 Growth decision boundary verification
+        working-directory: apps/marketing-os
+        run: npm run test:p1-3
+      - name: P1.4 Outcome learning boundary verification
+        working-directory: apps/marketing-os
+        run: npm run test:p1-4
+      - name: P2.0 Creative automation foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p2-0
+      - name: P2.1 Voice subtitles foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p2-1
+      - name: P2.2 Content calendar foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p2-2
+      - name: P2.3 Scheduler foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p2-3
+      - name: P3.0 Analytics foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p3-0
+      - name: P3.1 Experiment engine foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p3-1
+      - name: P3.2 Attribution foundation verification
+        working-directory: apps/marketing-os
+        run: npm run test:p3-2
+      - name: P3.3 Lead sales intelligence verification
+        working-directory: apps/marketing-os
+        run: npm run test:p3-3
+      - name: P3.4 Next Best Action verification
+        working-directory: apps/marketing-os
+        run: npm run test:p3-4
+      - name: Dashboard closed-loop verification
+        working-directory: apps/marketing-os
+        run: npm run test:dashboard-closed-loop
+      - name: Auth recovery verification
+        working-directory: apps/marketing-os
+        run: npm run test:auth-recovery
+      - name: Typecheck
+        working-directory: apps/marketing-os
+        run: npm run typecheck
+      - name: Marketing OS build
+        working-directory: apps/marketing-os
+        run: npm run build
+      - name: Marketing OS Docker image build
+        run: docker build -t ceo-ai-marketing-os:v4-ci apps/marketing-os
+      - name: Diff whitespace check
+        run: git diff --check origin/feat/marketing-os-phase1...HEAD
+
+  authenticated-rls:
+    name: Authenticated JWT / RLS integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Assert exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify Docker
+        run: docker info
+      - name: Start disposable local Supabase
+        run: npx --yes supabase@2.40.0 start
+      - name: Migration reset / reapply #1
+        run: npx --yes supabase@2.40.0 db reset --local
+      - name: Migration reset / reapply #2
+        run: npx --yes supabase@2.40.0 db reset --local
+      - name: Generate local Supabase database types
+        run: npx --yes supabase@2.40.0 gen types typescript --local > apps/marketing-os/src/types/database.types.generated.ts
+      - name: Verify against generated local schema types
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp apps/marketing-os/src/types/database.types.ts /tmp/database.types.curated.ts
+          cp apps/marketing-os/src/types/database.types.generated.ts apps/marketing-os/src/types/database.types.ts
+          cd apps/marketing-os
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Restore curated type contract
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/database.types.curated.ts ]; then cp /tmp/database.types.curated.ts apps/marketing-os/src/types/database.types.ts; fi
+          rm -f apps/marketing-os/src/types/database.types.generated.ts
+      - name: Authenticated JWT RLS CRUD verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          node apps/marketing-os/scripts/verify-phase1-rls.mjs
+      - name: Release candidate tenant isolation verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          cd apps/marketing-os
+          npm run test:tenant-isolation
+      - name: Authenticated Phase 1 vertical slice verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          node apps/marketing-os/scripts/verify-phase1-vertical-slice.mjs
+      - name: Trusted Evidence persistence verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          node apps/marketing-os/scripts/verify-trusted-evidence-local.mjs
+      - name: Stop disposable local Supabase
+        if: always()
+        run: npx --yes supabase@2.40.0 stop --no-backup
