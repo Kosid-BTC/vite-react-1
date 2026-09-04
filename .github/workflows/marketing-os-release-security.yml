@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/marketing-os-phase1
+      - feat/marketing-os-executive-growth-v3
     paths:
       - 'apps/marketing-os/config/security-definer-classification.json'
       - 'apps/marketing-os/scripts/verify-release-security-boundaries-local.mjs'
@@ -27,6 +28,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Assert exact workflow head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "RELEASE_SECURITY_SHA_VERIFIED=${GITHUB_SHA}"
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -53,9 +60,6 @@ jobs:
           export SUPABASE_ANON_KEY="$ANON_KEY"
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
 
-          # Production currently contains these backend-only tables out-of-band, while the clean
-          # repository schema does not. Materialize disposable local fixtures, then re-run the
-          # exact release migration so its conditional least-privilege grants are exercised.
           psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
           create table if not exists public.youtube_projects (id uuid primary key default gen_random_uuid());
           create table if not exists public.youtube_quota (id uuid primary key default gen_random_uuid());
