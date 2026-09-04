@@ -79,6 +79,46 @@ jobs:
           npx --yes vercel@latest link --yes --project="$VERCEL_PROJECT_NAME" --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
           npx --yes vercel@latest pull --yes --environment=production --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
 
+      - name: Ensure Supabase public runtime config
+        working-directory: apps/marketing-os
+        shell: bash
+        env:
+          SUPABASE_PUBLIC_URL: https://bjozpwdtqbpwcxnqguka.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_WJJCHrZVH4QK3GT0c1sy8A_YCT9svtP
+        run: |
+          set -euo pipefail
+          env_file=.vercel/.env.production.local
+          touch "$env_file"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path('.vercel/.env.production.local')
+          text = path.read_text() if path.exists() else ''
+          replacements = {
+              'NEXT_PUBLIC_SUPABASE_URL': os.environ['SUPABASE_PUBLIC_URL'],
+              'NEXT_PUBLIC_SUPABASE_ANON_KEY': os.environ['SUPABASE_PUBLISHABLE_KEY'],
+          }
+          lines = text.splitlines()
+          out = []
+          seen = set()
+          for line in lines:
+              key = line.split('=', 1)[0] if '=' in line else None
+              if key in replacements:
+                  if key not in seen:
+                      out.append(f'{key}="{replacements[key]}"')
+                      seen.add(key)
+              else:
+                  out.append(line)
+          for key, value in replacements.items():
+              if key not in seen:
+                  out.append(f'{key}="{value}"')
+          path.write_text('\n'.join(out) + '\n')
+          PY
+          grep -q '^NEXT_PUBLIC_SUPABASE_URL=' "$env_file"
+          grep -q '^NEXT_PUBLIC_SUPABASE_ANON_KEY=' "$env_file"
+          echo "SUPABASE_PUBLIC_CONFIG=VERIFIED"
+
       - name: Build production artifact
         working-directory: apps/marketing-os
         run: npx --yes vercel@latest build --prod --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
