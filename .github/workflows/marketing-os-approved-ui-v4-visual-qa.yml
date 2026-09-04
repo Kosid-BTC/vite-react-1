@@ -106,31 +106,45 @@ jobs:
           import { chromium } from 'playwright';
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: 1 });
-          await page.goto('http://127.0.0.1:3000/login', { waitUntil: 'networkidle' });
-          await page.locator('input[name="email"]').first().fill(process.env.QA_EMAIL);
-          await page.locator('input[name="password"]').fill(process.env.QA_PASSWORD);
-          await page.locator('form').first().locator('button[type="submit"]').click();
-          await page.waitForURL(url => !url.pathname.startsWith('/login'), { timeout: 15000 });
-          await page.waitForLoadState('networkidle');
-          if (!(await page.locator('text=Performance Overview').first().isVisible())) throw new Error('Dashboard did not render Performance Overview');
-          if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Expected exactly six KPI cards');
-          await page.screenshot({ path: 'visual-qa-artifacts/desktop-1536x1024.png', fullPage: true });
-          await page.setViewportSize({ width: 390, height: 844 });
-          await page.waitForTimeout(500);
-          const pBox = await page.locator('.performance-panel').boundingBox();
-          const aBox = await page.locator('.ai-panel').boundingBox();
-          if (!pBox || !aBox || pBox.y >= aBox.y) throw new Error('Mobile hierarchy regression: Performance must precede AI Recommendations');
-          if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Mobile must retain all six KPI cards');
-          await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: true });
-          console.log('AUTHENTICATED_VISUAL_QA_CAPTURE=PASS');
-          await browser.close();
+          try {
+            await page.goto('http://127.0.0.1:3000/login', { waitUntil: 'networkidle' });
+            await page.locator('input[name="email"]').first().fill(process.env.QA_EMAIL);
+            await page.locator('input[name="password"]').fill(process.env.QA_PASSWORD);
+            await page.locator('form').first().locator('button[type="submit"]').click();
+            await page.waitForURL(url => url.pathname.endsWith('/home'), { timeout: 20000 });
+            await page.waitForLoadState('networkidle');
+            if (!(await page.locator('text=Performance Overview').first().isVisible())) throw new Error('Dashboard did not render Performance Overview');
+            if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Expected exactly six KPI cards');
+            await page.screenshot({ path: 'visual-qa-artifacts/desktop-1536x1024.png', fullPage: true });
+            await page.setViewportSize({ width: 390, height: 844 });
+            await page.waitForTimeout(500);
+            const pBox = await page.locator('.performance-panel').boundingBox();
+            const aBox = await page.locator('.ai-panel').boundingBox();
+            if (!pBox || !aBox || pBox.y >= aBox.y) throw new Error('Mobile hierarchy regression: Performance must precede AI Recommendations');
+            if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Mobile must retain all six KPI cards');
+            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: true });
+            console.log('AUTHENTICATED_VISUAL_QA_CAPTURE=PASS');
+          } catch (error) {
+            console.error(`VISUAL_QA_FAILURE_URL=${page.url()}`);
+            console.error(`VISUAL_QA_FAILURE_TITLE=${await page.title()}`);
+            console.error(`VISUAL_QA_FAILURE_BODY=${(await page.locator('body').innerText().catch(() => '')).slice(0, 4000)}`);
+            await page.screenshot({ path: 'visual-qa-artifacts/failure.png', fullPage: true }).catch(() => {});
+            throw error;
+          } finally {
+            await browser.close();
+          }
           NODE
-      - name: Upload visual QA screenshots
+      - name: Print app log on failure
+        if: failure()
+        shell: bash
+        run: cat /tmp/marketing-os-v4.log || true
+      - name: Upload visual QA evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: approved-ui-v4-visual-qa-${{ github.sha }}
           path: apps/marketing-os/visual-qa-artifacts/*.png
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
       - name: Stop disposable local Supabase
         if: always()
