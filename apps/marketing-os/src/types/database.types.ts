@@ -26,6 +26,7 @@ type FindingRow = { id:string; workspace_id:string; content_item_id:string; bran
 type ApprovalRow = { id:string; workspace_id:string; content_item_id:string; content_version_id:string|null; status:'pending'|'approved'|'rejected'|'changes_requested'; requested_by:string; reviewed_by:string|null; review_notes:string|null; created_at:string; reviewed_at:string|null };
 type TrackingRow = { id:string; workspace_id:string; campaign_id:string|null; content_item_id:string|null; destination_url:string; short_code:string|null; utm_source:string; utm_medium:string; utm_campaign:string; utm_content:string|null; utm_term:string|null; segment_code:string; final_url:string; created_by:string; created_at:string };
 type ActionRow = { id:string; workspace_id:string; action_type:string; title:string; description:string|null; priority:number; entity_type:string|null; entity_id:string|null; action_href:string|null; status:'open'|'done'|'dismissed'; due_at:string|null; created_at:string; completed_at:string|null };
+type EvidenceRow = { id:string; workspace_id:string; business_id:string; campaign_id:string|null; content_item_id:string|null; evidence_kind:'metric'|'outcome'|'observation'|'experiment'; outcome_key:string; truth_status:'MEASURED'|'DERIVED'|'ASSUMED'|'PLACEHOLDER'|'UNAVAILABLE'; value:Json; provenance:Json; idempotency_key:string; created_by:string; created_at:string; updated_at:string };
 
 export type Database = {
   public: {
@@ -47,6 +48,7 @@ export type Database = {
       marketing_approval_requests: Table<ApprovalRow>;
       marketing_tracking_links: Table<TrackingRow>;
       marketing_action_items: Table<ActionRow>;
+      marketing_evidence: Table<EvidenceRow>;
     };
     Views: Record<string, never>;
     Functions: {
