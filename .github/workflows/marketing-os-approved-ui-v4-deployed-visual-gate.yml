@@ -110,7 +110,7 @@ jobs:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
         run: |
           set -euo pipefail
-          npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" curl /login --deployment "$DEPLOYMENT_URL" > /tmp/login.html
+          npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" curl /login --deployment "$DEPLOYMENT_URL" > /tmp/login.html
           grep -q 'CEO AI' /tmp/login.html
           grep -q 'เข้าสู่ระบบ' /tmp/login.html
           echo "CORRECT_PROJECT_PREVIEW_SMOKE=PASS"
@@ -137,9 +137,8 @@ jobs:
           const execFileAsync = promisify(execFile);
           const deployment = process.env.DEPLOYMENT_URL;
           const sha = process.env.GITHUB_SHA;
-          const token = process.env.VERCEL_TOKEN;
           const team = process.env.VERCEL_TEAM_SLUG;
-          if (!deployment || !sha || !token || !team) throw new Error('Missing deployed visual QA inputs');
+          if (!deployment || !sha || !process.env.VERCEL_TOKEN || !team) throw new Error('Missing deployed visual QA inputs');
 
           const mime = (url, resourceType) => {
             const ext = extname(new URL(url).pathname).toLowerCase();
@@ -164,8 +163,8 @@ jobs:
             try {
               const { stdout } = await execFileAsync(
                 './node_modules/.bin/vercel',
-                [`--scope=${team}`, `--token=${token}`, 'curl', url],
-                { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
+                [`--scope=${team}`, 'curl', url],
+                { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024, env: process.env },
               );
               await route.fulfill({ status: 200, body: stdout, contentType: mime(url, request.resourceType()) });
             } catch (error) {
