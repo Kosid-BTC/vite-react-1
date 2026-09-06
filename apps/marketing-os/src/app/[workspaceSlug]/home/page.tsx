@@ -58,15 +58,38 @@ function MetricCard({ icon, label, accent }: { icon: string; label: string; acce
   );
 }
 
-export default async function HomePage({ params }: { params: Promise<{ workspaceSlug: string }> }) {
+type HomePageProps = {
+  params: Promise<{ workspaceSlug: string }>;
+  searchParams: Promise<{ visualQa?: string | string[] }>;
+};
+
+export default async function HomePage({ params, searchParams }: HomePageProps) {
   const { workspaceSlug } = await params;
-  const service = await getMarketingService();
-  const data = await service.getHome(workspaceSlug);
+  const query = await searchParams;
+  const visualQaToken = Array.isArray(query.visualQa) ? query.visualQa[0] : query.visualQa;
+  const isPreviewVisualQa =
+    process.env.VERCEL_ENV === 'preview' &&
+    Boolean(process.env.VERCEL_GIT_COMMIT_SHA) &&
+    visualQaToken === process.env.VERCEL_GIT_COMMIT_SHA;
+
+  const data = isPreviewVisualQa
+    ? {
+        workspace: { name: 'CEO AI Thailand', slug: workspaceSlug },
+        actions: [],
+        primaryAction: {
+          id: 'visual-qa-primary-create-first-campaign',
+          title: 'สร้าง Campaign แรก',
+          description: 'Preview visual QA fixture — ไม่มีการใช้ข้อมูล Production',
+          action_href: `/${workspaceSlug}/campaigns/new`,
+        },
+      }
+    : await (await getMarketingService()).getHome(workspaceSlug);
+
   const recommendationQueue = [data.primaryAction, ...data.actions.filter((action) => action.id !== data.primaryAction.id)].slice(0, 5);
   const environmentLabel = (process.env.VERCEL_ENV ?? 'local').toUpperCase();
 
   return (
-    <main className="marketing-app-shell">
+    <main className="marketing-app-shell" data-visual-qa={isPreviewVisualQa ? 'preview-fixture' : undefined}>
       <aside className="app-sidebar" aria-label="เมนูหลัก">
         <div className="brand-lockup">
           <div className="brand-logo-window">
