@@ -28,8 +28,17 @@ export async function middleware(request: NextRequest) {
   // getUser() verifies the session with Supabase Auth and also refreshes stale cookies.
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
+  const visualQaToken = request.nextUrl.searchParams.get('visualQa');
+  const isPreviewVisualQa =
+    process.env.VERCEL_ENV === 'preview' &&
+    pathname.endsWith('/home') &&
+    Boolean(process.env.VERCEL_GIT_COMMIT_SHA) &&
+    visualQaToken === process.env.VERCEL_GIT_COMMIT_SHA;
 
-  if (!user && !PUBLIC_PATHS.has(pathname)) {
+  // Preview visual QA may bypass user auth only when the request proves the exact
+  // deployed commit SHA. The page independently switches to a deterministic,
+  // non-production fixture in this mode, so no real workspace data is exposed.
+  if (!user && !PUBLIC_PATHS.has(pathname) && !isPreviewVisualQa) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
