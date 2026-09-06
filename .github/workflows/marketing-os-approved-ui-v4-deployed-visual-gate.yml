@@ -24,7 +24,6 @@ jobs:
       VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
       VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
       VERCEL_TEAM_SLUG: kosid-btcs-projects
-      VISUAL_MAE_THRESHOLD: '0.065'
     steps:
       - name: Checkout exact head
         uses: actions/checkout@v4
@@ -119,7 +118,7 @@ jobs:
       - name: Install deployed visual QA tools
         working-directory: apps/marketing-os
         run: |
-          npm install --no-save --no-package-lock playwright@1.55.0 vercel@59.11.7
+          npm install --no-save --no-package-lock playwright@1.55.0 vercel@59.11.7 sharp@0.34.3
           npx playwright install --with-deps chromium
 
       - name: Capture and compare deployed visual evidence
@@ -131,6 +130,7 @@ jobs:
           mkdir -p deployed-visual-qa-artifacts
           node --input-type=module <<'NODE'
           import { chromium } from 'playwright';
+          import sharp from 'sharp';
           import { execFile } from 'node:child_process';
           import { promisify } from 'node:util';
           import { extname } from 'node:path';
@@ -140,8 +140,17 @@ jobs:
           const deployment = process.env.DEPLOYMENT_URL;
           const sha = process.env.GITHUB_SHA;
           const team = process.env.VERCEL_TEAM_SLUG;
-          const threshold = Number(process.env.VISUAL_MAE_THRESHOLD ?? '0.065');
           if (!deployment || !sha || !process.env.VERCEL_TOKEN || !team) throw new Error('Missing deployed visual QA inputs');
+
+          const contract = JSON.parse(await readFile('config/approved-ui-v4-visual-fingerprints.json', 'utf8'));
+          const main = contract.sources.find((source) => source.key === 'main');
+          const variant = contract.sources.find((source) => source.key === 'variant');
+          const duplicate = contract.sources.find((source) => source.key === 'main-duplicate-confirmation');
+          if (!main || !variant || !duplicate) throw new Error('Approved screenshot fingerprint contract incomplete');
+          if (main.sha256 !== 'db7bbd69b7646d4a81156c6c6b01d83a4f107302fd94fb3601ff02994f8fa2c6') throw new Error('Main approved screenshot authority hash drifted');
+          if (variant.sha256 !== '609493e33900606862e9e73c413ddf2b9d10b32600a957b20d58351a9d56d738') throw new Error('Variant approved screenshot authority hash drifted');
+          if (duplicate.duplicateOf !== 'main') throw new Error('Duplicate approved screenshot confirmation drifted');
+          if (contract.method.width !== 24 || contract.method.height !== 16 || contract.method.blurRadius !== 6) throw new Error('Visual fingerprint method drifted');
 
           const mime = (url, resourceType) => {
             const ext = extname(new URL(url).pathname).toLowerCase();
@@ -156,6 +165,39 @@ jobs:
             if (ext === '.woff') return 'font/woff';
             return 'application/octet-stream';
           };
+
+          const normalizedMse = (a, b) => {
+            if (a.length !== b.length) throw new Error('Visual fingerprint dimensions differ');
+            let sum = 0;
+            for (let i = 0; i < a.length; i += 1) {
+              const delta = (Number(a[i]) - Number(b[i])) / 255;
+              sum += delta * delta;
+            }
+            return sum / a.length;
+          };
+
+          const correlation = (a, b) => {
+            if (a.length !== b.length) throw new Error('Visual fingerprint dimensions differ');
+            const meanA = a.reduce((sum, value) => sum + Number(value), 0) / a.length;
+            const meanB = b.reduce((sum, value) => sum + Number(value), 0) / b.length;
+            let numerator = 0, denomA = 0, denomB = 0;
+            for (let i = 0; i < a.length; i += 1) {
+              const da = Number(a[i]) - meanA;
+              const db = Number(b[i]) - meanB;
+              numerator += da * db;
+              denomA += da * da;
+              denomB += db * db;
+            }
+            if (!denomA || !denomB) return 0;
+            return numerator / Math.sqrt(denomA * denomB);
+          };
+
+          const deployedFingerprint = async (png) => Array.from(await sharp(png)
+            .greyscale()
+            .blur(contract.method.blurRadius)
+            .resize(contract.method.width, contract.method.height, { fit: 'fill' })
+            .raw()
+            .toBuffer());
 
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: 1 });
@@ -177,37 +219,6 @@ jobs:
             }
           });
 
-          const pixels96x64 = async (buffer) => {
-            const p = await browser.newPage({ viewport: { width: 96, height: 64 }, deviceScaleFactor: 1 });
-            try {
-              return await p.evaluate(async (dataUrl) => {
-                const image = new Image();
-                image.src = dataUrl;
-                await image.decode();
-                const canvas = document.createElement('canvas');
-                canvas.width = 96;
-                canvas.height = 64;
-                const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-                ctx.drawImage(image, 0, 0, 96, 64);
-                return Array.from(ctx.getImageData(0, 0, 96, 64).data);
-              }, `data:image/png;base64,${buffer.toString('base64')}`);
-            } finally {
-              await p.close();
-            }
-          };
-
-          const rgbMae = (a, b) => {
-            if (a.length !== b.length) throw new Error('Fingerprint dimensions differ');
-            let sum = 0, channels = 0;
-            for (let i = 0; i < a.length; i += 4) {
-              sum += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
-              channels += 3;
-            }
-            return sum / channels / 255;
-          };
-
           try {
             await page.goto(`${deployment}/visual-qa/home?visualQa=${encodeURIComponent(sha)}`, { waitUntil: 'networkidle' });
             const root = page.locator('[data-visual-qa="preview-fixture"]');
@@ -218,16 +229,15 @@ jobs:
             }
 
             const desktop = await page.screenshot({ path: 'deployed-visual-qa-artifacts/desktop-1536x1024.png', fullPage: false });
-            const deployedPixels = await pixels96x64(desktop);
-            const mainPixels = await pixels96x64(await readFile('visual-authority/0D291464-3F4B-4AD2-B7BE-C5409EC56B4F.96x64.png'));
-            const variantPixels = await pixels96x64(await readFile('visual-authority/4C6D6E63-535F-4E43-BD88-FD10F31624DC.96x64.png'));
-            const mainMae = rgbMae(deployedPixels, mainPixels);
-            const variantMae = rgbMae(deployedPixels, variantPixels);
-            console.log(`APPROVED_MAIN_VISUAL_MAE=${mainMae.toFixed(6)}`);
-            console.log(`APPROVED_VARIANT_VISUAL_MAE=${variantMae.toFixed(6)}`);
-            console.log(`APPROVED_VISUAL_MAE_THRESHOLD=${threshold.toFixed(6)}`);
-            if (mainMae > threshold || variantMae > threshold) {
-              throw new Error(`Deployed screenshot diverges from approved sources: main=${mainMae.toFixed(6)}, variant=${variantMae.toFixed(6)}, threshold=${threshold}`);
+            const deployed = await deployedFingerprint(desktop);
+            const mainMse = normalizedMse(deployed, main.fingerprint);
+            const variantMse = normalizedMse(deployed, variant.fingerprint);
+            const mainCorrelation = correlation(deployed, main.fingerprint);
+            console.log(`APPROVED_MAIN_VISUAL_MSE=${mainMse.toFixed(6)}`);
+            console.log(`APPROVED_VARIANT_VISUAL_MSE=${variantMse.toFixed(6)}`);
+            console.log(`APPROVED_MAIN_VISUAL_CORRELATION=${mainCorrelation.toFixed(6)}`);
+            if (mainMse > contract.thresholds.main.mseMax || mainCorrelation < contract.thresholds.main.correlationMin || variantMse > contract.thresholds.variant.mseMax) {
+              throw new Error(`Deployed screenshot diverges from approved sources: mainMse=${mainMse.toFixed(6)}, mainCorrelation=${mainCorrelation.toFixed(6)}, variantMse=${variantMse.toFixed(6)}`);
             }
 
             await page.setViewportSize({ width: 390, height: 844 });
