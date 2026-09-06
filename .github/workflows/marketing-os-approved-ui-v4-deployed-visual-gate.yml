@@ -24,6 +24,7 @@ jobs:
       VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
       VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
       VERCEL_TEAM_SLUG: kosid-btcs-projects
+      VISUAL_MAE_THRESHOLD: '0.065'
     steps:
       - name: Checkout exact head
         uses: actions/checkout@v4
@@ -121,7 +122,7 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.55.0 vercel@59.11.7
           npx playwright install --with-deps chromium
 
-      - name: Capture deployed desktop/mobile visual evidence
+      - name: Capture and compare deployed visual evidence
         working-directory: apps/marketing-os
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
@@ -133,11 +134,13 @@ jobs:
           import { execFile } from 'node:child_process';
           import { promisify } from 'node:util';
           import { extname } from 'node:path';
+          import { readFile } from 'node:fs/promises';
 
           const execFileAsync = promisify(execFile);
           const deployment = process.env.DEPLOYMENT_URL;
           const sha = process.env.GITHUB_SHA;
           const team = process.env.VERCEL_TEAM_SLUG;
+          const threshold = Number(process.env.VISUAL_MAE_THRESHOLD ?? '0.065');
           if (!deployment || !sha || !process.env.VERCEL_TOKEN || !team) throw new Error('Missing deployed visual QA inputs');
 
           const mime = (url, resourceType) => {
@@ -174,6 +177,37 @@ jobs:
             }
           });
 
+          const pixels96x64 = async (buffer) => {
+            const p = await browser.newPage({ viewport: { width: 96, height: 64 }, deviceScaleFactor: 1 });
+            try {
+              return await p.evaluate(async (dataUrl) => {
+                const image = new Image();
+                image.src = dataUrl;
+                await image.decode();
+                const canvas = document.createElement('canvas');
+                canvas.width = 96;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(image, 0, 0, 96, 64);
+                return Array.from(ctx.getImageData(0, 0, 96, 64).data);
+              }, `data:image/png;base64,${buffer.toString('base64')}`);
+            } finally {
+              await p.close();
+            }
+          };
+
+          const rgbMae = (a, b) => {
+            if (a.length !== b.length) throw new Error('Fingerprint dimensions differ');
+            let sum = 0, channels = 0;
+            for (let i = 0; i < a.length; i += 4) {
+              sum += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
+              channels += 3;
+            }
+            return sum / channels / 255;
+          };
+
           try {
             await page.goto(`${deployment}/visual-qa/home?visualQa=${encodeURIComponent(sha)}`, { waitUntil: 'networkidle' });
             const root = page.locator('[data-visual-qa="preview-fixture"]');
@@ -182,7 +216,19 @@ jobs:
             for (const selector of ['.performance-panel','.traffic-source','.ai-panel','.genome-panel','.mit-panel','.recent-panel','.platform-panel']) {
               if (!(await page.locator(selector).isVisible())) throw new Error(`Approved desktop missing ${selector}`);
             }
-            await page.screenshot({ path: 'deployed-visual-qa-artifacts/desktop-1536x1024.png', fullPage: true });
+
+            const desktop = await page.screenshot({ path: 'deployed-visual-qa-artifacts/desktop-1536x1024.png', fullPage: false });
+            const deployedPixels = await pixels96x64(desktop);
+            const mainPixels = await pixels96x64(await readFile('visual-authority/0D291464-3F4B-4AD2-B7BE-C5409EC56B4F.96x64.png'));
+            const variantPixels = await pixels96x64(await readFile('visual-authority/4C6D6E63-535F-4E43-BD88-FD10F31624DC.96x64.png'));
+            const mainMae = rgbMae(deployedPixels, mainPixels);
+            const variantMae = rgbMae(deployedPixels, variantPixels);
+            console.log(`APPROVED_MAIN_VISUAL_MAE=${mainMae.toFixed(6)}`);
+            console.log(`APPROVED_VARIANT_VISUAL_MAE=${variantMae.toFixed(6)}`);
+            console.log(`APPROVED_VISUAL_MAE_THRESHOLD=${threshold.toFixed(6)}`);
+            if (mainMae > threshold || variantMae > threshold) {
+              throw new Error(`Deployed screenshot diverges from approved sources: main=${mainMae.toFixed(6)}, variant=${variantMae.toFixed(6)}, threshold=${threshold}`);
+            }
 
             await page.setViewportSize({ width: 390, height: 844 });
             await page.waitForTimeout(600);
@@ -195,8 +241,10 @@ jobs:
             const mobileLogoBackground = await page.locator('.topbar').evaluate((node) => getComputedStyle(node, '::before').backgroundImage);
             if (!mobileLogoBackground.includes('ceo-ai-reference-logo.svg')) throw new Error('CEO AI logo branding missing on mobile');
             await page.screenshot({ path: 'deployed-visual-qa-artifacts/mobile-390x844.png', fullPage: true });
+
             console.log(`DEPLOYED_VISUAL_QA_SHA=${sha}`);
             console.log('DEPLOYED_VISUAL_STRUCTURE=PASS');
+            console.log('DEPLOYED_APPROVED_SOURCE_FIDELITY=PASS');
             console.log('APPROVED_SOURCE_CONTRACT=0D291464-3F4B-4AD2-B7BE-C5409EC56B4F.jpeg|4C6D6E63-535F-4E43-BD88-FD10F31624DC.jpeg|0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(1).jpeg');
           } finally {
             await browser.close();
