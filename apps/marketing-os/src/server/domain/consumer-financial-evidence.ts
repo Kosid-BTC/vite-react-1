@@ -1,4 +1,5 @@
 import type { Database, Json } from '@/types/database.types';
+import type { DashboardTruthState } from './dashboard-growth-loop';
 import {
   CUSTOMER_SEGMENTS,
   type ActivationFunnelSnapshot,
@@ -17,6 +18,14 @@ export const CONSUMER_FINANCIAL_OUTCOME_KEYS = {
 
 export const CONSUMER_FINANCIAL_OUTCOME_KEY_LIST = Object.values(CONSUMER_FINANCIAL_OUTCOME_KEYS);
 
+const DASHBOARD_TRUTH_STATES: readonly DashboardTruthState[] = [
+  'MEASURED',
+  'DERIVED',
+  'ASSUMED',
+  'PLACEHOLDER',
+  'UNAVAILABLE',
+];
+
 type EvidenceRow = Database['public']['Tables']['marketing_evidence']['Row'];
 
 type EvidenceValue = {
@@ -29,17 +38,25 @@ function isRecord(value: Json): value is { [key: string]: Json | undefined } {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function parseTruthState(value: string): DashboardTruthState | null {
+  return DASHBOARD_TRUTH_STATES.includes(value as DashboardTruthState)
+    ? (value as DashboardTruthState)
+    : null;
+}
+
 function parseEvidenceValue(row: EvidenceRow): EvidenceValue | null {
   if (!isRecord(row.value)) return null;
 
   const cohortId = row.value.cohort_id;
   const segment = row.value.segment;
   const count = row.value.count;
+  const truthState = parseTruthState(row.truth_status);
 
+  if (!truthState) return null;
   if (typeof cohortId !== 'string' || !cohortId.trim()) return null;
   if (typeof segment !== 'string' || !CUSTOMER_SEGMENTS.includes(segment as CustomerSegment)) return null;
 
-  if (row.truth_status === 'MEASURED' || row.truth_status === 'DERIVED' || row.truth_status === 'ASSUMED') {
+  if (truthState === 'MEASURED' || truthState === 'DERIVED' || truthState === 'ASSUMED') {
     if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) return null;
   }
 
@@ -55,37 +72,30 @@ function sourceFromProvenance(provenance: Json): string | null {
   return typeof provenance.source === 'string' && provenance.source.trim() ? provenance.source : null;
 }
 
+function unavailableMetric(key: string): EvidenceMetric {
+  return {
+    key,
+    value: null,
+    truthState: 'UNAVAILABLE',
+    evidenceIds: [],
+    source: null,
+    observedAt: null,
+  };
+}
+
 function toMetric(key: string, row: EvidenceRow | undefined, cohortId: string): EvidenceMetric {
-  if (!row) {
-    return {
-      key,
-      value: null,
-      truthState: 'UNAVAILABLE',
-      evidenceIds: [],
-      source: null,
-      observedAt: null,
-    };
-  }
+  if (!row) return unavailableMetric(key);
 
+  const truthState = parseTruthState(row.truth_status);
   const parsed = parseEvidenceValue(row);
-  if (!parsed || parsed.cohort_id !== cohortId) {
-    return {
-      key,
-      value: null,
-      truthState: 'UNAVAILABLE',
-      evidenceIds: [],
-      source: null,
-      observedAt: null,
-    };
-  }
+  if (!truthState || !parsed || parsed.cohort_id !== cohortId) return unavailableMetric(key);
 
-  const canExposeValue =
-    row.truth_status === 'MEASURED' || row.truth_status === 'DERIVED' || row.truth_status === 'ASSUMED';
+  const canExposeValue = truthState === 'MEASURED' || truthState === 'DERIVED' || truthState === 'ASSUMED';
 
   return {
     key,
     value: canExposeValue ? parsed.count ?? null : null,
-    truthState: row.truth_status,
+    truthState,
     evidenceIds: [row.id],
     source: sourceFromProvenance(row.provenance),
     observedAt: row.created_at,
