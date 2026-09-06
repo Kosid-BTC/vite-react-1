@@ -85,6 +85,9 @@ jobs:
       - name: Consumer behavior and financial loop verification
         working-directory: apps/marketing-os
         run: npm run test:consumer-finance-loop
+      - name: Trusted consumer evidence adapter verification
+        working-directory: apps/marketing-os
+        run: npm run test:consumer-evidence
       - name: Auth recovery verification
         working-directory: apps/marketing-os
         run: npm run test:auth-recovery
