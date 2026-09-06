@@ -142,18 +142,22 @@ jobs:
           import json, os
           data = json.loads(os.environ['SHARE_RESPONSE'])
           candidates = []
-          def walk(value):
+          def walk(value, parent_key=''):
               if isinstance(value, dict):
                   for key, child in value.items():
-                      if key in {'value','secret','token'} and isinstance(child, str):
+                      normalized = key.lower().replace('_', '').replace('-', '')
+                      if isinstance(child, str) and (
+                          normalized in {'value','secret','token','protectionbypass','bypass'}
+                          or 'bypass' in normalized
+                      ):
                           candidates.append(child)
-                      walk(child)
+                      walk(child, key)
               elif isinstance(value, list):
                   for child in value:
-                      walk(child)
+                      walk(child, parent_key)
           walk(data)
           for item in candidates:
-              if len(item) >= 16:
+              if len(item) >= 16 and not item.startswith(('http://','https://')):
                   print(item)
                   break
           PY
