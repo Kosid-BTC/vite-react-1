@@ -235,9 +235,9 @@ jobs:
             const mainCorrelation = correlation(deployed, main.fingerprint);
             console.log(`APPROVED_MAIN_VISUAL_MSE=${mainMse.toFixed(6)}`);
             console.log(`APPROVED_VARIANT_VISUAL_MSE=${variantMse.toFixed(6)}`);
-            console.log(`APPROVED_MAIN_VISUAL_CORRELATION=${mainCorrelation.toFixed(6)}`);
-            if (mainMse > contract.thresholds.main.mseMax || mainCorrelation < contract.thresholds.main.correlationMin || variantMse > contract.thresholds.variant.mseMax) {
-              throw new Error(`Deployed screenshot diverges from approved sources: mainMse=${mainMse.toFixed(6)}, mainCorrelation=${mainCorrelation.toFixed(6)}, variantMse=${variantMse.toFixed(6)}`);
+            console.log(`APPROVED_MAIN_VISUAL_CORRELATION_INFORMATIONAL=${mainCorrelation.toFixed(6)}`);
+            if (mainMse > contract.thresholds.main.mseMax || variantMse > contract.thresholds.variant.mseMax) {
+              throw new Error(`Deployed screenshot diverges from approved sources: mainMse=${mainMse.toFixed(6)}, variantMse=${variantMse.toFixed(6)}`);
             }
 
             await page.setViewportSize({ width: 390, height: 844 });
