@@ -4,6 +4,7 @@ import {
   CONSUMER_FINANCIAL_OUTCOME_KEYS,
   trustedEvidenceToActivationSnapshot,
 } from '../src/server/domain/consumer-financial-evidence';
+import { ConsumerFinancialService } from '../src/server/services/consumer-financial.service';
 import type { Database, Json } from '../src/types/database.types';
 
 type EvidenceRow = Database['public']['Tables']['marketing_evidence']['Row'];
@@ -143,22 +144,54 @@ assert.throws(
   /CONFLICTING_COHORT_SEGMENT/,
 );
 
-console.log(
-  JSON.stringify(
-    {
-      gate: 'CONSUMER_FINANCIAL_TRUSTED_EVIDENCE_ADAPTER',
-      status: 'PASS',
-      latestEvidenceWins: true,
-      cohortIsolation: true,
-      assumptionsRemainAssumptions: true,
-      placeholdersFailClosed: true,
-      malformedEvidenceFailsClosed: true,
-      conflictingSegmentFailsClosed: true,
-      primaryNba: 'ONE_ONLY',
-      humanApprovalRequired: true,
-      executable: false,
+async function verifyReadOnlyService(): Promise<void> {
+  let readCalls = 0;
+  const service = new ConsumerFinancialService({
+    async listTrustedEvidence(params) {
+      readCalls += 1;
+      assert.deepEqual(params, { workspaceId: 'workspace-1', businessId: 'business-1' });
+      return cohortRows;
     },
-    null,
-    2,
-  ),
-);
+  });
+
+  const serviceModel = await service.getCohortModel({
+    workspaceId: 'workspace-1',
+    businessId: 'business-1',
+    cohortId: '2026-09',
+  });
+
+  assert.equal(readCalls, 1, 'service should perform one read and no mutation');
+  assert.equal(serviceModel.rates.ACTIVATION_RATE_48H.value, 0.65);
+  assert.equal(serviceModel.rates.VERIFIED_FIRST_BUSINESS_OUTCOME_RATE.value, 0.3);
+  assert.equal(serviceModel.primaryNba.primary, true);
+  assert.equal(serviceModel.primaryNba.humanApprovalRequired, true);
+  assert.equal(serviceModel.primaryNba.executable, false);
+}
+
+verifyReadOnlyService()
+  .then(() => {
+    console.log(
+      JSON.stringify(
+        {
+          gate: 'CONSUMER_FINANCIAL_TRUSTED_EVIDENCE_ADAPTER',
+          status: 'PASS',
+          latestEvidenceWins: true,
+          cohortIsolation: true,
+          assumptionsRemainAssumptions: true,
+          placeholdersFailClosed: true,
+          malformedEvidenceFailsClosed: true,
+          conflictingSegmentFailsClosed: true,
+          readOnlyService: true,
+          primaryNba: 'ONE_ONLY',
+          humanApprovalRequired: true,
+          executable: false,
+        },
+        null,
+        2,
+      ),
+    );
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
