@@ -125,75 +125,75 @@ jobs:
           grep -q 'เข้าสู่ระบบ' /tmp/login.html
           echo "CORRECT_PROJECT_PREVIEW_SMOKE=PASS"
 
-      - name: Create short-lived Preview share bypass
-        id: share
-        env:
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          host="${DEPLOYMENT_URL#https://}"
-          response="$(curl -fsS -X PATCH \
-            "https://api.vercel.com/aliases/${host}/protection-bypass?teamId=${VERCEL_ORG_ID}" \
-            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-            -H 'Content-Type: application/json' \
-            --data '{"ttl":3600}')"
-          value="$(SHARE_RESPONSE="$response" python - <<'PY'
-          import json, os
-          data = json.loads(os.environ['SHARE_RESPONSE'])
-          candidates = []
-          def walk(value, parent_key=''):
-              if isinstance(value, dict):
-                  for key, child in value.items():
-                      normalized = key.lower().replace('_', '').replace('-', '')
-                      if isinstance(child, str) and (
-                          normalized in {'value','secret','token','protectionbypass','bypass'}
-                          or 'bypass' in normalized
-                      ):
-                          candidates.append(child)
-                      walk(child, key)
-              elif isinstance(value, list):
-                  for child in value:
-                      walk(child, parent_key)
-          walk(data)
-          for item in candidates:
-              if len(item) >= 16 and not item.startswith(('http://','https://')):
-                  print(item)
-                  break
-          PY
-          )"
-          test -n "$value"
-          echo "::add-mask::$value"
-          echo "share_value=$value" >> "$GITHUB_OUTPUT"
-          echo "PREVIEW_SHARE_BYPASS=CREATED"
-
-      - name: Install Playwright Chromium
+      - name: Install deployed visual QA tools
         working-directory: apps/marketing-os
         run: |
-          npm install --no-save --no-package-lock playwright@1.55.0
+          npm install --no-save --no-package-lock playwright@1.55.0 vercel@59.11.7
           npx playwright install --with-deps chromium
 
       - name: Capture deployed desktop/mobile visual evidence
         working-directory: apps/marketing-os
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
-          SHARE_VALUE: ${{ steps.share.outputs.share_value }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p deployed-visual-qa-artifacts
           node --input-type=module <<'NODE'
           import { chromium } from 'playwright';
+          import { execFile } from 'node:child_process';
+          import { promisify } from 'node:util';
+          import { extname } from 'node:path';
 
+          const execFileAsync = promisify(execFile);
           const deployment = process.env.DEPLOYMENT_URL;
-          const share = process.env.SHARE_VALUE;
           const sha = process.env.GITHUB_SHA;
-          if (!deployment || !share || !sha) throw new Error('Missing deployed visual QA inputs');
+          const token = process.env.VERCEL_TOKEN;
+          const team = process.env.VERCEL_TEAM_SLUG;
+          if (!deployment || !sha || !token || !team) throw new Error('Missing deployed visual QA inputs');
+
+          const vercelBin = './node_modules/.bin/vercel';
+          const mime = (url, resourceType) => {
+            const pathname = new URL(url).pathname;
+            const ext = extname(pathname).toLowerCase();
+            if (resourceType === 'document' || ext === '.html') return 'text/html; charset=utf-8';
+            if (ext === '.js' || ext === '.mjs') return 'application/javascript; charset=utf-8';
+            if (ext === '.css') return 'text/css; charset=utf-8';
+            if (ext === '.svg') return 'image/svg+xml';
+            if (ext === '.png') return 'image/png';
+            if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+            if (ext === '.webp') return 'image/webp';
+            if (ext === '.woff2') return 'font/woff2';
+            if (ext === '.woff') return 'font/woff';
+            if (resourceType === 'script') return 'application/javascript; charset=utf-8';
+            if (resourceType === 'stylesheet') return 'text/css; charset=utf-8';
+            return 'application/octet-stream';
+          };
 
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: 1 });
+          await page.route('**/*', async (route) => {
+            const request = route.request();
+            const url = request.url();
+            if (!url.startsWith(`${deployment}/`)) {
+              await route.continue();
+              return;
+            }
+            try {
+              const { stdout } = await execFileAsync(
+                vercelBin,
+                ['curl', url, `--scope=${team}`, `--token=${token}`],
+                { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
+              );
+              await route.fulfill({ status: 200, body: stdout, contentType: mime(url, request.resourceType()) });
+            } catch (error) {
+              console.error(`VERCEL_CURL_PROXY_FAILURE=${url}`);
+              console.error(error?.stderr?.toString?.().slice(0, 2000) ?? error);
+              await route.abort();
+            }
+          });
+
           try {
-            await page.goto(`${deployment}/?_vercel_share=${encodeURIComponent(share)}`, { waitUntil: 'domcontentloaded' });
             const visualUrl = `${deployment}/visual-qa/home?visualQa=${encodeURIComponent(sha)}`;
             await page.goto(visualUrl, { waitUntil: 'networkidle' });
 
