@@ -2,8 +2,7 @@ name: Marketing OS Approved UI V4 Deployed Preview Visual Gate
 
 on:
   push:
-    branches:
-      - feat/marketing-os-approved-ui-v4
+    branches: [feat/marketing-os-approved-ui-v4]
   workflow_dispatch:
 
 permissions:
@@ -33,14 +32,12 @@ jobs:
           fetch-depth: 0
 
       - name: Assert exact head
-        shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           echo "DEPLOYED_VISUAL_SHA_VERIFIED=$GITHUB_SHA"
 
       - name: Resolve Vercel credential
-        shell: bash
         run: |
           set -euo pipefail
           token="${VERCEL_TOKEN_PRIMARY:-}"
@@ -63,18 +60,16 @@ jobs:
 
       - name: Bind authoritative Vercel project
         working-directory: apps/marketing-os
-        shell: bash
         run: |
           set -euo pipefail
           rm -rf .vercel
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          npx --yes vercel@latest pull --yes --environment=preview --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          npx --yes vercel@59.11.7 pull --yes --environment=preview --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
           grep -q "$VERCEL_PROJECT_ID" .vercel/project.json
           echo "AUTHORITATIVE_VERCEL_PROJECT=ceo-ai-marketing-os"
 
       - name: Inject verified public Supabase config
-        shell: bash
         run: |
           set -euo pipefail
           git fetch origin 'ops/deploy-rc-2bd740b9:refs/remotes/origin/ops/deploy-rc-2bd740b9' --depth=1
@@ -84,14 +79,11 @@ jobs:
           source = subprocess.check_output(['git','show','refs/remotes/origin/ops/deploy-rc-2bd740b9:.github/workflows/deploy-marketing-os-rc-production.yml'], text=True)
           url = re.search(r'SUPABASE_PUBLIC_URL:\s*(\S+)', source)
           key = re.search(r'SUPABASE_PUBLISHABLE_KEY:\s*(\S+)', source)
-          if not url or not key:
-              raise SystemExit('verified Supabase public config unavailable')
+          if not url or not key: raise SystemExit('verified Supabase public config unavailable')
           url = url.group(1).strip().strip('"').strip("'")
           key = key.group(1).strip().strip('"').strip("'")
-          if not url.startswith('https://') or not key.startswith('sb_publishable_'):
-              raise SystemExit('unexpected public config format')
+          if not url.startswith('https://') or not key.startswith('sb_publishable_'): raise SystemExit('unexpected public config format')
           p = Path('apps/marketing-os/.vercel/.env.preview.local')
-          p.parent.mkdir(parents=True, exist_ok=True)
           old = p.read_text() if p.exists() else ''
           kept = [x for x in old.splitlines() if not x.startswith('NEXT_PUBLIC_SUPABASE_URL=') and not x.startswith('NEXT_PUBLIC_SUPABASE_ANON_KEY=')]
           kept += [f'NEXT_PUBLIC_SUPABASE_URL="{url}"', f'NEXT_PUBLIC_SUPABASE_ANON_KEY="{key}"']
@@ -101,15 +93,14 @@ jobs:
 
       - name: Build exact-SHA preview
         working-directory: apps/marketing-os
-        run: npx --yes vercel@latest build --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@59.11.7 build --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
 
       - name: Deploy exact-SHA preview
         id: deploy
         working-directory: apps/marketing-os
-        shell: bash
         run: |
           set -euo pipefail
-          url="$(npx --yes vercel@latest deploy --prebuilt --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
+          url="$(npx --yes vercel@59.11.7 deploy --prebuilt --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "AUTHORITATIVE_PREVIEW_URL=$url"
 
@@ -117,10 +108,9 @@ jobs:
         working-directory: apps/marketing-os
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
-        shell: bash
         run: |
           set -euo pipefail
-          npx --yes vercel@latest --scope="$VERCEL_TEAM_SLUG" curl /login --deployment "$DEPLOYMENT_URL" > /tmp/login.html
+          npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" curl /login --deployment "$DEPLOYMENT_URL" > /tmp/login.html
           grep -q 'CEO AI' /tmp/login.html
           grep -q 'เข้าสู่ระบบ' /tmp/login.html
           echo "CORRECT_PROJECT_PREVIEW_SMOKE=PASS"
@@ -135,7 +125,6 @@ jobs:
         working-directory: apps/marketing-os
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
-        shell: bash
         run: |
           set -euo pipefail
           mkdir -p deployed-visual-qa-artifacts
@@ -152,21 +141,17 @@ jobs:
           const team = process.env.VERCEL_TEAM_SLUG;
           if (!deployment || !sha || !token || !team) throw new Error('Missing deployed visual QA inputs');
 
-          const vercelBin = './node_modules/.bin/vercel';
           const mime = (url, resourceType) => {
-            const pathname = new URL(url).pathname;
-            const ext = extname(pathname).toLowerCase();
+            const ext = extname(new URL(url).pathname).toLowerCase();
             if (resourceType === 'document' || ext === '.html') return 'text/html; charset=utf-8';
-            if (ext === '.js' || ext === '.mjs') return 'application/javascript; charset=utf-8';
-            if (ext === '.css') return 'text/css; charset=utf-8';
+            if (ext === '.js' || ext === '.mjs' || resourceType === 'script') return 'application/javascript; charset=utf-8';
+            if (ext === '.css' || resourceType === 'stylesheet') return 'text/css; charset=utf-8';
             if (ext === '.svg') return 'image/svg+xml';
             if (ext === '.png') return 'image/png';
             if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
             if (ext === '.webp') return 'image/webp';
             if (ext === '.woff2') return 'font/woff2';
             if (ext === '.woff') return 'font/woff';
-            if (resourceType === 'script') return 'application/javascript; charset=utf-8';
-            if (resourceType === 'stylesheet') return 'text/css; charset=utf-8';
             return 'application/octet-stream';
           };
 
@@ -175,14 +160,11 @@ jobs:
           await page.route('**/*', async (route) => {
             const request = route.request();
             const url = request.url();
-            if (!url.startsWith(`${deployment}/`)) {
-              await route.continue();
-              return;
-            }
+            if (!url.startsWith(`${deployment}/`)) return route.continue();
             try {
               const { stdout } = await execFileAsync(
-                vercelBin,
-                ['curl', url, `--scope=${team}`, `--token=${token}`],
+                './node_modules/.bin/vercel',
+                [`--scope=${team}`, `--token=${token}`, 'curl', url],
                 { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
               );
               await route.fulfill({ status: 200, body: stdout, contentType: mime(url, request.resourceType()) });
@@ -194,19 +176,13 @@ jobs:
           });
 
           try {
-            const visualUrl = `${deployment}/visual-qa/home?visualQa=${encodeURIComponent(sha)}`;
-            await page.goto(visualUrl, { waitUntil: 'networkidle' });
-
+            await page.goto(`${deployment}/visual-qa/home?visualQa=${encodeURIComponent(sha)}`, { waitUntil: 'networkidle' });
             const root = page.locator('[data-visual-qa="preview-fixture"]');
             await root.waitFor({ state: 'visible', timeout: 20000 });
             if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Approved desktop requires exactly six KPI cards');
-            if (!(await page.locator('.performance-panel').isVisible())) throw new Error('Performance Overview missing');
-            if (!(await page.locator('.traffic-source').isVisible())) throw new Error('Traffic Sources missing');
-            if (!(await page.locator('.ai-panel').isVisible())) throw new Error('AI Recommendations missing');
-            if (!(await page.locator('.genome-panel').isVisible())) throw new Error('Business Genome missing');
-            if (!(await page.locator('.mit-panel').isVisible())) throw new Error('MIT 24 Steps missing');
-            if (!(await page.locator('.recent-panel').isVisible())) throw new Error('Recent Activity missing');
-            if (!(await page.locator('.platform-panel').isVisible())) throw new Error('Platform connections missing');
+            for (const selector of ['.performance-panel','.traffic-source','.ai-panel','.genome-panel','.mit-panel','.recent-panel','.platform-panel']) {
+              if (!(await page.locator(selector).isVisible())) throw new Error(`Approved desktop missing ${selector}`);
+            }
             await page.screenshot({ path: 'deployed-visual-qa-artifacts/desktop-1536x1024.png', fullPage: true });
 
             await page.setViewportSize({ width: 390, height: 844 });
@@ -214,12 +190,9 @@ jobs:
             if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Approved mobile requires all six KPI cards');
             const performanceBox = await page.locator('.performance-panel').boundingBox();
             const aiBox = await page.locator('.ai-panel').boundingBox();
-            if (!performanceBox || !aiBox || performanceBox.y >= aiBox.y) {
-              throw new Error('Approved mobile hierarchy requires Performance before AI Recommendations');
-            }
+            if (!performanceBox || !aiBox || performanceBox.y >= aiBox.y) throw new Error('Approved mobile hierarchy requires Performance before AI Recommendations');
             if (!(await page.getByText('CEO AI Thailand', { exact: true }).first().isVisible())) throw new Error('CEO AI branding missing on mobile');
             await page.screenshot({ path: 'deployed-visual-qa-artifacts/mobile-390x844.png', fullPage: true });
-
             console.log(`DEPLOYED_VISUAL_QA_SHA=${sha}`);
             console.log('DEPLOYED_VISUAL_STRUCTURE=PASS');
             console.log('APPROVED_SOURCE_CONTRACT=0D291464-3F4B-4AD2-B7BE-C5409EC56B4F.jpeg|4C6D6E63-535F-4E43-BD88-FD10F31624DC.jpeg|0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(1).jpeg');
