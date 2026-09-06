@@ -190,7 +190,10 @@ jobs:
             const performanceBox = await page.locator('.performance-panel').boundingBox();
             const aiBox = await page.locator('.ai-panel').boundingBox();
             if (!performanceBox || !aiBox || performanceBox.y >= aiBox.y) throw new Error('Approved mobile hierarchy requires Performance before AI Recommendations');
-            if (!(await page.getByText('CEO AI Thailand', { exact: true }).first().isVisible())) throw new Error('CEO AI branding missing on mobile');
+            const mobileTitle = page.locator('.dashboard-title-row h1');
+            if (!(await mobileTitle.isVisible()) || (await mobileTitle.textContent())?.trim() !== 'CEO AI Thailand') throw new Error('CEO AI title branding missing on mobile');
+            const mobileLogoBackground = await page.locator('.topbar').evaluate((node) => getComputedStyle(node, '::before').backgroundImage);
+            if (!mobileLogoBackground.includes('ceo-ai-reference-logo.svg')) throw new Error('CEO AI logo branding missing on mobile');
             await page.screenshot({ path: 'deployed-visual-qa-artifacts/mobile-390x844.png', fullPage: true });
             console.log(`DEPLOYED_VISUAL_QA_SHA=${sha}`);
             console.log('DEPLOYED_VISUAL_STRUCTURE=PASS');
