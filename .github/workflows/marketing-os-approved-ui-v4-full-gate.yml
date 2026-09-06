@@ -82,6 +82,9 @@ jobs:
       - name: Dashboard closed-loop verification
         working-directory: apps/marketing-os
         run: npm run test:dashboard-closed-loop
+      - name: Consumer behavior and financial loop verification
+        working-directory: apps/marketing-os
+        run: npm run test:consumer-finance-loop
       - name: Auth recovery verification
         working-directory: apps/marketing-os
         run: npm run test:auth-recovery
