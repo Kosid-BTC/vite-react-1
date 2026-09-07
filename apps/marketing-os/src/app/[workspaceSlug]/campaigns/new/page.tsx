@@ -1,10 +1,28 @@
 import { createCampaignAction } from './actions';
 import { getMarketingService } from '@/server/services';
 
-export default async function NewCampaignPage({ params }: { params: Promise<{ workspaceSlug: string }> }) {
+type NewCampaignPageProps = {
+  params: Promise<{ workspaceSlug: string }>;
+  searchParams: Promise<{ visualQa?: string | string[] }>;
+};
+
+export default async function NewCampaignPage({ params, searchParams }: NewCampaignPageProps) {
   const { workspaceSlug } = await params;
-  const service = await getMarketingService();
-  const { strategy } = await service.getCampaignWizard(workspaceSlug);
+  const query = await searchParams;
+  const visualQaToken = Array.isArray(query.visualQa) ? query.visualQa[0] : query.visualQa;
+  const isPreviewVisualQa =
+    process.env.VERCEL_ENV === 'preview' &&
+    Boolean(process.env.VERCEL_GIT_COMMIT_SHA) &&
+    visualQaToken === process.env.VERCEL_GIT_COMMIT_SHA;
+  const strategy = isPreviewVisualQa
+    ? {
+        brands: [{ id: '00000000-0000-4000-8000-000000000001', name: 'CEO AI Thailand' }],
+        audiences: [{ id: '00000000-0000-4000-8000-000000000002', name: 'ผู้ประกอบการ SME ไทย' }],
+        pillars: [{ id: '00000000-0000-4000-8000-000000000003', name: 'Business Growth' }],
+        offers: [{ id: '00000000-0000-4000-8000-000000000004', name: 'Marketing OS Pilot' }],
+        ctas: [{ id: '00000000-0000-4000-8000-000000000005', label: 'เริ่มวางแผน Campaign' }],
+      }
+    : (await (await getMarketingService()).getCampaignWizard(workspaceSlug)).strategy;
 
   const brand = strategy.brands[0];
   if (!brand) {
@@ -24,7 +42,7 @@ export default async function NewCampaignPage({ params }: { params: Promise<{ wo
         <p className="muted">เลือกกลุ่มเป้าหมาย → เป้าหมาย → สาร → CTA แล้วกำหนดสิ่งที่คาดว่าจะเกิดขึ้น</p>
       </header>
 
-      <form action={createCampaignAction} className="card stack">
+      <form action={isPreviewVisualQa ? undefined : createCampaignAction} className="card stack" data-visual-qa={isPreviewVisualQa ? 'campaign-form' : undefined}>
         <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
         <input type="hidden" name="brandId" value={brand.id} />
 
@@ -90,7 +108,8 @@ export default async function NewCampaignPage({ params }: { params: Promise<{ wo
           <textarea name="decisionRule" maxLength={600} placeholder="ระบุเงื่อนไขที่จะใช้ตัดสิน โดยไม่รีบสรุปเมื่อ sample ยังไม่พอ" />
         </label>
 
-        <button className="primary" type="submit">สร้าง Campaign</button>
+        <button className="primary" type={isPreviewVisualQa ? 'button' : 'submit'}>สร้าง Campaign</button>
+        {isPreviewVisualQa && <p className="muted">Backend execution status: UNVERIFIED — Preview QA does not write Production data.</p>}
       </form>
     </main>
   );

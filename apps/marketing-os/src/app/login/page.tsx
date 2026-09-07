@@ -18,6 +18,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
 
   const message = error === 'missing_credentials'
     ? 'กรุณากรอกอีเมลและรหัสผ่านให้ครบ'
+    : error === 'configuration_unavailable'
+      ? 'ระบบยืนยันตัวตนยังไม่พร้อม กรุณาลองใหม่อีกครั้งภายหลัง'
     : error === 'email_not_confirmed'
       ? 'บัญชีนี้ยังไม่ได้ยืนยันอีเมล กรุณาส่งอีเมลยืนยันใหม่ด้านล่าง'
       : error === 'missing_email'

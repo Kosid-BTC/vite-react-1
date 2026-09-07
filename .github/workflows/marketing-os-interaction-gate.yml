@@ -1,0 +1,47 @@
+name: Marketing OS Interaction Gate
+
+on:
+  push:
+    branches:
+      - fix/marketing-os-interactions-v4
+  pull_request:
+    branches:
+      - feat/marketing-os-phase1
+    paths:
+      - 'apps/marketing-os/**'
+      - '.github/workflows/marketing-os-interaction-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  interaction-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/marketing-os
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/marketing-os/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Interaction route contract
+        run: node scripts/verify-interaction-routes.mjs
+      - name: Approved V4 hierarchy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f APPROVED_UI_V4_SOURCE.md
+          grep -q 'grid-auto-flow: column' src/app/approved-ui-v4.css
+          grep -q 'metric-card:nth-child(n+5)' src/app/approved-ui-v4.css
+          grep -q 'mobile-dashboard-panel { display: block' src/app/approved-ui-v4.css
+          grep -q 'dashboard-side-column { display: none' src/app/approved-ui-v4.css
+          echo APPROVED_UI_V4_STATIC_HIERARCHY=PASS
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
