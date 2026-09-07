@@ -154,8 +154,9 @@
   /* Preserve reference order: Performance first, AI second, then lower modules. */
   .dashboard-body-grid {
     margin-top: 10px;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(5, auto);
     gap: 10px;
   }
   /* The column wrappers become transparent grid participants on mobile. Their
@@ -163,11 +164,11 @@
      side column can jump ahead of Performance in Chromium. */
   .dashboard-main-column,
   .dashboard-side-column { order: initial !important; display: contents; }
-  .performance-panel { order: 1 !important; }
-  .ai-panel { order: 2 !important; }
-  .dashboard-lower-grid { order: 3 !important; display: grid; grid-template-columns: 1fr; gap: 10px; }
-  .recent-panel { order: 4 !important; min-height: 0; }
-  .platform-panel { order: 5 !important; margin-top: 0; }
+  .performance-panel { order: initial !important; grid-column: 1; grid-row: 1; }
+  .ai-panel { order: initial !important; grid-column: 1; grid-row: 2; }
+  .dashboard-lower-grid { order: initial !important; grid-column: 1; grid-row: 3; display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .recent-panel { order: initial !important; grid-column: 1; grid-row: 4; min-height: 0; }
+  .platform-panel { order: initial !important; grid-column: 1; grid-row: 5; margin-top: 0; }
 
   .panel { border-radius: 10px; box-shadow: 0 4px 18px rgba(33,37,66,.035); }
   .panel-heading { min-height: 50px; padding: 11px 12px 0; gap: 8px; }
