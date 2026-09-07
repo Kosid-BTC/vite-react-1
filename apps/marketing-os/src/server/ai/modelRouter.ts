@@ -1,5 +1,3 @@
-import 'server-only';
-
 export const ASTRA_MODEL = 'gpt-6-astra' as const;
 export const SOL_FALLBACK_MODEL = 'gpt-5.6-sol' as const;
 
