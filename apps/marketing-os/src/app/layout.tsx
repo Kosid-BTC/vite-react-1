@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Kanit } from 'next/font/google';
+import InteractionBridge from './InteractionBridge';
 import './globals.css';
 import './reference-ui-v2.css';
 import './approved-ui-v4.css';
@@ -18,7 +19,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="th">
-      <body className={kanit.className}>{children}</body>
+      <body className={kanit.className}>
+        <InteractionBridge />
+        {children}
+      </body>
     </html>
   );
 }
