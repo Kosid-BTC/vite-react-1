@@ -1,0 +1,88 @@
+name: Marketing OS Interaction Preview
+
+on:
+  push:
+    branches:
+      - fix/marketing-os-interactions-v4
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-os-interaction-preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_TOKEN_PRIMARY: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TOKEN_ACCESS: ${{ secrets.VERCEL_ACCESS_TOKEN }}
+      VERCEL_TOKEN_API: ${{ secrets.VERCEL_API_TOKEN }}
+      VERCEL_TOKEN_CLI: ${{ secrets.VERCEL_CLI_TOKEN }}
+      VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
+      VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
+      VERCEL_TEAM_SLUG: kosid-btcs-projects
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Assert exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "INTERACTION_SHA_VERIFIED=$GITHUB_SHA"
+      - name: Resolve Vercel credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="${VERCEL_TOKEN_PRIMARY:-}"
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_ACCESS:-}" ]; then token="$VERCEL_TOKEN_ACCESS"; fi
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_API:-}" ]; then token="$VERCEL_TOKEN_API"; fi
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_CLI:-}" ]; then token="$VERCEL_TOKEN_CLI"; fi
+          test -n "$token"
+          echo "::add-mask::$token"
+          echo "VERCEL_TOKEN=$token" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/marketing-os/package-lock.json
+      - name: Install
+        working-directory: apps/marketing-os
+        run: npm ci --no-audit --no-fund
+      - name: Bind correct Vercel project
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .vercel
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          npx --yes vercel@latest pull --yes --environment=preview --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+      - name: Build preview
+        working-directory: apps/marketing-os
+        run: npx --yes vercel@latest build --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+      - name: Deploy preview
+        id: deploy
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$(npx --yes vercel@latest deploy --prebuilt --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "INTERACTION_PREVIEW_URL=$url"
+      - name: Protected preview smoke
+        working-directory: apps/marketing-os
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes vercel@latest --scope="$VERCEL_TEAM_SLUG" curl /login --deployment "$DEPLOYMENT_URL" > /tmp/login.html
+          grep -q 'CEO AI' /tmp/login.html
+          grep -q 'เข้าสู่ระบบ' /tmp/login.html
+          echo INTERACTION_PREVIEW_SMOKE=PASS
