@@ -58,6 +58,16 @@ export default function InteractionBridge() {
     const workspaceSlug = getWorkspaceSlug(pathname);
     if (!workspaceSlug) return;
 
+    const visualQaToken = workspaceSlug === 'visual-qa'
+      ? new URLSearchParams(window.location.search).get('visualQa')
+      : null;
+
+    const withVisualQa = (href: string) => {
+      if (!visualQaToken) return href;
+      const separator = href.includes('?') ? '&' : '?';
+      return `${href}${separator}visualQa=${encodeURIComponent(visualQaToken)}`;
+    };
+
     const selectors = [
       '.sidebar-item.muted-item',
       '.sidebar-subitems span',
@@ -89,11 +99,11 @@ export default function InteractionBridge() {
         const text = normalizeText(el);
 
         if (el.matches('.global-search')) {
-          router.push(`/${workspaceSlug}/feature/search`);
+          router.push(withVisualQa(`/${workspaceSlug}/feature/search`));
           return;
         }
         if (el.matches('.notification')) {
-          router.push(`/${workspaceSlug}/feature/notifications`);
+          router.push(withVisualQa(`/${workspaceSlug}/feature/notifications`));
           return;
         }
         if (el.matches('.profile-copy, .profile-chevron')) {
@@ -101,22 +111,22 @@ export default function InteractionBridge() {
           return;
         }
         if (el.matches('.date-filter, .panel-filter')) {
-          router.push(`/${workspaceSlug}/home?range=30d`);
+          router.push(withVisualQa(`/${workspaceSlug}/home?range=30d`));
           return;
         }
         if (el.matches('.tab-row .tab')) {
           const tab = text.toLowerCase();
-          router.push(`/${workspaceSlug}/home?tab=${encodeURIComponent(tab)}`);
+          router.push(withVisualQa(`/${workspaceSlug}/home?tab=${encodeURIComponent(tab)}`));
           return;
         }
 
         const exact = Object.keys(FEATURE_SLUGS).find((label) => text === label || text.includes(label));
         if (exact) {
-          router.push(`/${workspaceSlug}/feature/${FEATURE_SLUGS[exact]}`);
+          router.push(withVisualQa(`/${workspaceSlug}/feature/${FEATURE_SLUGS[exact]}`));
           return;
         }
 
-        router.push(`/${workspaceSlug}/feature/overview`);
+        router.push(withVisualQa(`/${workspaceSlug}/feature/overview`));
       };
 
       const onClick = (event: Event) => {
