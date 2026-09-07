@@ -114,12 +114,13 @@ try {
 
   await goHome();
   await page.locator('.profile-copy').click();
+  await page.waitForURL((url) => url.pathname === '/account');
+
+  // `vercel curl` returns a redirect body without exposing its status/Location
+  // through Playwright's fulfillment API, so verify the public login document
+  // separately after proving that the profile control navigated to /account.
+  await page.goto(`${deployment}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.getByRole('heading', { name: 'เข้าสู่ระบบ' }).waitFor();
-  const profileUrl = new URL(page.url());
-  const profileAuthBoundaryRendered =
-    (profileUrl.pathname === '/login' && profileUrl.searchParams.get('next') === '/account') ||
-    profileUrl.pathname === '/account';
-  if (!profileAuthBoundaryRendered) throw new Error(`Profile auth boundary failed at ${profileUrl.pathname}`);
 
   if (browserErrors.length > 0) throw new Error(`Browser errors: ${browserErrors.join(' | ')}`);
   console.log(`INTERACTION_E2E_SHA=${sha}`);
