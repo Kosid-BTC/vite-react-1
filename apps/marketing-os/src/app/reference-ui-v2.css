@@ -1,0 +1,130 @@
+/* Reference UI V2 — screenshot-driven overrides.
+   Loaded after globals.css so the approved screenshots remain the visual hierarchy source of truth. */
+
+.brand-lockup {
+  grid-template-columns: minmax(0, 1fr) 22px;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 4px 8px;
+}
+.brand-logo-window {
+  width: 150px;
+  height: 48px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.brand-reference-logo {
+  display: block;
+  width: 128px;
+  height: auto;
+  object-fit: contain;
+}
+.sidebar-menu-icon { justify-self: end; }
+.system-settings-row {
+  margin-top: 9px;
+  color: var(--primary);
+  font-size: 9px;
+  font-weight: 500;
+}
+.profile-chevron { color: #73788d; font-size: 12px; }
+.reference-primary { white-space: nowrap; }
+
+.welcome-row {
+  display: grid;
+  grid-template-columns: minmax(230px, .85fr) minmax(0, 2.45fr) minmax(145px, .65fr);
+  align-items: center;
+  gap: 12px;
+}
+.welcome-copy { min-width: 0; }
+.brand-quote {
+  margin: 0;
+  text-align: right;
+  color: #586078;
+  font-size: 9px;
+  line-height: 1.5;
+}
+.connection-strip { max-width: none; }
+.connection-pill small { color: #6f768c; }
+.connection-pill.ok { color: #087443; }
+
+.dashboard-body-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 2.15fr) minmax(330px, .95fr);
+  gap: 12px;
+  align-items: start;
+}
+.dashboard-main-column,
+.dashboard-side-column {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.dashboard-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.42fr);
+  gap: 12px;
+}
+.dashboard-lower-grid > .panel { min-width: 0; }
+.platform-panel { min-width: 0; }
+.recent-panel { min-height: 286px; }
+.supabase-status-card {
+  margin: 10px 12px 12px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  background: #f4fbf8;
+}
+.supabase-status-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #19a974;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+.supabase-status-card strong { display: block; font-size: 9px; }
+.supabase-status-card p { margin: 2px 0; color: var(--muted); font-size: 7px; }
+.supabase-status-card small { color: #079455; font-size: 7px; }
+
+@media (max-width: 1280px) {
+  .welcome-row { grid-template-columns: minmax(220px, .9fr) minmax(0, 2.3fr); }
+  .brand-quote { display: none; }
+  .dashboard-body-grid { grid-template-columns: minmax(0, 1.9fr) minmax(300px, .9fr); }
+  .dashboard-lower-grid { grid-template-columns: 1fr 1.25fr; }
+}
+
+@media (max-width: 1020px) {
+  .brand-lockup { grid-template-columns: 44px; justify-content: center; padding-inline: 0; }
+  .brand-logo-window { width: 44px; height: 44px; }
+  .brand-reference-logo { width: 112px; max-width: none; }
+  .sidebar-menu-icon { display: none; }
+  .welcome-row { display: block; }
+  .dashboard-body-grid { grid-template-columns: 1fr; }
+  .dashboard-lower-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 760px) {
+  .welcome-row { display: block; }
+  .brand-quote { display: none; }
+  .dashboard-body-grid { display: grid; grid-template-columns: 1fr; }
+  .dashboard-side-column { display: contents; }
+  .ai-panel { order: -1; }
+  .dashboard-main-column { order: 1; }
+  .recent-panel { order: 2; }
+  .dashboard-lower-grid { grid-template-columns: 1fr; }
+  .reference-primary { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+}
+
+@media (max-width: 480px) {
+  .reference-primary { max-width: 132px; }
+  .supabase-status-card { margin-inline: 10px; }
+}

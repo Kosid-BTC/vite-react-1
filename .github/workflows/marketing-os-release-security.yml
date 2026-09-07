@@ -4,14 +4,8 @@ on:
   push:
     branches:
       - feat/marketing-os-phase1
-    paths:
-      - 'apps/marketing-os/config/security-definer-classification.json'
-      - 'apps/marketing-os/scripts/verify-release-security-boundaries-local.mjs'
-      - 'apps/marketing-os/scripts/verify-release-readiness-security.mjs'
-      - 'apps/marketing-os/package.json'
-      - 'apps/marketing-os/package-lock.json'
-      - 'supabase/migrations/**'
-      - '.github/workflows/marketing-os-release-security.yml'
+      - feat/marketing-os-reference-ui-v2
+      - feat/marketing-os-approved-ui-v4
   workflow_dispatch:
 
 permissions:
@@ -53,9 +47,6 @@ jobs:
           export SUPABASE_ANON_KEY="$ANON_KEY"
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
 
-          # Production currently contains these backend-only tables out-of-band, while the clean
-          # repository schema does not. Materialize disposable local fixtures, then re-run the
-          # exact release migration so its conditional least-privilege grants are exercised.
           psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
           create table if not exists public.youtube_projects (id uuid primary key default gen_random_uuid());
           create table if not exists public.youtube_quota (id uuid primary key default gen_random_uuid());

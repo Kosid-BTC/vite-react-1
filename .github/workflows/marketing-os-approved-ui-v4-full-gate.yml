@@ -1,28 +1,35 @@
-name: Marketing OS Full Non-Production Gate
+name: Marketing OS Approved UI V4 Full Non-Production Gate
 
 on:
   push:
     branches:
-      - feat/marketing-os-phase1
-      - feat/marketing-os-reference-ui-v2
-  pull_request:
-    branches:
-      - main
+      - feat/marketing-os-approved-ui-v4
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: marketing-os-approved-ui-v4-full-gate
+  cancel-in-progress: true
+
 jobs:
   app-validation:
     name: App validation
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - name: Checkout
+      - name: Checkout exact head
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
+      - name: Assert exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "UI_SHA_VERIFIED=$GITHUB_SHA"
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -72,32 +79,44 @@ jobs:
       - name: P3.4 Next Best Action verification
         working-directory: apps/marketing-os
         run: npm run test:p3-4
-      - name: Dashboard Business Growth Closed Loop verification
+      - name: Dashboard closed-loop verification
         working-directory: apps/marketing-os
         run: npm run test:dashboard-closed-loop
-      - name: Auth recovery contract verification
+      - name: Consumer behavior and financial loop verification
+        working-directory: apps/marketing-os
+        run: npm run test:consumer-finance-loop
+      - name: Trusted consumer evidence adapter verification
+        working-directory: apps/marketing-os
+        run: npm run test:consumer-evidence
+      - name: Auth recovery verification
         working-directory: apps/marketing-os
         run: npm run test:auth-recovery
-      - name: Marketing OS typecheck
+      - name: Typecheck
         working-directory: apps/marketing-os
         run: npm run typecheck
       - name: Marketing OS build
         working-directory: apps/marketing-os
         run: npm run build
       - name: Marketing OS Docker image build
-        run: docker build -t ceo-ai-marketing-os:ci apps/marketing-os
+        run: docker build -t ceo-ai-marketing-os:v4-ci apps/marketing-os
       - name: Diff whitespace check
-        run: git diff --check origin/main...HEAD
+        run: git diff --check origin/feat/marketing-os-phase1...HEAD
 
   authenticated-rls:
     name: Authenticated JWT / RLS integration
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
-      - name: Checkout
+      - name: Checkout exact head
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
+      - name: Assert exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -112,7 +131,7 @@ jobs:
         run: npx --yes supabase@2.40.0 db reset --local
       - name: Generate local Supabase database types
         run: npx --yes supabase@2.40.0 gen types typescript --local > apps/marketing-os/src/types/database.types.generated.ts
-      - name: Verify Marketing OS against generated local schema types
+      - name: Verify against generated local schema types
         shell: bash
         run: |
           set -euo pipefail
@@ -122,13 +141,11 @@ jobs:
           npm ci --no-audit --no-fund
           npm run typecheck
           npm run build
-      - name: Restore curated type contract and remove generated comparison file
+      - name: Restore curated type contract
         if: always()
         shell: bash
         run: |
-          if [ -f /tmp/database.types.curated.ts ]; then
-            cp /tmp/database.types.curated.ts apps/marketing-os/src/types/database.types.ts
-          fi
+          if [ -f /tmp/database.types.curated.ts ]; then cp /tmp/database.types.curated.ts apps/marketing-os/src/types/database.types.ts; fi
           rm -f apps/marketing-os/src/types/database.types.generated.ts
       - name: Authenticated JWT RLS CRUD verification
         shell: bash
@@ -158,7 +175,7 @@ jobs:
           export SUPABASE_ANON_KEY="$ANON_KEY"
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           node apps/marketing-os/scripts/verify-phase1-vertical-slice.mjs
-      - name: P1.2.1 Trusted Evidence persistence verification
+      - name: Trusted Evidence persistence verification
         shell: bash
         run: |
           set -euo pipefail
