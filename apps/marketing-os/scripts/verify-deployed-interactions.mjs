@@ -60,6 +60,22 @@ const expectFeature = async (path, heading) => {
 
 try {
   await goHome();
+  if (await page.locator('.metric-card').count() !== 6) throw new Error('Approved V4 must render all six KPI cards');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await goHome();
+  const mobileOrder = await page.evaluate(() =>
+    ['.performance-panel', '.ai-panel', '.genome-panel', '.mit-panel', '.recent-panel', '.platform-panel']
+      .map((selector) => ({ selector, top: document.querySelector(selector)?.getBoundingClientRect().top ?? -1 })),
+  );
+  if (mobileOrder.some((item) => item.top < 0) || mobileOrder.some((item, index) => index > 0 && item.top <= mobileOrder[index - 1].top)) {
+    throw new Error(`Approved V4 mobile hierarchy changed: ${JSON.stringify(mobileOrder)}`);
+  }
+  if (await page.locator('.metric-card').count() !== 6) throw new Error('Approved V4 mobile KPI rail lost cards');
+  console.log('APPROVED_UI_V4_HIERARCHY=PASS');
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await goHome();
+
   await page.getByText('Dashboard', { exact: true }).click();
   await page.waitForURL((url) => url.pathname === '/visual-qa/home' && url.searchParams.get('visualQa') === sha);
 

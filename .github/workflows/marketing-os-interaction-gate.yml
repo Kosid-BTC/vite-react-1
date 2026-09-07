@@ -31,6 +31,16 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Interaction route contract
         run: node scripts/verify-interaction-routes.mjs
+      - name: Approved V4 hierarchy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f APPROVED_UI_V4_SOURCE.md
+          grep -q 'grid-auto-flow: column' src/app/approved-ui-v4.css
+          grep -q 'metric-card:nth-child(n+5)' src/app/approved-ui-v4.css
+          grep -q 'performance-panel { order: 1' src/app/approved-ui-v4.css
+          grep -q 'ai-panel { order: 2' src/app/approved-ui-v4.css
+          echo APPROVED_UI_V4_STATIC_HIERARCHY=PASS
       - name: Typecheck
         run: npm run typecheck
       - name: Build

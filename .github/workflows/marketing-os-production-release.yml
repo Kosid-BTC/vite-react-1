@@ -1,0 +1,137 @@
+name: Marketing OS Exact SHA Production Release
+
+on:
+  push:
+    branches:
+      - release/marketing-os-production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-os-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      VERCEL_TOKEN_PRIMARY: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TOKEN_ACCESS: ${{ secrets.VERCEL_ACCESS_TOKEN }}
+      VERCEL_TOKEN_API: ${{ secrets.VERCEL_API_TOKEN }}
+      VERCEL_TOKEN_CLI: ${{ secrets.VERCEL_CLI_TOKEN }}
+      VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
+      VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
+      VERCEL_TEAM_SLUG: kosid-btcs-projects
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact release SHA and merged PR ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git fetch origin feat/marketing-os-phase1 --depth=100
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/feat/marketing-os-phase1
+          echo PRODUCTION_RELEASE_SHA_VERIFIED="$GITHUB_SHA"
+
+      - name: Resolve Vercel credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="${VERCEL_TOKEN_PRIMARY:-}"
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_ACCESS:-}" ]; then token="$VERCEL_TOKEN_ACCESS"; fi
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_API:-}" ]; then token="$VERCEL_TOKEN_API"; fi
+          if [ -z "$token" ] && [ -n "${VERCEL_TOKEN_CLI:-}" ]; then token="$VERCEL_TOKEN_CLI"; fi
+          test -n "$token"
+          echo "::add-mask::$token"
+          echo "VERCEL_TOKEN=$token" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/marketing-os/package-lock.json
+
+      - name: Install and verify exact source
+        working-directory: apps/marketing-os
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          node scripts/verify-interaction-routes.mjs
+          npm run typecheck
+
+      - name: Bind project and pull Production environment
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .vercel
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          npx --yes vercel@59.11.7 pull --yes --environment=production --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          grep -q '^NEXT_PUBLIC_SUPABASE_URL="https://' .vercel/.env.production.local
+          grep -q '^NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_' .vercel/.env.production.local
+          echo SUPABASE_PRODUCTION_PUBLIC_CONFIG=VERIFIED
+
+      - name: Build exact Production artifact
+        working-directory: apps/marketing-os
+        run: npx --yes vercel@59.11.7 build --prod --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+
+      - name: Record rollback target
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes vercel@59.11.7 list ceo-ai-marketing-os --environment production --status READY --limit 20 --format json --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" > /tmp/production-deployments.json
+          previous="$(node -e "const d=require('/tmp/production-deployments.json'); const x=(d.deployments||d)[0]; if(!x) process.exit(1); process.stdout.write('https://'+(x.url||x.name));")"
+          echo PREVIOUS_PRODUCTION_URL="$previous" >> "$GITHUB_ENV"
+          echo ROLLBACK_TARGET_RECORDED=YES
+
+      - name: Deploy Production candidate without alias
+        id: candidate
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$(npx --yes vercel@59.11.7 deploy --prebuilt --prod --skip-domain --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo PRODUCTION_CANDIDATE_URL="$url"
+
+      - name: Smoke Production candidate
+        working-directory: apps/marketing-os
+        env:
+          CANDIDATE_URL: ${{ steps.candidate.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" curl /login --deployment "$CANDIDATE_URL" > /tmp/candidate-login.html
+          grep -q 'เข้าสู่ระบบ' /tmp/candidate-login.html
+          echo PRODUCTION_CANDIDATE_SMOKE=PASS
+
+      - name: Promote exact candidate and rollback on failed smoke
+        working-directory: apps/marketing-os
+        env:
+          CANDIDATE_URL: ${{ steps.candidate.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rollback() {
+            npx --yes vercel@59.11.7 rollback "$PREVIOUS_PRODUCTION_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" || true
+          }
+          trap 'status=$?; if [ "$status" -ne 0 ]; then rollback; fi; exit "$status"' EXIT
+          npx --yes vercel@59.11.7 promote "$CANDIDATE_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" curl https://ceo-ai-marketing-os.vercel.app/login > /tmp/production-login.html
+          grep -q 'เข้าสู่ระบบ' /tmp/production-login.html
+          logs="$(npx --yes vercel@59.11.7 logs --environment production --status-code 500 --since 5m --json --limit 100 --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" || true)"
+          if printf '%s' "$logs" | grep -Eq 'MIDDLEWARE_INVOCATION_FAILED|MARKETING_OS_AUTH_CONFIG=UNAVAILABLE|URL and Key are required'; then
+            echo PRODUCTION_RUNTIME_REGRESSION=DETECTED
+            false
+          fi
+          trap - EXIT
+          echo PRODUCTION_PROMOTION=PASS
+          echo PRODUCTION_RUNTIME_500_SCAN=PASS
