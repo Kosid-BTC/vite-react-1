@@ -71,6 +71,15 @@ jobs:
           grep -q "$VERCEL_PROJECT_ID" .vercel/project.json
           echo AUTHORITATIVE_VERCEL_PROJECT=ceo-ai-marketing-os
 
+      - name: Inject exact preview QA SHA
+        working-directory: apps/marketing-os
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '\nVERCEL_GIT_COMMIT_SHA="%s"\nVISUAL_QA_COMMIT_SHA="%s"\n' "$GITHUB_SHA" "$GITHUB_SHA" >> .vercel/.env.preview.local
+          grep -q "VISUAL_QA_COMMIT_SHA=\"$GITHUB_SHA\"" .vercel/.env.preview.local
+          echo PREVIEW_QA_SHA_INJECTED="$GITHUB_SHA"
+
       - name: Build preview
         working-directory: apps/marketing-os
         run: npx --yes vercel@59.11.7 build --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
@@ -117,7 +126,9 @@ jobs:
             if (ext === '.css' || resourceType === 'stylesheet') return 'text/css; charset=utf-8';
             if (ext === '.svg') return 'image/svg+xml';
             if (ext === '.png') return 'image/png';
+            if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
             if (ext === '.woff2') return 'font/woff2';
+            if (ext === '.woff') return 'font/woff';
             return 'application/octet-stream';
           };
 
@@ -147,34 +158,35 @@ jobs:
             await page.locator('[data-visual-qa="preview-fixture"]').waitFor({ state: 'visible', timeout: 20000 });
           };
 
+          const expectFeature = async (path, heading) => {
+            await page.waitForURL((url) => url.pathname === `/visual-qa/feature/${path}` && url.searchParams.get('visualQa') === sha);
+            await page.getByRole('heading', { name: heading }).waitFor();
+          };
+
           try {
             await goHome();
             await page.getByText('Audience', { exact: true }).click();
-            await page.waitForURL('**/visual-qa/feature/audience');
-            await page.getByRole('heading', { name: 'Audience' }).waitFor();
+            await expectFeature('audience', 'Audience');
 
             await goHome();
             await page.getByText('Content Calendar', { exact: true }).click();
-            await page.waitForURL('**/visual-qa/feature/content-calendar');
-            await page.getByRole('heading', { name: 'Content Calendar' }).waitFor();
+            await expectFeature('content-calendar', 'Content Calendar');
 
             await goHome();
             await page.getByText('Business Genome', { exact: true }).first().click();
-            await page.waitForURL('**/visual-qa/feature/business-genome');
-            await page.getByRole('heading', { name: 'Business Genome' }).waitFor();
+            await expectFeature('business-genome', 'Business Genome');
 
             await goHome();
             await page.getByText('RLS / Security', { exact: true }).click();
-            await page.waitForURL('**/visual-qa/feature/rls-security');
-            await page.getByRole('heading', { name: 'RLS / Security' }).waitFor();
+            await expectFeature('rls-security', 'RLS / Security');
 
             await goHome();
-            await page.getByRole('link', { name: '＋ สร้างแคมเปญใหม่' }).click();
-            await page.waitForURL('**/visual-qa/campaigns/new');
+            await page.locator('.global-search').click();
+            await expectFeature('search', 'Global Search');
 
             console.log(`INTERACTION_E2E_SHA=${sha}`);
             console.log('INTERACTION_NAVIGATION_E2E=PASS');
-            console.log('INTERACTION_KEY_FEATURES=Audience|Content Calendar|Business Genome|RLS Security|Create Campaign');
+            console.log('INTERACTION_KEY_FEATURES=Audience|Content Calendar|Business Genome|RLS Security|Global Search');
           } finally {
             await browser.close();
           }
