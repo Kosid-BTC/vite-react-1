@@ -28,6 +28,7 @@ const mime = (url, resourceType) => {
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const browserErrors = [];
+const responseCache = new Map();
 page.on('pageerror', (error) => browserErrors.push(error.message));
 
 await page.route('**/*', async (route) => {
@@ -35,12 +36,15 @@ await page.route('**/*', async (route) => {
   const url = request.url();
   if (!url.startsWith(`${deployment}/`)) return route.continue();
   try {
-    const { stdout } = await execFileAsync(
-      './node_modules/.bin/vercel',
-      [`--scope=${team}`, 'curl', url],
-      { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024, env: process.env },
-    );
-    await route.fulfill({ status: 200, body: stdout, contentType: mime(url, request.resourceType()) });
+    if (!responseCache.has(url)) {
+      responseCache.set(url, execFileAsync(
+        './node_modules/.bin/vercel',
+        [`--scope=${team}`, 'curl', url],
+        { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024, env: process.env },
+      ).then(({ stdout }) => stdout));
+    }
+    const body = await responseCache.get(url);
+    await route.fulfill({ status: 200, body, contentType: mime(url, request.resourceType()) });
   } catch (error) {
     console.error(`VERCEL_CURL_PROXY_FAILURE=${url}`);
     console.error(error?.stderr?.toString?.().slice(0, 2000) ?? error);
@@ -50,7 +54,7 @@ await page.route('**/*', async (route) => {
 
 const qaUrl = (path) => `${deployment}${path}${path.includes('?') ? '&' : '?'}visualQa=${encodeURIComponent(sha)}`;
 const goHome = async () => {
-  await page.goto(qaUrl('/visual-qa/home'), { waitUntil: 'networkidle' });
+  await page.goto(qaUrl('/visual-qa/home'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.locator('[data-visual-qa="preview-fixture"]').waitFor({ state: 'visible', timeout: 20000 });
 };
 const expectFeature = async (path, heading) => {
