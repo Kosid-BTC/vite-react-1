@@ -1,6 +1,8 @@
 /* Approved UI V4 — direct screenshot-fidelity overrides.
    Authoritative references are documented in APPROVED_UI_V4_SOURCE.md. */
 
+.mobile-dashboard-panel { display: none; }
+
 @media (min-width: 1281px) {
   .marketing-app-shell { grid-template-columns: 226px minmax(0, 1fr); }
   .dashboard-content { max-width: 1600px; padding: 14px 20px 26px; }
@@ -154,21 +156,24 @@
   /* Preserve reference order: Performance first, AI second, then lower modules. */
   .dashboard-body-grid {
     margin-top: 10px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(5, auto);
+    display: flex;
+    flex-direction: column;
     gap: 10px;
   }
   /* The column wrappers become transparent grid participants on mobile. Their
      desktop `order` values must not form two indivisible groups, otherwise the
      side column can jump ahead of Performance in Chromium. */
-  .dashboard-main-column,
-  .dashboard-side-column { order: initial !important; display: contents; }
-  .performance-panel { order: initial !important; grid-column: 1; grid-row: 1; }
-  .ai-panel { order: initial !important; grid-column: 1; grid-row: 2; }
-  .dashboard-lower-grid { order: initial !important; grid-column: 1; grid-row: 3; display: grid; grid-template-columns: 1fr; gap: 10px; }
-  .recent-panel { order: initial !important; grid-column: 1; grid-row: 4; min-height: 0; }
-  .platform-panel { order: initial !important; grid-column: 1; grid-row: 5; margin-top: 0; }
+  .dashboard-main-column { order: initial !important; display: contents; }
+  .dashboard-side-column { display: none; }
+  .mobile-dashboard-panel { display: block; }
+  .performance-panel,
+  .ai-panel,
+  .dashboard-lower-grid,
+  .recent-panel,
+  .platform-panel { order: initial !important; }
+  .dashboard-lower-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .recent-panel { min-height: 0; }
+  .platform-panel { margin-top: 0; }
 
   .panel { border-radius: 10px; box-shadow: 0 4px 18px rgba(33,37,66,.035); }
   .panel-heading { min-height: 50px; padding: 11px 12px 0; gap: 8px; }

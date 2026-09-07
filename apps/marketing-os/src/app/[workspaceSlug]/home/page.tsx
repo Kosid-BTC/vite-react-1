@@ -221,6 +221,20 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                 </div>
               </article>
 
+              <section className="panel ai-panel mobile-dashboard-panel">
+                <div className="panel-heading compact"><h2>✦ AI แนะนำสำหรับคุณ</h2><span>ทั้งหมด</span></div>
+                <div className="recommendation-list">
+                  {recommendationQueue.map((action, index) => (
+                    <article className="recommendation" key={action.id}>
+                      <span className={`recommendation-icon r${(index % 4) + 1}`}>{index + 1}</span>
+                      <div><strong>{action.title}</strong><p>{action.description || 'คำแนะนำนี้อ้างอิงจากงานที่มีอยู่ใน Workspace'}</p></div>
+                      {action.action_href ? <Link href={action.action_href}>ดำเนินการ</Link> : <span className="disabled-action">UNAVAILABLE</span>}
+                    </article>
+                  ))}
+                  {recommendationQueue.length === 0 && <p className="empty-state">ยังไม่มี Next Best Action ที่มีหลักฐานเพียงพอ</p>}
+                </div>
+              </section>
+
               <div className="dashboard-lower-grid">
                 <article className="panel genome-panel">
                   <div className="panel-heading compact"><div><h2>◉ Business Genome</h2><p>ตัวแบบธุรกิจและกลยุทธ์ของคุณ</p></div><span className="status-active">Evidence required</span></div>
@@ -244,6 +258,15 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                   </div>
                 </article>
               </div>
+
+              <section className="panel recent-panel mobile-dashboard-panel">
+                <div className="panel-heading compact"><h2>Recent Activity</h2><span>ทั้งหมด</span></div>
+                <div className="activity-list">
+                  {data.actions.slice(0, 5).map((action, index) => <div className="activity-item" key={action.id}><span>{index + 1}</span><div><strong>{action.title}</strong><p>{action.description || 'Workspace activity'}</p></div><small>LIVE</small></div>)}
+                  {data.actions.length === 0 && <p className="empty-state">ยังไม่มีกิจกรรมล่าสุด</p>}
+                </div>
+                <div className="supabase-status-card"><span className="supabase-status-icon">↯</span><div><strong>Supabase</strong><p>Workspace data connection</p><small>● connected</small></div></div>
+              </section>
 
               <section className="panel platform-panel">
                 <div className="panel-heading compact"><div><h2>การเชื่อมต่อกับแพลตฟอร์ม</h2><p>เชื่อมต่อแล้ว 0/3 แพลตฟอร์มที่มีหลักฐานยืนยันใน Dashboard</p></div></div>

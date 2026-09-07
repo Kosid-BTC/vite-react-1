@@ -38,8 +38,8 @@ jobs:
           test -f APPROVED_UI_V4_SOURCE.md
           grep -q 'grid-auto-flow: column' src/app/approved-ui-v4.css
           grep -q 'metric-card:nth-child(n+5)' src/app/approved-ui-v4.css
-          grep -q 'performance-panel { order: 1' src/app/approved-ui-v4.css
-          grep -q 'ai-panel { order: 2' src/app/approved-ui-v4.css
+          grep -q 'mobile-dashboard-panel { display: block' src/app/approved-ui-v4.css
+          grep -q 'dashboard-side-column { display: none' src/app/approved-ui-v4.css
           echo APPROVED_UI_V4_STATIC_HIERARCHY=PASS
       - name: Typecheck
         run: npm run typecheck
