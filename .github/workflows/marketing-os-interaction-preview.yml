@@ -80,6 +80,32 @@ jobs:
           grep -q "VISUAL_QA_COMMIT_SHA=\"$GITHUB_SHA\"" .vercel/.env.preview.local
           echo PREVIEW_QA_SHA_INJECTED="$GITHUB_SHA"
 
+      - name: Inject verified public Supabase config
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin 'ops/deploy-rc-2bd740b9:refs/remotes/origin/ops/deploy-rc-2bd740b9' --depth=1
+          python - <<'PY'
+          import re, subprocess
+          from pathlib import Path
+          source = subprocess.check_output(['git','show','refs/remotes/origin/ops/deploy-rc-2bd740b9:.github/workflows/deploy-marketing-os-rc-production.yml'], text=True)
+          url = re.search(r'SUPABASE_PUBLIC_URL:\s*(\S+)', source)
+          key = re.search(r'SUPABASE_PUBLISHABLE_KEY:\s*(\S+)', source)
+          if not url or not key: raise SystemExit('verified Supabase public config unavailable')
+          url = url.group(1).strip().strip('"').strip("'")
+          key = key.group(1).strip().strip('"').strip("'")
+          if not url.startswith('https://') or not key.startswith('sb_publishable_'):
+              raise SystemExit('unexpected public config format')
+          p = Path('apps/marketing-os/.vercel/.env.preview.local')
+          old = p.read_text() if p.exists() else ''
+          kept = [line for line in old.splitlines() if not line.startswith('NEXT_PUBLIC_SUPABASE_URL=') and not line.startswith('NEXT_PUBLIC_SUPABASE_ANON_KEY=')]
+          kept += [f'NEXT_PUBLIC_SUPABASE_URL="{url}"', f'NEXT_PUBLIC_SUPABASE_ANON_KEY="{key}"']
+          p.write_text('\n'.join(kept) + '\n')
+          print('SUPABASE_PREVIEW_PUBLIC_CONFIG=VERIFIED')
+          PY
+          grep -q '^NEXT_PUBLIC_SUPABASE_URL="https://' apps/marketing-os/.vercel/.env.preview.local
+          grep -q '^NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_' apps/marketing-os/.vercel/.env.preview.local
+
       - name: Build preview
         working-directory: apps/marketing-os
         run: npx --yes vercel@59.11.7 build --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
@@ -107,87 +133,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --input-type=module <<'NODE'
-          import { chromium } from 'playwright';
-          import { execFile } from 'node:child_process';
-          import { promisify } from 'node:util';
-          import { extname } from 'node:path';
+          node scripts/verify-deployed-interactions.mjs
 
-          const execFileAsync = promisify(execFile);
-          const deployment = process.env.DEPLOYMENT_URL;
-          const sha = process.env.GITHUB_SHA;
-          const team = process.env.VERCEL_TEAM_SLUG;
-          if (!deployment || !sha || !team || !process.env.VERCEL_TOKEN) throw new Error('Missing interaction E2E inputs');
-
-          const mime = (url, resourceType) => {
-            const ext = extname(new URL(url).pathname).toLowerCase();
-            if (resourceType === 'document' || ext === '.html') return 'text/html; charset=utf-8';
-            if (ext === '.js' || ext === '.mjs' || resourceType === 'script') return 'application/javascript; charset=utf-8';
-            if (ext === '.css' || resourceType === 'stylesheet') return 'text/css; charset=utf-8';
-            if (ext === '.svg') return 'image/svg+xml';
-            if (ext === '.png') return 'image/png';
-            if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
-            if (ext === '.woff2') return 'font/woff2';
-            if (ext === '.woff') return 'font/woff';
-            return 'application/octet-stream';
-          };
-
-          const browser = await chromium.launch({ headless: true });
-          const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-
-          await page.route('**/*', async (route) => {
-            const request = route.request();
-            const url = request.url();
-            if (!url.startsWith(`${deployment}/`)) return route.continue();
-            try {
-              const { stdout } = await execFileAsync(
-                './node_modules/.bin/vercel',
-                [`--scope=${team}`, 'curl', url],
-                { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024, env: process.env },
-              );
-              await route.fulfill({ status: 200, body: stdout, contentType: mime(url, request.resourceType()) });
-            } catch (error) {
-              console.error(`VERCEL_CURL_PROXY_FAILURE=${url}`);
-              console.error(error?.stderr?.toString?.().slice(0, 2000) ?? error);
-              await route.abort();
-            }
-          });
-
-          const goHome = async () => {
-            await page.goto(`${deployment}/visual-qa/home?visualQa=${encodeURIComponent(sha)}`, { waitUntil: 'networkidle' });
-            await page.locator('[data-visual-qa="preview-fixture"]').waitFor({ state: 'visible', timeout: 20000 });
-          };
-
-          const expectFeature = async (path, heading) => {
-            await page.waitForURL((url) => url.pathname === `/visual-qa/feature/${path}` && url.searchParams.get('visualQa') === sha);
-            await page.getByRole('heading', { name: heading }).waitFor();
-          };
-
-          try {
-            await goHome();
-            await page.getByText('Audience', { exact: true }).click();
-            await expectFeature('audience', 'Audience');
-
-            await goHome();
-            await page.getByText('Content Calendar', { exact: true }).click();
-            await expectFeature('content-calendar', 'Content Calendar');
-
-            await goHome();
-            await page.getByText('Business Genome', { exact: true }).first().click();
-            await expectFeature('business-genome', 'Business Genome');
-
-            await goHome();
-            await page.getByText('RLS / Security', { exact: true }).click();
-            await expectFeature('rls-security', 'RLS / Security');
-
-            await goHome();
-            await page.locator('.global-search').click();
-            await expectFeature('search', 'Global Search');
-
-            console.log(`INTERACTION_E2E_SHA=${sha}`);
-            console.log('INTERACTION_NAVIGATION_E2E=PASS');
-            console.log('INTERACTION_KEY_FEATURES=Audience|Content Calendar|Business Genome|RLS Security|Global Search');
-          } finally {
-            await browser.close();
-          }
-          NODE
+      - name: Preview middleware runtime smoke
+        working-directory: apps/marketing-os
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" curl /login --deployment "$DEPLOYMENT_URL" > /tmp/marketing-login.html
+          grep -q 'เข้าสู่ระบบ' /tmp/marketing-login.html
+          npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" curl "/visual-qa/home?visualQa=$GITHUB_SHA" --deployment "$DEPLOYMENT_URL" > /tmp/marketing-home.html
+          grep -q 'data-visual-qa="preview-fixture"' /tmp/marketing-home.html
+          echo PREVIEW_MIDDLEWARE_RUNTIME=PASS

@@ -6,9 +6,39 @@ const PUBLIC_PATHS = new Set(['/login', '/auth/confirm']);
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  const pathname = request.nextUrl.pathname;
+  const visualQaToken = request.nextUrl.searchParams.get('visualQa');
+  const expectedVisualQaSha = process.env.VISUAL_QA_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA;
+  const isPreviewVisualQaPath =
+    pathname.endsWith('/home') ||
+    pathname.includes('/feature/') ||
+    pathname.includes('/campaigns');
+  const isPreviewVisualQa =
+    process.env.VERCEL_ENV === 'preview' &&
+    isPreviewVisualQaPath &&
+    Boolean(expectedVisualQaSha) &&
+    visualQaToken === expectedVisualQaSha;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+  // Missing public configuration must never crash Edge Middleware. Public routes
+  // remain renderable, while protected Production routes fail closed at /login.
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('MARKETING_OS_AUTH_CONFIG=UNAVAILABLE');
+    if (PUBLIC_PATHS.has(pathname) || isPreviewVisualQa) return response;
+
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.search = '';
+    loginUrl.searchParams.set('error', 'configuration_unavailable');
+    loginUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -27,15 +57,6 @@ export async function middleware(request: NextRequest) {
 
   // getUser() verifies the session with Supabase Auth and also refreshes stale cookies.
   const { data: { user } } = await supabase.auth.getUser();
-  const pathname = request.nextUrl.pathname;
-  const visualQaToken = request.nextUrl.searchParams.get('visualQa');
-  const expectedVisualQaSha = process.env.VISUAL_QA_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA;
-  const isPreviewVisualQaPath = pathname.endsWith('/home') || pathname.includes('/feature/');
-  const isPreviewVisualQa =
-    process.env.VERCEL_ENV === 'preview' &&
-    isPreviewVisualQaPath &&
-    Boolean(expectedVisualQaSha) &&
-    visualQaToken === expectedVisualQaSha;
 
   // Preview visual QA may bypass user auth only when the request proves the exact
   // deployed commit SHA and remains inside the deterministic QA home/feature routes.

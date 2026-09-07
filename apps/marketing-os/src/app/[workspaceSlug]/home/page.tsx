@@ -71,6 +71,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     process.env.VERCEL_ENV === 'preview' &&
     Boolean(process.env.VERCEL_GIT_COMMIT_SHA) &&
     visualQaToken === process.env.VERCEL_GIT_COMMIT_SHA;
+  const withVisualQa = (href: string) => isPreviewVisualQa
+    ? `${href}${href.includes('?') ? '&' : '?'}visualQa=${encodeURIComponent(visualQaToken ?? '')}`
+    : href;
 
   const data = isPreviewVisualQa
     ? {
@@ -111,9 +114,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
               {group.title && <p className="sidebar-section-title">{group.title}</p>}
               {group.items.map((item) => {
                 const href = item.key === 'dashboard'
-                  ? `/${workspaceSlug}/home`
+                  ? withVisualQa(`/${workspaceSlug}/home`)
                   : item.key === 'campaigns'
-                    ? `/${workspaceSlug}/campaigns`
+                    ? withVisualQa(`/${workspaceSlug}/campaigns`)
                     : null;
                 const active = item.key === 'dashboard';
 
@@ -167,7 +170,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </div>
             <div className="title-actions">
               <span className="date-filter">30 วันล่าสุด ▣</span>
-              <Link className="reference-primary" href={`/${workspaceSlug}/campaigns/new`}>＋ สร้างแคมเปญใหม่</Link>
+              <Link className="reference-primary" href={withVisualQa(`/${workspaceSlug}/campaigns/new`)}>＋ สร้างแคมเปญใหม่</Link>
             </div>
           </section>
 
