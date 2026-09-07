@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   deploy-production:
-    name: Deploy exact RC 2bd740b9 to Vercel production
+    name: Deploy exact approved V4 RC 4b1ee68 to Vercel production
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -22,7 +22,7 @@ jobs:
       VERCEL_TOKEN_ACCESS: ${{ secrets.VERCEL_ACCESS_TOKEN }}
       VERCEL_TOKEN_API: ${{ secrets.VERCEL_API_TOKEN }}
       VERCEL_TOKEN_CLI: ${{ secrets.VERCEL_CLI_TOKEN }}
-      RC_SHA: 2bd740b9e743d58a2163893a57cf59f3ea7d89d7
+      RC_SHA: 4b1ee68bffc84bc10a24fa147fb2209a2609ecb2
       VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
       VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
       VERCEL_TEAM_SLUG: kosid-btcs-projects
