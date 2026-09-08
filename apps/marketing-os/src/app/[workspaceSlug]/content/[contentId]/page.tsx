@@ -14,7 +14,6 @@ export default async function ContentDetailPage({ params }: { params: Promise<{ 
   const latestApproval = data.approvals[0];
   const approved = data.approvals.some((item) => item.status === 'approved');
   const hasPendingApproval = data.approvals.some((item) => item.status === 'pending');
-  const hasTracking = data.tracking.length > 0;
 
   return (
     <main className="shell stack" style={{ maxWidth: 1080, paddingTop: 40, paddingBottom: 64, gap: 20 }}>
