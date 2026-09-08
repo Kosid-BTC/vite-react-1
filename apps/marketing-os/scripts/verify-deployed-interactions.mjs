@@ -105,6 +105,16 @@ try {
   await page.locator('[data-visual-qa="campaign-form"]').waitFor();
 
   await goHome();
+  await page.getByText('Create Content', { exact: true }).first().click();
+  await page.waitForURL((url) => url.pathname === '/visual-qa/content/new' && url.searchParams.get('visualQa') === sha);
+  await page.getByRole('heading', { name: 'Create Content' }).waitFor();
+
+  await goHome();
+  await page.getByText('Review & Approve', { exact: true }).first().click();
+  await page.waitForURL((url) => url.pathname === '/visual-qa/approvals' && url.searchParams.get('visualQa') === sha);
+  await page.getByRole('heading', { name: 'Review & Approve' }).waitFor();
+
+  await goHome();
   await page.locator('.global-search').click();
   await expectFeature('search', 'Global Search');
 
@@ -116,16 +126,13 @@ try {
   await page.locator('.profile-copy').click();
   await page.waitForURL((url) => url.pathname === '/account');
 
-  // `vercel curl` returns a redirect body without exposing its status/Location
-  // through Playwright's fulfillment API, so verify the public login document
-  // separately after proving that the profile control navigated to /account.
   await page.goto(`${deployment}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.getByRole('heading', { name: 'เข้าสู่ระบบ' }).waitFor();
 
   if (browserErrors.length > 0) throw new Error(`Browser errors: ${browserErrors.join(' | ')}`);
   console.log(`INTERACTION_E2E_SHA=${sha}`);
   console.log('INTERACTION_NAVIGATION_E2E=PASS');
-  console.log('INTERACTION_KEY_FEATURES=Dashboard|Audience|Content Calendar|Business Genome|RLS Security|Campaigns|Create Campaign|Global Search|Profile|Date Filter');
+  console.log('INTERACTION_KEY_FEATURES=Dashboard|Audience|Content Calendar|Business Genome|RLS Security|Campaigns|Create Campaign|Create Content|Review Approve|Global Search|Profile|Date Filter');
 } finally {
   await browser.close();
 }
