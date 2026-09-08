@@ -85,7 +85,6 @@ export default function InteractionBridge() {
     ];
 
     const interactive = Array.from(document.querySelectorAll(selectors.join(',')));
-
     const cleanup: Array<() => void> = [];
 
     for (const element of interactive) {
@@ -117,6 +116,19 @@ export default function InteractionBridge() {
         if (el.matches('.tab-row .tab')) {
           const tab = text.toLowerCase();
           router.push(withVisualQa(`/${workspaceSlug}/home?tab=${encodeURIComponent(tab)}`));
+          return;
+        }
+
+        if (text === 'Create Content' || text.includes('Create Content')) {
+          window.location.assign(withVisualQa(`/${workspaceSlug}/content/new`));
+          return;
+        }
+        if (text === 'Review & Approve' || text.includes('Review & Approve')) {
+          window.location.assign(withVisualQa(`/${workspaceSlug}/approvals`));
+          return;
+        }
+        if (text === 'Campaigns') {
+          router.push(withVisualQa(`/${workspaceSlug}/campaigns`));
           return;
         }
 

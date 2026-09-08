@@ -13,7 +13,9 @@ if (!deployment || !sha || !team || !process.env.VERCEL_TOKEN) {
 }
 
 const mime = (url, resourceType) => {
-  const ext = extname(new URL(url).pathname).toLowerCase();
+  const parsed = new URL(url);
+  const ext = extname(parsed.pathname).toLowerCase();
+  if (parsed.searchParams.has('_rsc')) return 'text/x-component; charset=utf-8';
   if (resourceType === 'document' || ext === '.html') return 'text/html; charset=utf-8';
   if (ext === '.js' || ext === '.mjs' || resourceType === 'script') return 'application/javascript; charset=utf-8';
   if (ext === '.css' || resourceType === 'stylesheet') return 'text/css; charset=utf-8';
@@ -57,9 +59,22 @@ const goHome = async () => {
   await page.goto(qaUrl('/visual-qa/home'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.locator('[data-visual-qa="preview-fixture"]').waitFor({ state: 'visible', timeout: 20000 });
 };
+
+const waitForLocation = async (pathname, expectedParams = {}) => {
+  await page.waitForFunction(
+    ({ pathname: expectedPathname, expectedParams: params }) => {
+      if (window.location.pathname !== expectedPathname) return false;
+      const search = new URLSearchParams(window.location.search);
+      return Object.entries(params).every(([key, value]) => search.get(key) === value);
+    },
+    { pathname, expectedParams },
+    { timeout: 45000 },
+  );
+};
+
 const expectFeature = async (path, heading) => {
-  await page.waitForURL((url) => url.pathname === `/visual-qa/feature/${path}` && url.searchParams.get('visualQa') === sha);
-  await page.getByRole('heading', { name: heading }).waitFor();
+  await waitForLocation(`/visual-qa/feature/${path}`, { visualQa: sha });
+  await page.getByRole('heading', { name: heading }).waitFor({ state: 'visible', timeout: 20000 });
 };
 
 try {
@@ -80,8 +95,9 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await goHome();
 
+  console.log('E2E_STEP=Dashboard');
   await page.getByText('Dashboard', { exact: true }).click();
-  await page.waitForURL((url) => url.pathname === '/visual-qa/home' && url.searchParams.get('visualQa') === sha);
+  await waitForLocation('/visual-qa/home', { visualQa: sha });
 
   for (const [label, path] of [
     ['Audience', 'audience'],
@@ -89,43 +105,58 @@ try {
     ['Business Genome', 'business-genome'],
     ['RLS / Security', 'rls-security'],
   ]) {
+    console.log(`E2E_STEP=${label}`);
     await goHome();
     await page.getByText(label, { exact: true }).first().click();
     await expectFeature(path, label);
   }
 
+  console.log('E2E_STEP=Campaigns');
   await goHome();
   await page.getByText('Campaigns', { exact: true }).click();
-  await page.waitForURL((url) => url.pathname === '/visual-qa/campaigns' && url.searchParams.get('visualQa') === sha);
-  await page.getByRole('heading', { name: 'Campaigns' }).waitFor();
+  await waitForLocation('/visual-qa/campaigns', { visualQa: sha });
+  await page.getByRole('heading', { name: 'Campaigns' }).waitFor({ state: 'visible', timeout: 20000 });
 
+  console.log('E2E_STEP=Create Campaign');
   await goHome();
   await page.getByRole('link', { name: /สร้างแคมเปญใหม่/ }).click();
-  await page.waitForURL((url) => url.pathname === '/visual-qa/campaigns/new' && url.searchParams.get('visualQa') === sha);
-  await page.locator('[data-visual-qa="campaign-form"]').waitFor();
+  await waitForLocation('/visual-qa/campaigns/new', { visualQa: sha });
+  await page.locator('[data-visual-qa="campaign-form"]').waitFor({ state: 'visible', timeout: 20000 });
 
+  console.log('E2E_STEP=Create Content');
+  await goHome();
+  await page.getByText('Create Content', { exact: true }).first().click();
+  await waitForLocation('/visual-qa/content/new', { visualQa: sha });
+  await page.getByRole('heading', { name: 'Create Content' }).waitFor({ state: 'visible', timeout: 20000 });
+
+  console.log('E2E_STEP=Review & Approve');
+  await goHome();
+  await page.getByText('Review & Approve', { exact: true }).first().click();
+  await waitForLocation('/visual-qa/approvals', { visualQa: sha });
+  await page.getByRole('heading', { name: 'Review & Approve' }).waitFor({ state: 'visible', timeout: 20000 });
+
+  console.log('E2E_STEP=Global Search');
   await goHome();
   await page.locator('.global-search').click();
   await expectFeature('search', 'Global Search');
 
+  console.log('E2E_STEP=Date Filter');
   await goHome();
   await page.locator('.date-filter').click();
-  await page.waitForURL((url) => url.pathname === '/visual-qa/home' && url.searchParams.get('range') === '30d' && url.searchParams.get('visualQa') === sha);
+  await waitForLocation('/visual-qa/home', { range: '30d', visualQa: sha });
 
+  console.log('E2E_STEP=Profile');
   await goHome();
   await page.locator('.profile-copy').click();
-  await page.waitForURL((url) => url.pathname === '/account');
+  await waitForLocation('/account');
 
-  // `vercel curl` returns a redirect body without exposing its status/Location
-  // through Playwright's fulfillment API, so verify the public login document
-  // separately after proving that the profile control navigated to /account.
   await page.goto(`${deployment}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.getByRole('heading', { name: 'เข้าสู่ระบบ' }).waitFor();
+  await page.getByRole('heading', { name: 'เข้าสู่ระบบ' }).waitFor({ state: 'visible', timeout: 20000 });
 
   if (browserErrors.length > 0) throw new Error(`Browser errors: ${browserErrors.join(' | ')}`);
   console.log(`INTERACTION_E2E_SHA=${sha}`);
   console.log('INTERACTION_NAVIGATION_E2E=PASS');
-  console.log('INTERACTION_KEY_FEATURES=Dashboard|Audience|Content Calendar|Business Genome|RLS Security|Campaigns|Create Campaign|Global Search|Profile|Date Filter');
+  console.log('INTERACTION_KEY_FEATURES=Dashboard|Audience|Content Calendar|Business Genome|RLS Security|Campaigns|Create Campaign|Create Content|Review Approve|Global Search|Profile|Date Filter');
 } finally {
   await browser.close();
 }
