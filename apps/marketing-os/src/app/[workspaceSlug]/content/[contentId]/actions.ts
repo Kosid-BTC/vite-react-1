@@ -10,6 +10,14 @@ const requestSchema = z.object({
   contentId: z.string().uuid(),
 });
 
+const manualVersionSchema = requestSchema.extend({
+  hook: z.string().max(500).optional(),
+  body: z.string().max(10000).optional(),
+  caption: z.string().max(5000).optional(),
+}).refine((value) => Boolean(value.hook?.trim() || value.body?.trim() || value.caption?.trim()), {
+  message: 'ต้องกรอก Hook, Body หรือ Caption อย่างน้อยหนึ่งช่อง',
+});
+
 const trackingSchema = requestSchema.extend({
   destinationUrl: z.string().url(),
   utmSource: z.string().min(1).max(120),
@@ -28,6 +36,44 @@ async function getContext(workspaceSlug: string) {
   const workspace = await db.from('workspaces').select('id,slug').eq('slug', workspaceSlug).single();
   if (workspace.error) throw new Error(workspace.error.message);
   return { db, user, workspace: workspace.data };
+}
+
+export async function createManualContentVersionAction(formData: FormData) {
+  const parsed = manualVersionSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) throw new Error('ข้อมูล Content Version ไม่ถูกต้อง');
+
+  const { db, user, workspace } = await getContext(parsed.data.workspaceSlug);
+  const content = await db
+    .from('marketing_content_items')
+    .select('id')
+    .eq('workspace_id', workspace.id)
+    .eq('id', parsed.data.contentId)
+    .single();
+  if (content.error) throw new Error(content.error.message);
+
+  const latest = await db
+    .from('marketing_content_versions')
+    .select('version_number')
+    .eq('workspace_id', workspace.id)
+    .eq('content_item_id', parsed.data.contentId)
+    .order('version_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latest.error) throw new Error(latest.error.message);
+
+  const inserted = await db.from('marketing_content_versions').insert({
+    workspace_id: workspace.id,
+    content_item_id: parsed.data.contentId,
+    version_number: (latest.data?.version_number ?? 0) + 1,
+    hook: parsed.data.hook?.trim() || null,
+    body: parsed.data.body?.trim() || null,
+    caption: parsed.data.caption?.trim() || null,
+    created_by: user.id,
+  });
+  if (inserted.error) throw new Error(inserted.error.message);
+
+  revalidatePath(`/${parsed.data.workspaceSlug}/content/${parsed.data.contentId}`);
+  revalidatePath(`/${parsed.data.workspaceSlug}/feature/content-items`);
 }
 
 export async function requestApprovalAction(formData: FormData) {
