@@ -89,6 +89,17 @@ export async function requestApprovalAction(formData: FormData) {
     .single();
   if (content.error) throw new Error(content.error.message);
 
+  const latestVersion = await db
+    .from('marketing_content_versions')
+    .select('id')
+    .eq('workspace_id', workspace.id)
+    .eq('content_item_id', parsed.data.contentId)
+    .order('version_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latestVersion.error) throw new Error(latestVersion.error.message);
+  if (!latestVersion.data) throw new Error('ต้องมี Content Version ก่อนส่งอนุมัติ');
+
   const existing = await db
     .from('marketing_approval_requests')
     .select('id')
@@ -99,20 +110,10 @@ export async function requestApprovalAction(formData: FormData) {
   if (existing.error) throw new Error(existing.error.message);
 
   if (!existing.data) {
-    const latestVersion = await db
-      .from('marketing_content_versions')
-      .select('id')
-      .eq('workspace_id', workspace.id)
-      .eq('content_item_id', parsed.data.contentId)
-      .order('version_number', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (latestVersion.error) throw new Error(latestVersion.error.message);
-
     const inserted = await db.from('marketing_approval_requests').insert({
       workspace_id: workspace.id,
       content_item_id: parsed.data.contentId,
-      content_version_id: latestVersion.data?.id ?? null,
+      content_version_id: latestVersion.data.id,
       status: 'pending',
       requested_by: user.id,
     });
@@ -136,6 +137,18 @@ export async function createTrackingLinkAction(formData: FormData) {
     .single();
   if (content.error) throw new Error(content.error.message);
 
+  const approval = await db
+    .from('marketing_approval_requests')
+    .select('id,content_version_id')
+    .eq('workspace_id', workspace.id)
+    .eq('content_item_id', parsed.data.contentId)
+    .eq('status', 'approved')
+    .order('reviewed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (approval.error) throw new Error(approval.error.message);
+  if (!approval.data) throw new Error('ต้องผ่าน Human Approval ก่อนสร้าง Tracking Link');
+
   const latestVersion = await db
     .from('marketing_content_versions')
     .select('id')
@@ -145,6 +158,11 @@ export async function createTrackingLinkAction(formData: FormData) {
     .limit(1)
     .maybeSingle();
   if (latestVersion.error) throw new Error(latestVersion.error.message);
+  if (!latestVersion.data) throw new Error('ไม่พบ Content Version สำหรับ Tracking Link');
+
+  if (approval.data.content_version_id && approval.data.content_version_id !== latestVersion.data.id) {
+    throw new Error('Content Version ล่าสุดยังไม่ได้รับอนุมัติ ต้องส่ง Review ใหม่ก่อนสร้าง Tracking Link');
+  }
 
   const url = new URL(parsed.data.destinationUrl);
   url.searchParams.set('utm_source', parsed.data.utmSource);
@@ -158,7 +176,7 @@ export async function createTrackingLinkAction(formData: FormData) {
     workspace_id: workspace.id,
     campaign_id: content.data.campaign_id,
     content_item_id: parsed.data.contentId,
-    content_version_id: latestVersion.data?.id ?? null,
+    content_version_id: latestVersion.data.id,
     audience_segment_id: content.data.audience_segment_id,
     message_pillar_id: content.data.message_pillar_id,
     offer_id: content.data.offer_id,
