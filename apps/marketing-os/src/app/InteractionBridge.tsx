@@ -120,11 +120,11 @@ export default function InteractionBridge() {
         }
 
         if (text === 'Create Content' || text.includes('Create Content')) {
-          router.push(withVisualQa(`/${workspaceSlug}/content/new`));
+          window.location.assign(withVisualQa(`/${workspaceSlug}/content/new`));
           return;
         }
         if (text === 'Review & Approve' || text.includes('Review & Approve')) {
-          router.push(withVisualQa(`/${workspaceSlug}/approvals`));
+          window.location.assign(withVisualQa(`/${workspaceSlug}/approvals`));
           return;
         }
         if (text === 'Campaigns') {
