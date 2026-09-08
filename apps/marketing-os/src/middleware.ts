@@ -12,7 +12,9 @@ export async function middleware(request: NextRequest) {
   const isPreviewVisualQaPath =
     pathname.endsWith('/home') ||
     pathname.includes('/feature/') ||
-    pathname.includes('/campaigns');
+    pathname.includes('/campaigns') ||
+    pathname.endsWith('/content/new') ||
+    pathname.endsWith('/approvals');
   const isPreviewVisualQa =
     process.env.VERCEL_ENV === 'preview' &&
     isPreviewVisualQaPath &&
@@ -59,8 +61,8 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Preview visual QA may bypass user auth only when the request proves the exact
-  // deployed commit SHA and remains inside the deterministic QA home/feature routes.
-  // Production auth behavior is unchanged because VERCEL_ENV must be "preview".
+  // deployed commit SHA and remains inside the explicitly allowlisted deterministic
+  // QA routes. Production auth behavior is unchanged because VERCEL_ENV must be "preview".
   if (!user && !PUBLIC_PATHS.has(pathname) && !isPreviewVisualQa) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
