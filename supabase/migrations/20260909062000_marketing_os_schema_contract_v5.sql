@@ -27,18 +27,18 @@ create policy channels_select on public.channels
 drop policy if exists channels_insert on public.channels;
 create policy channels_insert on public.channels
   for insert to authenticated
-  with check (public.can_edit(workspace_id));
+  with check (public.can_edit_workspace(workspace_id));
 
 drop policy if exists channels_update on public.channels;
 create policy channels_update on public.channels
   for update to authenticated
-  using (public.can_edit(workspace_id))
-  with check (public.can_edit(workspace_id));
+  using (public.can_edit_workspace(workspace_id))
+  with check (public.can_edit_workspace(workspace_id));
 
 drop policy if exists channels_delete on public.channels;
 create policy channels_delete on public.channels
   for delete to authenticated
-  using (public.can_edit(workspace_id));
+  using (public.can_edit_workspace(workspace_id));
 
 alter table public.marketing_tracking_links
   add column if not exists content_version_id uuid,
