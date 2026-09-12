@@ -54,6 +54,34 @@ async function waitForApp(child) {
   throw new Error(`Next.js did not become ready: ${lastError?.message ?? 'timeout'}`);
 }
 
+async function stopApp(child) {
+  if (child.exitCode !== null) return;
+
+  const signalTree = (signal) => {
+    try {
+      if (process.platform === 'win32') child.kill(signal);
+      else process.kill(-child.pid, signal);
+    } catch (error) {
+      if (error?.code !== 'ESRCH') throw error;
+    }
+  };
+
+  signalTree('SIGTERM');
+
+  const exited = await Promise.race([
+    new Promise((resolve) => child.once('exit', () => resolve(true))),
+    new Promise((resolve) => setTimeout(() => resolve(false), 5_000)),
+  ]);
+
+  if (!exited && child.exitCode === null) {
+    signalTree('SIGKILL');
+    await Promise.race([
+      new Promise((resolve) => child.once('exit', resolve)),
+      new Promise((resolve) => setTimeout(resolve, 2_000)),
+    ]);
+  }
+}
+
 let result = await request('/auth/v1/admin/users', {
   method: 'POST',
   token: serviceKey,
@@ -108,6 +136,7 @@ const cookieHeader = Array.from(cookieMap, ([name, value]) => `${name}=${value}`
 
 const child = spawn('npm', ['run', 'dev', '--', '-p', String(port)], {
   cwd: process.cwd(),
+  detached: process.platform !== 'win32',
   env: {
     ...process.env,
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
@@ -169,5 +198,5 @@ try {
   console.error(appLog.slice(-8000));
   throw error;
 } finally {
-  child.kill('SIGTERM');
+  await stopApp(child);
 }
