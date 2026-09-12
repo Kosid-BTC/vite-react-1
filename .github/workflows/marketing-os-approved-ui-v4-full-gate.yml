@@ -106,7 +106,7 @@ jobs:
   authenticated-rls:
     name: Authenticated JWT / RLS integration
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout exact head
         uses: actions/checkout@v4
@@ -176,6 +176,16 @@ jobs:
           export SUPABASE_ANON_KEY="$ANON_KEY"
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           node apps/marketing-os/scripts/verify-phase1-vertical-slice.mjs
+      - name: Authenticated dashboard SSR smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(npx --yes supabase@2.40.0 status -o env)"
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          cd apps/marketing-os
+          node scripts/verify-authenticated-dashboard-local.mjs
       - name: Trusted Evidence persistence verification
         shell: bash
         run: |
