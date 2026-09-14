@@ -79,7 +79,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
             <input name="email" type="email" autoComplete="email" defaultValue={email} placeholder="อีเมลสำหรับ Reset Password" required />
             <button type="submit">ส่งลิงก์ Reset Password</button>
           </form>
-          <p>ระบบใช้ลิงก์แบบใช้ครั้งเดียวและไม่แสดงรหัสผ่านชั่วคราว</p>
+          <p>ระบบจะไม่สร้างหรือแสดงรหัสผ่านชั่วคราว และใช้ลิงก์รีเซ็ตแบบใช้ครั้งเดียว</p>
         </div>
 
         {(error === 'email_not_confirmed' || confirmation === 'sent' || error === 'resend_failed') && (
