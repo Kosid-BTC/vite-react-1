@@ -244,7 +244,7 @@ jobs:
             await page.waitForTimeout(600);
             if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Approved mobile requires all six KPI cards');
             const performanceBox = await page.locator('.performance-panel:visible').boundingBox();
-            const aiBox = await page.locator('.ai-panel:visible').boundingBox();
+            const aiBox = await page.locator('.ai-panel.mobile-dashboard-panel').boundingBox();
             if (!performanceBox || !aiBox || performanceBox.y >= aiBox.y) throw new Error('Approved mobile hierarchy requires Performance before AI Recommendations');
             const mobileTitle = page.locator('.dashboard-title-row h1:visible');
             if (!(await mobileTitle.isVisible()) || (await mobileTitle.textContent())?.trim() !== 'CEO AI Thailand') throw new Error('CEO AI title branding missing on mobile');
