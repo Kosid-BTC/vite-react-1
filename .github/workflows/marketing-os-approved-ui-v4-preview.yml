@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/marketing-os-approved-ui-v4
+      - fix/marketing-os-release-gates-v5
   workflow_dispatch:
 
 permissions:
