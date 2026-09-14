@@ -6,6 +6,7 @@
     "build": "next build",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:astra": "tsx scripts/verify-astra-first-orchestrator.ts",
     "test:p1-3": "tsx scripts/verify-p1-3-decision-boundary.ts",
     "test:p1-4": "tsx scripts/verify-p1-4-outcome-learning.ts",
     "test:p2-0": "tsx scripts/verify-p2-0-creative-automation.ts",
