@@ -59,7 +59,8 @@ requireOrder(home, [
   'MIT 24 Steps',
 ], 'dashboard hierarchy');
 
-const metricDefinitions = home.match(/label: '/g)?.length ?? 0;
+const metricsBlock = home.match(/const metrics = \[(.*?)\]\s+as const;/s)?.[1] ?? '';
+const metricDefinitions = metricsBlock.match(/\blabel:\s*'/g)?.length ?? 0;
 if (metricDefinitions !== 6) failures.push(`dashboard: expected 6 KPI definitions, found ${metricDefinitions}`);
 
 for (const token of [
