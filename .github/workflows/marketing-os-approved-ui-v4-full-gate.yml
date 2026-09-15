@@ -47,6 +47,9 @@ jobs:
       - name: Install Marketing OS dependencies
         working-directory: apps/marketing-os
         run: npm ci --no-audit --no-fund
+      - name: Approved UX/UI V4 structural parity contract
+        working-directory: apps/marketing-os
+        run: npm run test:approved-ui
       - name: P1.3 Growth decision boundary verification
         working-directory: apps/marketing-os
         run: npm run test:p1-3

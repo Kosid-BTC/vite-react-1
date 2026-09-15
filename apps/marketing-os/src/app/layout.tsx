@@ -4,6 +4,7 @@ import InteractionBridge from './InteractionBridge';
 import './globals.css';
 import './reference-ui-v2.css';
 import './approved-ui-v4.css';
+import './approved-login-v6.css';
 
 const kanit = Kanit({
   subsets: ['thai', 'latin'],

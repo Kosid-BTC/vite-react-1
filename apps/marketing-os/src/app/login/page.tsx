@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { requestPasswordReset, resendConfirmation, signIn } from './actions';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -45,58 +46,100 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
                           : null;
 
   return (
-    <main className="shell" style={{ maxWidth: 520, paddingTop: 72 }}>
-      <section className="card stack" aria-labelledby="login-title">
-        <header>
-          <p className="eyebrow">CEO AI Thailand · Marketing OS</p>
+    <main className="approved-login-shell">
+      <section className="approved-login-panel" aria-labelledby="login-title">
+        <div className="approved-login-brand">
+          <Image src="/ceo-ai-reference-logo.svg" alt="CEO AI Thailand" width={162} height={64} priority />
+          <span className="approved-login-badge">Marketing OS</span>
+        </div>
+
+        <div className="approved-login-copy">
+          <p className="approved-login-kicker">CEO AI THAILAND · MARKETING OPERATING SYSTEM</p>
           <h1 id="login-title">เข้าสู่ระบบ</h1>
-          <p className="muted">ใช้บัญชีที่ได้รับสิทธิ์ใน Workspace ของคุณ</p>
-        </header>
+          <p>จัดการ Strategy, Content, Distribution, Analytics และ AI Recommendations จาก Workspace เดียว</p>
+        </div>
 
-        {message && (
-          <p role="status" className="muted">
-            {message}
-          </p>
-        )}
+        {message && <p role="status" className="approved-login-status">{message}</p>}
 
-        <form action={signIn} className="stack">
+        <form action={signIn} className="approved-login-form">
           <input type="hidden" name="next" value={next} />
-          <label className="stack" style={{ gap: 6 }}>
+          <label>
             <span>อีเมล</span>
-            <input name="email" type="email" autoComplete="email" defaultValue={email} required />
+            <input name="email" type="email" autoComplete="email" defaultValue={email} placeholder="you@company.com" required />
           </label>
-          <label className="stack" style={{ gap: 6 }}>
+          <label>
             <span>รหัสผ่าน</span>
             <input name="password" type="password" autoComplete="current-password" required />
           </label>
-          <button className="primary" type="submit">เข้าสู่ระบบ</button>
+          <button className="approved-login-primary" type="submit">เข้าสู่ระบบ →</button>
         </form>
 
-        <form action={requestPasswordReset} className="stack" aria-label="รีเซ็ตรหัสผ่าน">
-          <label className="stack" style={{ gap: 6 }}>
-            <span>ลืมรหัสผ่าน?</span>
-            <input name="email" type="email" autoComplete="email" defaultValue={email} placeholder="support@b-tctraining.com" required />
-          </label>
-          <button type="submit">ส่งลิงก์ Reset Password</button>
-          <p className="muted" style={{ margin: 0 }}>
-            เพื่อความปลอดภัย ระบบจะไม่สร้างหรือแสดงรหัสผ่านชั่วคราว แต่จะให้คุณตั้งรหัสผ่านใหม่ด้วยลิงก์แบบใช้ครั้งเดียว
-          </p>
-        </form>
+        <div className="approved-login-assist">
+          <form action={requestPasswordReset}>
+            <input name="email" type="email" autoComplete="email" defaultValue={email} placeholder="อีเมลสำหรับ Reset Password" required />
+            <button type="submit">ส่งลิงก์ Reset Password</button>
+          </form>
+          <p>ระบบจะไม่สร้างหรือแสดงรหัสผ่านชั่วคราว และใช้ลิงก์รีเซ็ตแบบใช้ครั้งเดียว</p>
+        </div>
 
         {(error === 'email_not_confirmed' || confirmation === 'sent' || error === 'resend_failed') && (
-          <form action={resendConfirmation} className="stack" aria-label="ส่งอีเมลยืนยันใหม่">
+          <form action={resendConfirmation} className="approved-login-resend" aria-label="ส่งอีเมลยืนยันใหม่">
             <input type="hidden" name="next" value={next} />
-            <label className="stack" style={{ gap: 6 }}>
-              <span>อีเมลสำหรับยืนยัน</span>
-              <input name="email" type="email" autoComplete="email" defaultValue={email} required />
-            </label>
+            <input name="email" type="email" autoComplete="email" defaultValue={email} placeholder="อีเมลสำหรับยืนยัน" required />
             <button type="submit">ส่งอีเมลยืนยันใหม่</button>
-            <p className="muted" style={{ margin: 0 }}>
-              ใช้ลิงก์จากอีเมลฉบับล่าสุดเท่านั้น ลิงก์เก่าอาจหมดอายุหรือถูกใช้ไปแล้ว
-            </p>
           </form>
         )}
+
+        <footer className="approved-login-footer">
+          <span>CEO AI Thailand</span>
+          <span>Production access · Secure workspace</span>
+        </footer>
       </section>
+
+      <aside className="approved-login-preview" aria-label="Approved Marketing OS dashboard preview">
+        <div className="login-preview-topbar">
+          <span className="login-preview-search">⌕ ค้นหาแคมเปญ, คอนเทนต์, หรือสิ่งที่ต้องการ...</span>
+          <span className="login-preview-pill">AI Insight</span>
+          <span className="login-preview-avatar">TC</span>
+        </div>
+        <div className="login-preview-heading">
+          <div>
+            <strong>CEO AI Thailand</strong>
+            <span>Marketing OS</span>
+          </div>
+          <span className="login-preview-cta">+ สร้างแคมเปญใหม่</span>
+        </div>
+        <div className="login-preview-connections">
+          <span>● Website · UNVERIFIED</span>
+          <span>● Facebook · UNVERIFIED</span>
+          <span>● YouTube · UNVERIFIED</span>
+          <span>● Business Genome · UNAVAILABLE</span>
+        </div>
+        <div className="login-preview-kpis">
+          {['Impressions','Reach','Video Views','CTR (All)','Conversions','Revenue'].map((label) => (
+            <div key={label}><span>{label}</span><strong>—</strong><small>UNAVAILABLE</small></div>
+          ))}
+        </div>
+        <div className="login-preview-grid">
+          <div className="login-preview-card login-preview-performance">
+            <div className="login-preview-card-head"><strong>Performance Overview</strong><span>30 วันล่าสุด</span></div>
+            <div className="login-preview-chart"><span>Measurement data unavailable</span></div>
+          </div>
+          <div className="login-preview-card">
+            <div className="login-preview-card-head"><strong>AI Recommendations</strong><span>Evidence first</span></div>
+            <div className="login-preview-lines"><i/><i/><i/></div>
+          </div>
+          <div className="login-preview-card">
+            <div className="login-preview-card-head"><strong>Business Genome</strong><span>UNAVAILABLE</span></div>
+            <div className="login-preview-genome">DNA</div>
+          </div>
+          <div className="login-preview-card">
+            <div className="login-preview-card-head"><strong>MIT 24 Steps</strong><span>— / 24</span></div>
+            <div className="login-preview-lines"><i/><i/><i/><i/></div>
+          </div>
+        </div>
+        <p className="login-preview-note">Approved UX/UI V4 · ตัวเลขจะแสดงเมื่อมีหลักฐานจริงเท่านั้น</p>
+      </aside>
     </main>
   );
 }

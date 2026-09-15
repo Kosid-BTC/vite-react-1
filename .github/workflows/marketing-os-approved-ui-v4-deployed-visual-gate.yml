@@ -2,7 +2,7 @@ name: Marketing OS Approved UI V4 Deployed Preview Visual Gate
 
 on:
   push:
-    branches: [feat/marketing-os-approved-ui-v4]
+    branches: [feat/marketing-os-approved-ui-v4, fix/marketing-os-release-gates-v5]
   workflow_dispatch:
 
 permissions:
@@ -225,7 +225,7 @@ jobs:
             await root.waitFor({ state: 'visible', timeout: 20000 });
             if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Approved desktop requires exactly six KPI cards');
             for (const selector of ['.performance-panel','.traffic-source','.ai-panel','.genome-panel','.mit-panel','.recent-panel','.platform-panel']) {
-              if (!(await page.locator(selector).isVisible())) throw new Error(`Approved desktop missing ${selector}`);
+              if (!(await page.locator(`${selector}:visible`).isVisible())) throw new Error(`Approved desktop missing ${selector}`);
             }
 
             const desktop = await page.screenshot({ path: 'deployed-visual-qa-artifacts/desktop-1536x1024.png', fullPage: false });
@@ -243,12 +243,12 @@ jobs:
             await page.setViewportSize({ width: 390, height: 844 });
             await page.waitForTimeout(600);
             if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Approved mobile requires all six KPI cards');
-            const performanceBox = await page.locator('.performance-panel').boundingBox();
-            const aiBox = await page.locator('.ai-panel').boundingBox();
+            const performanceBox = await page.locator('.performance-panel:visible').boundingBox();
+            const aiBox = await page.locator('.ai-panel.mobile-dashboard-panel').boundingBox();
             if (!performanceBox || !aiBox || performanceBox.y >= aiBox.y) throw new Error('Approved mobile hierarchy requires Performance before AI Recommendations');
-            const mobileTitle = page.locator('.dashboard-title-row h1');
+            const mobileTitle = page.locator('.dashboard-title-row h1:visible');
             if (!(await mobileTitle.isVisible()) || (await mobileTitle.textContent())?.trim() !== 'CEO AI Thailand') throw new Error('CEO AI title branding missing on mobile');
-            const mobileLogoBackground = await page.locator('.topbar').evaluate((node) => getComputedStyle(node, '::before').backgroundImage);
+            const mobileLogoBackground = await page.locator('.topbar:visible').evaluate((node) => getComputedStyle(node, '::before').backgroundImage);
             if (!mobileLogoBackground.includes('ceo-ai-reference-logo.svg')) throw new Error('CEO AI logo branding missing on mobile');
             await page.screenshot({ path: 'deployed-visual-qa-artifacts/mobile-390x844.png', fullPage: true });
 
