@@ -67,11 +67,7 @@ for (const token of [
   'approved-login-shell',
   'ceo-ai-reference-logo.svg',
   'Marketing OS',
-  'login-preview-kpis',
-  'Performance Overview',
-  'AI Recommendations',
-  'Business Genome',
-  'MIT 24 Steps',
+  'approved-login-form',
 ]) requireText(login, token, 'login continuity');
 
 requireText(layout, "import './approved-ui-v4.css';", 'layout');
@@ -79,7 +75,7 @@ requireText(layout, "import './approved-login-v6.css';", 'layout');
 requireText(css, 'Keep all six KPIs', 'mobile contract');
 requireText(css, 'Performance first, AI second', 'mobile contract');
 requireText(loginCss, '.approved-login-shell', 'login css');
-requireText(loginCss, '.login-preview-kpis', 'login css');
+if (login.includes('login-preview-kpis')) failures.push('login continuity: dashboard preview must not substitute for authenticated dashboard parity');
 
 if (failures.length) {
   console.error('APPROVED_UI_CONTRACT_FAIL');
