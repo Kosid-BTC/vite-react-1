@@ -54,9 +54,12 @@ for (const token of [
 requireOrder(home, [
   'metric-grid',
   'Performance Overview',
+  'Traffic Sources',
   'AI แนะนำสำหรับคุณ',
   'Business Genome',
   'MIT 24 Steps',
+  'Recent Activity',
+  'การเชื่อมต่อกับแพลตฟอร์ม',
 ], 'dashboard hierarchy');
 
 const metricsBlock = home.match(/const metrics = \[(.*?)\]\s+as const;/s)?.[1] ?? '';
@@ -86,7 +89,7 @@ if (failures.length) {
 console.log('APPROVED_UI_CONTRACT_PASS');
 console.log(JSON.stringify({
   kpiCards: 6,
-  dashboardOrder: ['KPI', 'Performance', 'AI', 'Business Genome', 'MIT 24 Steps'],
+  dashboardOrder: ['KPI', 'Performance', 'Traffic Sources', 'AI', 'Business Genome', 'MIT 24 Steps', 'Recent Activity', 'Platform Connections'],
   loginContinuity: true,
   productionMetricsPolicy: 'evidence-only',
 }, null, 2));
