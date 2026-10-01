@@ -54,9 +54,12 @@ for (const token of [
 requireOrder(home, [
   'metric-grid',
   'Performance Overview',
+  'Traffic Sources',
   'AI แนะนำสำหรับคุณ',
   'Business Genome',
   'MIT 24 Steps',
+  'Recent Activity',
+  'การเชื่อมต่อกับแพลตฟอร์ม',
 ], 'dashboard hierarchy');
 
 const metricsBlock = home.match(/const metrics = \[(.*?)\]\s+as const;/s)?.[1] ?? '';
@@ -67,11 +70,7 @@ for (const token of [
   'approved-login-shell',
   'ceo-ai-reference-logo.svg',
   'Marketing OS',
-  'login-preview-kpis',
-  'Performance Overview',
-  'AI Recommendations',
-  'Business Genome',
-  'MIT 24 Steps',
+  'approved-login-form',
 ]) requireText(login, token, 'login continuity');
 
 requireText(layout, "import './approved-ui-v4.css';", 'layout');
@@ -79,7 +78,7 @@ requireText(layout, "import './approved-login-v6.css';", 'layout');
 requireText(css, 'Keep all six KPIs', 'mobile contract');
 requireText(css, 'Performance first, AI second', 'mobile contract');
 requireText(loginCss, '.approved-login-shell', 'login css');
-requireText(loginCss, '.login-preview-kpis', 'login css');
+if (login.includes('login-preview-kpis')) failures.push('login continuity: dashboard preview must not substitute for authenticated dashboard parity');
 
 if (failures.length) {
   console.error('APPROVED_UI_CONTRACT_FAIL');
@@ -90,7 +89,7 @@ if (failures.length) {
 console.log('APPROVED_UI_CONTRACT_PASS');
 console.log(JSON.stringify({
   kpiCards: 6,
-  dashboardOrder: ['KPI', 'Performance', 'AI', 'Business Genome', 'MIT 24 Steps'],
+  dashboardOrder: ['KPI', 'Performance', 'Traffic Sources', 'AI', 'Business Genome', 'MIT 24 Steps', 'Recent Activity', 'Platform Connections'],
   loginContinuity: true,
   productionMetricsPolicy: 'evidence-only',
 }, null, 2));
