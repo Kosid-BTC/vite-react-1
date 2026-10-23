@@ -36,8 +36,31 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git fetch origin feat/marketing-os-phase1 --depth=100
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/feat/marketing-os-phase1
+          git merge-base --is-ancestor origin/feat/marketing-os-phase1 "$GITHUB_SHA"
           echo PRODUCTION_RELEASE_SHA_VERIFIED="$GITHUB_SHA"
+
+      - name: Fail closed on outdated Approved V4 visual authority
+        shell: bash
+        working-directory: apps/marketing-os
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const locked = [
+            '0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg',
+            '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg',
+          ];
+          const source = readFileSync('APPROVED_UI_V4_SOURCE.md', 'utf8');
+          const fingerprints = JSON.parse(readFileSync('config/approved-ui-v4-visual-fingerprints.json', 'utf8'));
+          if (locked.some(name => !source.includes(name))) {
+            throw new Error('LOCKED_V4_SOURCE_CONTRACT_MISMATCH');
+          }
+          if (!Array.isArray(fingerprints.sources) || fingerprints.sources.length !== locked.length ||
+              locked.some((name, i) => fingerprints.sources[i]?.filename !== name)) {
+            throw new Error('LOCKED_V4_VISUAL_FINGERPRINTS_STALE: stop release; obtain the two exact user uploads, regenerate and verify evidence');
+          }
+          console.log('LOCKED_V4_VISUAL_AUTHORITY_METADATA=PASS (NOT a visual parity PASS)');
+          NODE
 
       - name: Resolve Vercel credential
         shell: bash
@@ -63,6 +86,7 @@ jobs:
           set -euo pipefail
           npm ci --no-audit --no-fund
           node scripts/verify-interaction-routes.mjs
+          npm run test:approved-ui
           npm run typecheck
 
       - name: Bind project and pull Production environment
