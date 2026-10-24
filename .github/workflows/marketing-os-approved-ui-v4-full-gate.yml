@@ -5,13 +5,14 @@ on:
     branches:
       - feat/marketing-os-approved-ui-v4
       - fix/marketing-os-release-gates-v5
+      - fix/marketing-os-p0-release-preflight-20261024
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: marketing-os-approved-ui-v4-full-gate
+  group: marketing-os-approved-ui-v4-full-gate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
