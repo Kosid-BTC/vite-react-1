@@ -55,12 +55,40 @@ jobs:
           if (locked.some(name => !source.includes(name))) {
             throw new Error('LOCKED_V4_SOURCE_CONTRACT_MISMATCH');
           }
+          const expectedHashes = [
+            'db7bbd69b7646d4a81156c6c6b01d83a4f107302fd94fb3601ff02994f8fa2c6',
+            '609493e33900606862e9e73c413ddf2b9d10b32600a957b20d58351a9d56d738',
+          ];
           if (!Array.isArray(fingerprints.sources) || fingerprints.sources.length !== locked.length ||
-              locked.some((name, i) => fingerprints.sources[i]?.filename !== name)) {
+              locked.some((name, i) => fingerprints.sources[i]?.filename !== name || fingerprints.sources[i]?.sha256 !== expectedHashes[i])) {
             throw new Error('LOCKED_V4_VISUAL_FINGERPRINTS_STALE: stop release; obtain the two exact user uploads, regenerate and verify evidence');
           }
           console.log('LOCKED_V4_VISUAL_AUTHORITY_METADATA=PASS (NOT a visual parity PASS)');
           NODE
+
+      - name: Hold unapproved SHA and missing authenticated visual evidence before Production mutation
+        shell: bash
+        env:
+          APPROVED_SHA: ${{ vars.MARKETING_OS_APPROVED_PRODUCTION_SHA }}
+          PREVIEW_AUTH_SHA: ${{ vars.MARKETING_OS_PREVIEW_AUTH_SMOKE_SHA }}
+          PREVIEW_VISUAL_SHA: ${{ vars.MARKETING_OS_V4_PREVIEW_VISUAL_SHA }}
+          DESKTOP_EVIDENCE_SHA256: ${{ vars.MARKETING_OS_V4_DESKTOP_EVIDENCE_SHA256 }}
+          MOBILE_EVIDENCE_SHA256: ${{ vars.MARKETING_OS_V4_MOBILE_EVIDENCE_SHA256 }}
+        run: |
+          set -euo pipefail
+          for key in APPROVED_SHA PREVIEW_AUTH_SHA PREVIEW_VISUAL_SHA; do
+            if [ -z "${!key:-}" ] || [ "${!key}" != "$GITHUB_SHA" ]; then
+              echo "::error::MISSING_EXACT_SHA_APPROVAL_OR_AUTHENTICATED_VISUAL_ATTESTATION: $key; release halted before Vercel credentials"
+              exit 1
+            fi
+          done
+          for key in DESKTOP_EVIDENCE_SHA256 MOBILE_EVIDENCE_SHA256; do
+            if ! [[ "${!key:-}" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "::error::MISSING_SCREENSHOT_EVIDENCE_DIGEST: $key; require genuine Desktop 1536x1024 and Mobile 390x844 preview screenshots"
+              exit 1
+            fi
+          done
+          echo "EXACT_SHA_RELEASE_ATTESTATIONS_PRESENT=PASS (NOT independent visual parity proof)"
 
       - name: Resolve Vercel credential
         shell: bash
