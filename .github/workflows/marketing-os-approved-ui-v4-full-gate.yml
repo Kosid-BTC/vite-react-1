@@ -111,6 +111,11 @@ jobs:
     name: Authenticated JWT / RLS integration
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    # Only the disposable CI stack uses the official Docker Hub image mirror.
+    # ECR Public returned toomanyrequests on the pinned Supabase CLI image.
+    # Keep exact CLI/image tags and all JWT/RLS/migration gates unchanged; fail closed if mirror unavailable.
+    env:
+      SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
     steps:
       - name: Checkout exact head
         uses: actions/checkout@v4
