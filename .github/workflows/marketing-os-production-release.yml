@@ -102,6 +102,32 @@ jobs:
           echo "::add-mask::$token"
           echo "VERCEL_TOKEN=$token" >> "$GITHUB_ENV"
 
+      - name: Verify authoritative Vercel project root and framework (fail closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          project_json="$(curl --fail --silent --show-error --retry 2 \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")"
+          PROJECT_CONFIG_JSON="$project_json" node --input-type=module <<'NODE'
+          const project = JSON.parse(process.env.PROJECT_CONFIG_JSON || '{}');
+          const expected = {
+            id: process.env.VERCEL_PROJECT_ID,
+            name: 'ceo-ai-marketing-os',
+            rootDirectory: 'apps/marketing-os',
+            framework: 'nextjs',
+          };
+          const mismatches = Object.entries(expected)
+            .filter(([key, value]) => project[key] !== value)
+            .map(([key]) => key);
+          if (mismatches.length) {
+            console.error('P0_WRONG_APPLICATION_BUILD_MAPPING: authoritative Vercel project settings mismatch: ' + mismatches.join(', '));
+            console.error('Release blocked. Do not change shared Vercel project settings without approval; verify isolated Preview and authenticated visual gates first.');
+            process.exit(1);
+          }
+          console.log('AUTHORITATIVE_MARKETING_OS_PROJECT_BUILD_MAPPING=PASS');
+          NODE
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
