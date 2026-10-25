@@ -73,6 +73,30 @@ jobs:
         run: |
           set -euo pipefail
           npx --yes vercel@59.11.7 pull --yes --environment=preview --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          # Fail closed before Preview build/deploy when required public Auth configuration
+          # is absent. Never print credentials or their values in workflow logs.
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = '.vercel/.env.preview.local';
+          if (!fs.existsSync(path)) {
+            console.error('::error::PREVIEW_ENV_FILE_MISSING');
+            process.exit(1);
+          }
+          process.loadEnvFile(path);
+          const keys = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+          const missing = keys.filter((key) => !(process.env[key] || '').trim());
+          if (missing.length) {
+            console.error('::error::PREVIEW_AUTH_ENV_UNAVAILABLE: ' + missing.join(','));
+            process.exit(1);
+          }
+          try {
+            if (new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).protocol !== 'https:') throw new Error();
+          } catch {
+            console.error('::error::PREVIEW_SUPABASE_URL_INVALID');
+            process.exit(1);
+          }
+          console.log('PREVIEW_AUTH_ENV_KEYS_PRESENT=PASS; live Auth/RLS still UNVERIFIED');
+          NODE
           npx --yes vercel@59.11.7 build --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
           test -s .vercel/output/config.json
           echo "ISOLATED_NEXTJS_PREBUILT_ARTIFACT=PASS"
