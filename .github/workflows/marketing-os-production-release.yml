@@ -151,21 +151,21 @@ jobs:
           rm -rf .vercel
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          npx --yes vercel@59.11.7 pull --yes --environment=production --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          npx --yes vercel@59.11.7 pull --yes --environment=production --scope="$VERCEL_TEAM_SLUG"
           grep -q '^NEXT_PUBLIC_SUPABASE_URL="https://' .vercel/.env.production.local
           grep -q '^NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_' .vercel/.env.production.local
           echo SUPABASE_PRODUCTION_PUBLIC_CONFIG=VERIFIED
 
       - name: Build exact Production artifact
         working-directory: apps/marketing-os
-        run: npx --yes vercel@59.11.7 build --prod --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@59.11.7 build --prod --scope="$VERCEL_TEAM_SLUG"
 
       - name: Record rollback target
         working-directory: apps/marketing-os
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes vercel@59.11.7 list ceo-ai-marketing-os --environment production --status READY --limit 20 --format json --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" > /tmp/production-deployments.json
+          npx --yes vercel@59.11.7 list ceo-ai-marketing-os --environment production --status READY --limit 20 --format json --scope="$VERCEL_TEAM_SLUG" > /tmp/production-deployments.json
           previous="$(node -e "const d=require('/tmp/production-deployments.json'); const x=(d.deployments||d)[0]; if(!x) process.exit(1); process.stdout.write('https://'+(x.url||x.name));")"
           echo PREVIOUS_PRODUCTION_URL="$previous" >> "$GITHUB_ENV"
           echo ROLLBACK_TARGET_RECORDED=YES
@@ -176,7 +176,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          url="$(npx --yes vercel@59.11.7 deploy --prebuilt --prod --skip-domain --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
+          url="$(npx --yes vercel@59.11.7 deploy --prebuilt --prod --skip-domain --scope="$VERCEL_TEAM_SLUG")"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo PRODUCTION_CANDIDATE_URL="$url"
 
@@ -199,13 +199,13 @@ jobs:
         run: |
           set -euo pipefail
           rollback() {
-            npx --yes vercel@59.11.7 rollback "$PREVIOUS_PRODUCTION_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" || true
+            npx --yes vercel@59.11.7 rollback "$PREVIOUS_PRODUCTION_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG" || true
           }
           trap 'status=$?; if [ "$status" -ne 0 ]; then rollback; fi; exit "$status"' EXIT
-          npx --yes vercel@59.11.7 promote "$CANDIDATE_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          npx --yes vercel@59.11.7 promote "$CANDIDATE_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG"
           npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" curl https://ceo-ai-marketing-os.vercel.app/login > /tmp/production-login.html
           grep -q 'เข้าสู่ระบบ' /tmp/production-login.html
-          logs="$(npx --yes vercel@59.11.7 logs --environment production --status-code 500 --since 5m --json --limit 100 --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" || true)"
+          logs="$(npx --yes vercel@59.11.7 logs --environment production --status-code 500 --since 5m --json --limit 100 --scope="$VERCEL_TEAM_SLUG" || true)"
           if printf '%s' "$logs" | grep -Eq 'MIDDLEWARE_INVOCATION_FAILED|MARKETING_OS_AUTH_CONFIG=UNAVAILABLE|URL and Key are required'; then
             echo PRODUCTION_RUNTIME_REGRESSION=DETECTED
             false
