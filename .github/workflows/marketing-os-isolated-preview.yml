@@ -72,7 +72,7 @@ jobs:
       - name: Pull Preview environment and build from apps/marketing-os
         run: |
           set -euo pipefail
-          npx --yes vercel@59.11.7 pull --yes --environment=preview --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          npx --yes vercel@59.11.7 pull --yes --environment=preview --scope="$VERCEL_TEAM_SLUG"
           # Fail closed before Preview build/deploy when required public Auth configuration
           # is absent. Never print credentials or their values in workflow logs.
           node <<'NODE'
@@ -97,14 +97,14 @@ jobs:
           }
           console.log('PREVIEW_AUTH_ENV_KEYS_PRESENT=PASS; live Auth/RLS still UNVERIFIED');
           NODE
-          npx --yes vercel@59.11.7 build --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          npx --yes vercel@59.11.7 build --scope="$VERCEL_TEAM_SLUG"
           test -s .vercel/output/config.json
           echo "ISOLATED_NEXTJS_PREBUILT_ARTIFACT=PASS"
       - name: Deploy prebuilt artifact to Preview ONLY
         id: preview
         run: |
           set -euo pipefail
-          url="$(npx --yes vercel@59.11.7 deploy --prebuilt --yes --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
+          url="$(npx --yes vercel@59.11.7 deploy --prebuilt --yes --scope="$VERCEL_TEAM_SLUG")"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "PREVIEW_URL=$url" >> "$GITHUB_STEP_SUMMARY"
@@ -115,6 +115,6 @@ jobs:
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
         run: |
           set -euo pipefail
-          npx --yes vercel@59.11.7 curl /login --deployment "$PREVIEW_URL" --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" > /tmp/marketing-os-preview-login.html
+          npx --yes vercel@59.11.7 curl /login --deployment "$PREVIEW_URL" --scope="$VERCEL_TEAM_SLUG" > /tmp/marketing-os-preview-login.html
           grep -q 'เข้าสู่ระบบ' /tmp/marketing-os-preview-login.html
           echo "PREVIEW_PUBLIC_LOGIN_IDENTITY=PASS (authenticated UX/UI still UNVERIFIED)" >> "$GITHUB_STEP_SUMMARY"
