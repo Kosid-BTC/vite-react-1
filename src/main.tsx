@@ -4,9 +4,11 @@ import Root from './Root.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import CookieConsent from './components/CookieConsent.tsx'
 import { installGlobalErrorReporting } from './lib/errorReport'
+import { initMarketingPageTracking } from './lib/marketingTracking'
 import './index.css'
 
 installGlobalErrorReporting(); // จับ error นอก React → รายงานไป GA4 + observability
+initMarketingPageTracking();  // first-party measurement — ทำงานเฉพาะเมื่อผู้ใช้ยินยอม analytics แล้ว
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
