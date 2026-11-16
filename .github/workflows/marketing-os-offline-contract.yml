@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install app dependencies without running lifecycle scripts
-        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Install locked app dependencies without running lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify offline mapping and evidence contract
         run: npm run test:ceo-backoffice-offline
