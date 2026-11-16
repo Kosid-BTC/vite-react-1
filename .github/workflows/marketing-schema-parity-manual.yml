@@ -29,13 +29,18 @@ jobs:
           echo "AUDIT_DIR=$RUNNER_TEMP/schema-audit" >> "$GITHUB_ENV"
           test -n "$PROD_DB_URL" || { echo "::error::Missing read-only schema connection secret"; exit 1; }
           [[ "${{ inputs.approved_dump_sha256 }}" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Invalid SHA256 attestation"; exit 1; }
-      - name: Install PostgreSQL client
+      - name: Verify PostgreSQL 17 client and Docker
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update -qq >/dev/null
-          sudo apt-get install -y -qq postgresql-client >/dev/null
-          pg_dump --version
+          docker --version
+          if ! command -v pg_dump >/dev/null; then
+            echo "::error::pg_dump unavailable; use approved PostgreSQL 17 runner"
+            exit 1
+          fi
+          client_major="$(pg_dump --version | sed -nE 's/.* ([0-9]+)(\.[0-9]+)?.*/\1/p')"
+          echo "pg_dump major: $client_major; Production major: 17"
+          [[ "$client_major" == "17" ]] || { echo "::error::Requires pg_dump 17; fail closed"; exit 1; }
       - name: Capture schema only
         shell: bash
         run: |
