@@ -1,8 +1,39 @@
 /**
  * CEO Back Office -> Marketing Intelligence contract.
  * Pure transformation only: no network, no privileged keys, no cross-project access.
- * Data is admitted only after the independent identity, workspace mapping and RLS gates.
+ * Data is admitted only after the independent identity, workspace mapping, audience and RLS gates.
  */
+export type AudienceSegmentCode = 'employee' | 'graduate' | 'newbie' | 'seller' | 'growth';
+export type OnboardingStage = 'pre_signup' | 'beginner_onboarding' | 'post_onboarding';
+
+export type AudienceContext = {
+  segmentCode: AudienceSegmentCode;
+  onboardingStage: OnboardingStage;
+  hasVerifiedBusinessSignals: boolean;
+};
+
+/**
+ * Positioning decision, 2026-11-15:
+ * - seller is a hypothesis segment for owners who already have something to sell but are not found.
+ * - growth remains the segment for owners who need systematic growth.
+ * - food and palm are business types, not audience segments.
+ */
+export const SELLER_SEGMENT_POLICY = {
+  code: 'seller',
+  evidenceStatus: 'hypothesis',
+  primaryPain: 'มีของขายแล้วแต่ลูกค้าหาไม่เจอ',
+  intelligenceStage: 'post_onboarding',
+} as const;
+
+export const BUSINESS_TYPE_NOT_SEGMENT = ['food', 'palm'] as const;
+
+/** Advanced business KPI intelligence must never appear in pre-signup or beginner onboarding. */
+export function isBackOfficeIntelligenceEligible(context: AudienceContext): boolean {
+  return context.onboardingStage === 'post_onboarding'
+    && context.hasVerifiedBusinessSignals
+    && (context.segmentCode === 'seller' || context.segmentCode === 'growth');
+}
+
 export type Evidence = {
   sourceProject: 'ceo-ai-backoffice';
   sourceTable: string;
@@ -20,6 +51,7 @@ export type MarketingSignal = {
 export type IntelligenceSnapshot = {
   primaryWorkspaceId: string;
   supplementaryWorkspaceId: string;
+  audienceSegmentCode: 'seller' | 'growth';
   generatedAt: string;
   signals: MarketingSignal[];
   unavailableMetrics: MarketingSignal['metric'][];
@@ -54,10 +86,12 @@ export function isMappingAttested(
 export function buildMarketingIntelligenceSnapshot(input: {
   primaryWorkspaceId: string;
   supplementaryWorkspaceId: string;
+  audience: AudienceContext;
   mapping: MappingAttestation | null;
   now: Date;
   signals: MarketingSignal[];
 }): IntelligenceSnapshot | null {
+  if (!isBackOfficeIntelligenceEligible(input.audience)) return null;
   if (!isMappingAttested(input.mapping, input.primaryWorkspaceId, input.supplementaryWorkspaceId, input.now)) return null;
   const allowed: MarketingSignal['metric'][] = ['revenue', 'gross_margin', 'customer_count', 'repeat_purchase_rate'];
   const signals = input.signals.filter(s =>
@@ -75,6 +109,7 @@ export function buildMarketingIntelligenceSnapshot(input: {
   return {
     primaryWorkspaceId: input.primaryWorkspaceId,
     supplementaryWorkspaceId: input.supplementaryWorkspaceId,
+    audienceSegmentCode: input.audience.segmentCode as 'seller' | 'growth',
     generatedAt: input.now.toISOString(),
     signals,
     unavailableMetrics: allowed.filter(metric => !signals.some(s => s.metric === metric)),
