@@ -2,27 +2,75 @@ name: Marketing OS Schema-only Parity (manual, fail-closed)
 on:
   workflow_dispatch:
     inputs:
-      acknowledge_isolated_runner:
-        description: "Type ISOLATED to confirm runner and outbound network isolation have been reviewed"
+      approved_dump_sha256:
+        description: "Reviewed schema-only dump SHA256 (64 lowercase hex)"
         required: true
         type: string
 permissions:
   contents: read
+concurrency:
+  group: marketing-schema-parity-audit
+  cancel-in-progress: false
 jobs:
-  preflight:
-    if: ${{ inputs.acknowledge_isolated_runner == 'ISOLATED' }}
+  schema-parity:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
+    environment: marketing-schema-audit
+    env:
+      PROD_DB_URL: ${{ secrets.MARKETING_PROD_SCHEMA_READONLY_URL }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check prerequisites and refuse unverified restore
+      - name: Secure temporary workspace
         shell: bash
         run: |
           set -euo pipefail
-          docker --version
-          if [ -z "${PROD_SCHEMA_DUMP_READY:-}" ]; then
-            echo "::error::BLOCKED: reviewed schema-only dump and isolated restore are not attested. No Production connection or regression attempted."
-            exit 1
-          fi
-          echo "::error::BLOCKED: schema-only restore and complete catalog diff implementation must be independently reviewed before enabling."
-          exit 1
+          umask 077
+          mkdir -p "$RUNNER_TEMP/schema-audit"
+          echo "AUDIT_DIR=$RUNNER_TEMP/schema-audit" >> "$GITHUB_ENV"
+          test -n "$PROD_DB_URL" || { echo "::error::Missing read-only schema connection secret"; exit 1; }
+          [[ "${{ inputs.approved_dump_sha256 }}" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Invalid SHA256 attestation"; exit 1; }
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get install -y -qq postgresql-client >/dev/null
+          pg_dump --version
+      - name: Capture schema only
+        shell: bash
+        run: |
+          set -euo pipefail
+          pg_dump --dbname="$PROD_DB_URL" --schema=public --schema-only --no-owner --no-privileges --file="$AUDIT_DIR/schema.sql" 2>"$AUDIT_DIR/dump-error.log" || { echo "::error::Schema-only capture failed"; exit 1; }
+          test -s "$AUDIT_DIR/schema.sql"
+      - name: Scan and attest (fail closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 apps/marketing-os/security/scan_schema_sql.py "$AUDIT_DIR/schema.sql" "$AUDIT_DIR/scan.json"
+          actual="$(sha256sum "$AUDIT_DIR/schema.sql" | cut -d' ' -f1)"
+          echo "Captured schema SHA256: $actual"
+          [[ "$actual" == "${{ inputs.approved_dump_sha256 }}" ]] || { echo "::error::SHA not approved; do not restore"; exit 1; }
+      - name: Restore into network-disconnected PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name marketing-schema-audit-db --network none -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine >/dev/null
+          for i in $(seq 1 45); do
+            if docker exec marketing-schema-audit-db pg_isready -U postgres >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          docker exec marketing-schema-audit-db pg_isready -U postgres >/dev/null
+          docker exec -i marketing-schema-audit-db psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$AUDIT_DIR/schema.sql" > "$AUDIT_DIR/restore.stdout" 2> "$AUDIT_DIR/restore.stderr" || { echo "::error::Offline restore failed; parity not run"; exit 1; }
+      - name: Compare read-only catalog inventories
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$PROD_DB_URL" -X -v ON_ERROR_STOP=1 -At -F $'\t' -f apps/marketing-os/security/PARITY_INVENTORY_READONLY.sql > "$AUDIT_DIR/production.tsv"
+          docker exec -i marketing-schema-audit-db psql -X -v ON_ERROR_STOP=1 -U postgres -At -F $'\t' -f - < apps/marketing-os/security/PARITY_INVENTORY_READONLY.sql > "$AUDIT_DIR/isolated.tsv"
+          python3 apps/marketing-os/security/compare_parity.py "$AUDIT_DIR/production.tsv" "$AUDIT_DIR/isolated.tsv" "$AUDIT_DIR/parity.json"
+      - name: Cleanup
+        if: always()
+        shell: bash
+        run: |
+          docker rm -f marketing-schema-audit-db >/dev/null 2>&1 || true
+          if [ -n "${AUDIT_DIR:-}" ] && [ -d "$AUDIT_DIR" ]; then rm -rf "$AUDIT_DIR"; fi
