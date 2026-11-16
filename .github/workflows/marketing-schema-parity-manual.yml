@@ -1,0 +1,28 @@
+name: Marketing OS Schema-only Parity (manual, fail-closed)
+on:
+  workflow_dispatch:
+    inputs:
+      acknowledge_isolated_runner:
+        description: "Type ISOLATED to confirm runner and outbound network isolation have been reviewed"
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  preflight:
+    if: ${{ inputs.acknowledge_isolated_runner == 'ISOLATED' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check prerequisites and refuse unverified restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker --version
+          if [ -z "${PROD_SCHEMA_DUMP_READY:-}" ]; then
+            echo "::error::BLOCKED: reviewed schema-only dump and isolated restore are not attested. No Production connection or regression attempted."
+            exit 1
+          fi
+          echo "::error::BLOCKED: schema-only restore and complete catalog diff implementation must be independently reviewed before enabling."
+          exit 1
