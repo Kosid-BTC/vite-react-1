@@ -4,6 +4,10 @@ on:
     paths:
       - 'apps/marketing-os/src/lib/marketing-intelligence/**'
       - 'apps/marketing-os/scripts/verify-ceo-backoffice-offline-contract.ts'
+      - 'apps/marketing-os/scripts/verify-ceo-backoffice-contract.ts'
+      - 'apps/marketing-os/security/development_workspace_mapping_attestations.sql'
+      - 'apps/marketing-os/docs/DEVELOPMENT_TENANT_ISOLATION_ACCEPTANCE_MATRIX.md'
+      - 'apps/marketing-os/CEO_BACKOFFICE_PRODUCTION_GATES.md'
       - 'apps/marketing-os/package.json'
       - '.github/workflows/marketing-os-offline-contract.yml'
   workflow_dispatch:
