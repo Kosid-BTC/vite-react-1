@@ -39,4 +39,3 @@ begin
     revoke execute on function public.update_updated_at() from anon, authenticated, public;
   end if;
 end $$;
-
