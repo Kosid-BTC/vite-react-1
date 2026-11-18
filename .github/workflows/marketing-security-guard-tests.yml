@@ -1,0 +1,43 @@
+name: Marketing OS Security Guard Unit Tests
+on:
+  pull_request:
+    paths:
+      - 'apps/marketing-os/security/**'
+      - '.github/workflows/marketing-security-guard-tests.yml'
+  push:
+    branches:
+      - audit/marketing-security-schema-parity-20261116
+    paths:
+      - 'apps/marketing-os/security/**'
+      - '.github/workflows/marketing-security-guard-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned GitHub action
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Run offline fail-closed scanner and parity tests
+        run: python3 apps/marketing-os/security/test_parity_guards.py
+      - name: Verify Docker engine and PostgreSQL client availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker version --format '{{.Server.Version}}'
+          if ! command -v pg_dump >/dev/null; then
+            echo "::error::pg_dump not installed"
+            exit 1
+          fi
+          pg_dump --version
+          if ! command -v psql >/dev/null; then
+            echo "::error::psql not installed"
+            exit 1
+          fi
+          psql --version
+          # A client version mismatch blocks the separate schema-restore workflow,
+          # not these offline unit tests. Do not fetch or access Production here.
