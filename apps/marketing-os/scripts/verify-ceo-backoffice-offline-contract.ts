@@ -47,6 +47,13 @@ assert.equal(buildMarketingIntelligenceSnapshot({ ...args, audience: { ...seller
 assert.equal(buildMarketingIntelligenceSnapshot({ ...args, mapping: null, signals: [] }), null);
 assert.equal(buildMarketingIntelligenceSnapshot({ ...args, mapping: { ...approved, status: 'revoked' }, signals: [] }), null);
 
+// Additional deterministic negative cases; offline only, no live authorization claims.
+assert.equal(isMappingAttested({ ...approved, primaryWorkspaceId: '' }, '', supplementaryWorkspaceId, now), false, 'empty primary workspace must fail closed');
+assert.equal(isMappingAttested({ ...approved, supplementaryWorkspaceId: '' }, primaryWorkspaceId, '', now), false, 'empty supplementary workspace must fail closed');
+assert.equal(isMappingAttested({ ...approved, verifiedAt: '2026-11-18T00:00:00.000Z', expiresAt: '2026-11-17T00:00:00.000Z' }, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'expiry before verification must fail closed');
+assert.equal(buildMarketingIntelligenceSnapshot({ ...args, signals: [{ metric: 'revenue', value: -1, unit: 'THB', periodStart: '2026-11-01', periodEnd: '2026-11-15', evidence: { sourceProject: 'ceo-ai-backoffice', sourceTable: 'verified_sales', sourceRecordId: 'negative', observedAt: now.toISOString() } }] })?.signals.length, 0, 'negative revenue must be rejected');
+assert.equal(buildMarketingIntelligenceSnapshot({ ...args, mapping: { ...approved, verifiedBy: ' ' }, signals: [] }), null, 'blank attestor must fail closed');
+
 const evidence = { sourceProject: 'ceo-ai-backoffice' as const, sourceTable: 'verified_financial_records', sourceRecordId: 'record-1', observedAt: now.toISOString() };
 const valid = { metric: 'revenue' as const, value: 500, unit: 'THB' as const, periodStart: '2026-11-01', periodEnd: '2026-11-15', evidence };
 const snapshot = buildMarketingIntelligenceSnapshot({ ...args, signals: [
