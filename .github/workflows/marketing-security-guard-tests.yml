@@ -41,3 +41,66 @@ jobs:
           psql --version
           # A client version mismatch blocks the separate schema-restore workflow,
           # not these offline unit tests. Do not fetch or access Production here.
+  isolated-restore-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout pinned GitHub action
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Create disposable, network-disconnected PostgreSQL 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull postgres:17-alpine
+          docker run -d --rm --name marketing-synthetic-restore --network none \
+            -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine >/dev/null
+          for i in $(seq 1 45); do
+            if docker exec marketing-synthetic-restore pg_isready -U postgres >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          docker exec marketing-synthetic-restore pg_isready -U postgres
+      - name: Restore data-free synthetic fixture and assert RLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/marketing-synthetic-schema.sql" <<'SQL'
+          CREATE SCHEMA IF NOT EXISTS marketing_audit;
+          CREATE TABLE marketing_audit.synthetic_tenant_fixture (
+            id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            tenant_id uuid NOT NULL
+          );
+          ALTER TABLE marketing_audit.synthetic_tenant_fixture ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE marketing_audit.synthetic_tenant_fixture FORCE ROW LEVEL SECURITY;
+          CREATE POLICY synthetic_deny_all ON marketing_audit.synthetic_tenant_fixture
+            FOR ALL TO PUBLIC USING (false) WITH CHECK (false);
+          SQL
+          docker exec -i marketing-synthetic-restore psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < "$RUNNER_TEMP/marketing-synthetic-schema.sql" >/dev/null
+          docker exec -i marketing-synthetic-restore psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres <<'SQL'
+          DO $$
+          BEGIN
+            IF (SELECT count(*) FROM marketing_audit.synthetic_tenant_fixture) <> 0
+               OR NOT EXISTS (
+                 SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                 WHERE n.nspname='marketing_audit' AND c.relname='synthetic_tenant_fixture'
+                   AND c.relrowsecurity AND c.relforcerowsecurity
+               )
+               OR NOT EXISTS (
+                 SELECT 1 FROM pg_policies
+                 WHERE schemaname='marketing_audit'
+                   AND tablename='synthetic_tenant_fixture'
+                   AND policyname='synthetic_deny_all'
+               ) THEN
+              RAISE EXCEPTION 'Synthetic restore/RLS invariant failed';
+            END IF;
+          END $$;
+          SQL
+          echo "PASS: data-free synthetic schema restored in isolated PostgreSQL 17"
+      - name: Cleanup isolated database
+        if: always()
+        shell: bash
+        run: |
+          docker rm -f marketing-synthetic-restore >/dev/null 2>&1 || true
+          rm -f "$RUNNER_TEMP/marketing-synthetic-schema.sql"
