@@ -73,11 +73,12 @@ export function isMappingAttested(
   now: Date,
 ): boolean {
   if (!mapping || mapping.status !== 'approved') return false;
-  if (!mapping.verifiedBy || !mapping.verifiedAt) return false;
+  if (!primaryWorkspaceId.trim() || !supplementaryWorkspaceId.trim()) return false;
+  if (!mapping.verifiedBy?.trim() || !mapping.verifiedAt) return false;
   const verified = Date.parse(mapping.verifiedAt);
   const expires = Date.parse(mapping.expiresAt);
   return Number.isFinite(verified) && Number.isFinite(expires)
-    && verified <= now.getTime() && expires > now.getTime()
+    && verified <= now.getTime() && expires > now.getTime() && expires > verified
     && mapping.primaryWorkspaceId === primaryWorkspaceId
     && mapping.supplementaryWorkspaceId === supplementaryWorkspaceId;
 }
@@ -95,7 +96,7 @@ export function buildMarketingIntelligenceSnapshot(input: {
   if (!isMappingAttested(input.mapping, input.primaryWorkspaceId, input.supplementaryWorkspaceId, input.now)) return null;
   const allowed: MarketingSignal['metric'][] = ['revenue', 'gross_margin', 'customer_count', 'repeat_purchase_rate'];
   const signals = input.signals.filter(s =>
-    allowed.includes(s.metric) && Number.isFinite(s.value)
+    allowed.includes(s.metric) && Number.isFinite(s.value) && s.value >= 0
     && Boolean(s.evidence.sourceTable && s.evidence.sourceRecordId)
     && s.evidence.sourceProject === 'ceo-ai-backoffice'
     && Number.isFinite(Date.parse(s.evidence.observedAt))
