@@ -42,5 +42,3 @@ begin
 end; $$;
 revoke all on function public.receive_marketing_behavior(uuid,uuid,text,jsonb,text,text) from public,anon,authenticated;
 grant execute on function public.receive_marketing_behavior(uuid,uuid,text,jsonb,text,text) to service_role;
-
-
