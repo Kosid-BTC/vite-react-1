@@ -56,10 +56,19 @@ jobs:
           docker pull postgres:17-alpine
           docker run -d --rm --name marketing-synthetic-restore --network none \
             -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine >/dev/null
-          for i in $(seq 1 45); do
-            if docker exec marketing-synthetic-restore pg_isready -U postgres >/dev/null 2>&1; then break; fi
-            sleep 1
+          ready=0
+          for i in $(seq 1 90); do
+            if docker exec marketing-synthetic-restore pg_isready -U postgres >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 2
           done
+          if [ "$ready" -ne 1 ]; then
+            echo "::error::Isolated PostgreSQL failed readiness after bounded wait"
+            docker logs --tail 60 marketing-synthetic-restore 2>&1 | sed -E 's#(postgres(ql)?://)[^ @]+@#\\1[REDACTED]@#g' || true
+            exit 1
+          fi
           docker exec marketing-synthetic-restore pg_isready -U postgres
       - name: Restore data-free synthetic fixture and assert RLS
         shell: bash
