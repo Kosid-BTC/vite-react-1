@@ -41,5 +41,3 @@ create view public.marketing_behavior_summary with(security_invoker=true) as
  ) sessions group by workspace_id,source,topic,format;
 revoke all on public.marketing_behavior_summary from anon;
 grant select on public.marketing_behavior_summary to authenticated,service_role;
-
-
