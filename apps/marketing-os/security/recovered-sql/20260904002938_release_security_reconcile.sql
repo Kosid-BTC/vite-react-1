@@ -43,4 +43,3 @@ $$;
 -- Existing cron migrations call net.http_post; moving the extension without dependency-safe evidence
 -- can break scheduled jobs. Keep the extension location unchanged for this release and re-check after
 -- production migration. This migration grants no additional pg_net privileges.
-
