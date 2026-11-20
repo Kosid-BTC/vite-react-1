@@ -41,6 +41,11 @@ jobs:
           client_major="$(pg_dump --version | sed -nE 's/.* ([0-9]+)(\.[0-9]+)?.*/\1/p')"
           echo "pg_dump major: $client_major; Production major: 17"
           [[ "$client_major" == "17" ]] || { echo "::error::Requires pg_dump 17; fail closed"; exit 1; }
+      - name: Fail closed until ownership and effective-grant parity is implemented
+        shell: bash
+        run: |
+          echo '::error::Full parity is not implemented: --no-owner/--no-privileges and incomplete effective grants inventory. Schema dump and restore are prohibited.'
+          exit 1
       - name: Capture schema only
         shell: bash
         run: |
