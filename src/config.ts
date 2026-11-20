@@ -107,4 +107,8 @@ export const INTEGRATIONS = {
   lineChannelId: '',
   // เส้นทาง callback ที่ต้องลงทะเบียนใน LINE Developers (Callback URL)
   lineRedirectPath: '/oauth/line',
+  // Content Factory: Text→Image (Fireworks FLUX ผ่าน Edge Function content-image)
+  // เปลี่ยนเป็น true เมื่อ: (1) ตั้ง secret FIREWORKS_API_KEY (2) deploy content-image (3) smoke test ผ่าน
+  //   — ยังไม่ได้ยืนยันกับ API จริง · ภาพเป็นร่างให้คนตรวจก่อนใช้
+  imageGenLive: false,
 };

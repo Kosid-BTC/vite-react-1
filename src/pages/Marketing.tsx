@@ -8,6 +8,7 @@ import { withSkillDirectives } from '../lib/skillDirectives';
 import { trackAiCall } from '../lib/usage';
 import MarketingControlCenter from '../components/MarketingControlCenter';
 import UtmBuilder from '../components/UtmBuilder';
+import ChannelMetricsImport from '../components/ChannelMetricsImport';
 import ContentLibrary from '../components/ContentLibrary';
 import GenomeRadar from '../components/GenomeRadar';
 
@@ -61,7 +62,7 @@ export default function Marketing({ data, onUpdate, onNavigate }: Props) {
   const goals = mkt.goals ?? [];
 
   const strat = marketingFromDe24(data);
-  const [tab, setTab] = useState<'channels' | 'campaigns' | 'goals' | 'utm' | 'library'>('channels');
+  const [tab, setTab] = useState<'channels' | 'campaigns' | 'goals' | 'utm' | 'library' | 'metrics'>('channels');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiPlan, setAiPlan] = useState<string | null>(null);
   const [adopted, setAdopted] = useState<string | null>(null);
@@ -323,8 +324,10 @@ export default function Marketing({ data, onUpdate, onNavigate }: Props) {
         <button className={`mkt-tab${tab === 'goals' ? ' active' : ''}`} onClick={() => setTab('goals')}>🎯 เป้าหมาย</button>
         <button className={`mkt-tab${tab === 'utm' ? ' active' : ''}`} onClick={() => setTab('utm')}>🔗 UTM</button>
         <button className={`mkt-tab${tab === 'library' ? ' active' : ''}`} onClick={() => setTab('library')}>📚 คลังเนื้อหา</button>
+        <button className={`mkt-tab${tab === 'metrics' ? ' active' : ''}`} onClick={() => setTab('metrics')}>📈 ตัวเลขช่องทาง</button>
       </div>
 
+      {tab === 'metrics' && <ChannelMetricsImport data={data} onUpdate={onUpdate} />}
       {tab === 'library' && <ContentLibrary data={data} onUpdate={onUpdate} />}
       {tab === 'utm' && <UtmBuilder data={data} onUpdate={onUpdate} />}
 

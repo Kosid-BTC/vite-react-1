@@ -70,3 +70,12 @@ V.1 ยัง pre-revenue → ทุกตัวเลขที่ขึ้น�
 2. Phase A (ไม่มีความเสี่ยงข้อมูลปลอม): Dashboard header + การ์ด MIT24/Measurement Health/NBA จาก lib ที่มีอยู่
 3. Phase B: UTM & lineage + หน้า UTM → ปลดล็อก Campaign Performance/Attribution
 4. Phase C: Business Genome + Content Library/Approval
+
+## 6. สถานะ Phase D (Content Factory รูป + Ads/Social)
+| รายการ | สถานะ | หมายเหตุ |
+|---|---|---|
+| Text→Image | โค้ดเสร็จ · **ปิดอยู่** (`INTEGRATIONS.imageGenLive=false`) | Edge Function `content-image` (Fireworks FLUX) — ยังไม่ได้ยืนยันกับ API จริง ต้องตั้ง `FIREWORKS_API_KEY` + deploy + smoke test ก่อนเปิด · ภาพเป็นร่าง ไม่เข้าคลังเอง |
+| Text/Image→Video | **ยังไม่ทำ** | ต้นทุนสูง/async — รอตัดสินใจผู้ให้บริการ |
+| GA4 / YouTube / Meta | รับ **นำเข้าเอง** (วาง JSON) ผ่าน normalizer เดียวกัน | ตัวดึงอัตโนมัติต้องมี OAuth app ของผู้ใช้ (Meta ต้องผ่าน app review) — ยังไม่ทำ |
+| TikTok / LinkedIn | **ยังไม่รองรับ** (planned) | ต้องสมัคร developer + อนุมัติแอป |
+| Dashboard KPI | แสดงเฉพาะ metric ที่นำเข้า | ไม่มีข้อมูล = UNAVAILABLE |

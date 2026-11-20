@@ -529,6 +529,7 @@ export interface AppData {
   winStories: WinStory[];
   caseStudies?: CaseStudy[]; // Case Study ที่แอดมินนำเข้าเอง (แสดงต่อท้ายชุด built-in ในหน้า Case Studies)
   marketing: MarketingStrategy;
+  channelMetrics?: import('./lib/channelMetrics').MetricRecord[]; // ตัวเลขช่องทางที่นำเข้า/ดึงจริง (Phase D)
   contentLibrary?: import('./lib/contentLibrary').ContentItem[]; // คลังเนื้อหา + สถานะอนุมัติ (Phase C)
   feedback: FeedbackAnalysis;
   gtmAuditChecks?: boolean[];

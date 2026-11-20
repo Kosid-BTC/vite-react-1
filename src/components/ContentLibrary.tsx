@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { AppData, MarketingChannelType } from '../types';
 import { checkGuardrails, newContentItem, transition, type ContentItem, type ContentStatus } from '../lib/contentLibrary';
 import { track } from '../lib/analytics';
+import { generateImage } from '../lib/contentImage';
+import { INTEGRATIONS } from '../config';
 
 const STATUS_LABEL: Record<ContentStatus, string> = { draft: 'ร่าง', review: 'รออนุมัติ', approved: 'อนุมัติแล้ว', published: 'เผยแพร่แล้ว', rejected: 'ตีกลับ' };
 const NEXT: Record<ContentStatus, { to: ContentStatus; label: string }[]> = {
@@ -22,6 +24,8 @@ export default function ContentLibrary({ data, onUpdate }: { data: AppData; onUp
   const [channel, setChannel] = useState<MarketingChannelType>('social');
   const [campaignId, setCampaignId] = useState('');
   const [msg, setMsg] = useState('');
+  const [imgBusy, setImgBusy] = useState('');
+  const [imgs, setImgs] = useState<Record<string, string>>({}); // ภาพร่างอยู่ในหน่วยความจำเท่านั้น ไม่เก็บใน AppData
 
   const save = (list: ContentItem[]) => onUpdate({ ...data, contentLibrary: list });
   function add() {
@@ -36,6 +40,15 @@ export default function ContentLibrary({ data, onUpdate }: { data: AppData; onUp
     setMsg('');
     save(items.map(x => (x.id === it.id ? r.item : x)));
     track('content_status_changed', { to });
+  }
+
+  async function makeImage(it: ContentItem) {
+    setImgBusy(it.id); setMsg('');
+    const r = await generateImage(it.title, it.body);
+    setImgBusy('');
+    if (!r.ok) { setMsg(`${it.title}: ${r.reason}`); return; }
+    setImgs(p => ({ ...p, [it.id]: r.dataUrl }));
+    track('content_image_generated', { channel: it.channel });
   }
 
   return (
@@ -72,8 +85,12 @@ export default function ContentLibrary({ data, onUpdate }: { data: AppData; onUp
             {issues.length > 0 && it.status !== 'published' && (
               <div style={{ color: 'var(--amber)', fontSize: 12, marginTop: 6 }}>⚠ {issues.map(i => i.message).join(' · ')}</div>
             )}
+            {imgs[it.id] && <img src={imgs[it.id]} alt="ภาพร่างที่ AI สร้าง — ตรวจก่อนใช้" style={{ maxWidth: 240, borderRadius: 8, marginTop: 8 }} />}
             <div className="mkt-goal-actions" style={{ marginTop: 8 }}>
               {NEXT[it.status].map(n => <button key={n.to} className="mkt-btn-sm" onClick={() => move(it, n.to)}>{n.label}</button>)}
+              <button className="mkt-btn-sm" disabled={!INTEGRATIONS.imageGenLive || imgBusy === it.id} onClick={() => makeImage(it)}
+                title={INTEGRATIONS.imageGenLive ? 'สร้างภาพร่างจากหัวข้อ/เนื้อหา' : 'ยังไม่เปิดใช้งาน — รอตั้งค่าผู้ให้บริการภาพ'}>
+                {imgBusy === it.id ? 'กำลังสร้าง…' : '🖼️ สร้างภาพ'}</button>
               <button className="mkt-btn-sm mkt-btn-del" onClick={() => save(items.filter(x => x.id !== it.id))}>ลบ</button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import type { AppData, PageId } from '../types';
 import { de24Journey } from './de24Journey';
 import { financeSummary } from './finance';
+import { latestByMetric, type CanonicalMetric } from './channelMetrics';
 import { measurementHealth, type MeasurementHealthResult, type MetricMaturity } from './marketingTruth';
 
 /** สัญญาณที่ต้องครบก่อนวินิจฉัยการตลาด — utm = มีลิงก์ติดตามแล้ว · activation/lead/customer ยังไม่มีตัวเก็บใน V.1 → false */
@@ -22,6 +23,8 @@ export interface DashboardSnapshot {
   health: MeasurementHealthResult & { present: number; total: number };
   revenue: { value: number | null; maturity: MetricMaturity };
   nextAction: NextAction;
+  /** ตัวเลขช่องทางที่นำเข้าจริง — metric ที่ไม่มีข้อมูลไม่อยู่ในรายการ (ไม่แต่ง) */
+  channelKpis: { metric: CanonicalMetric; value: number; provider: string; importedAt: string }[];
 }
 
 export function dashboardSnapshot(d: AppData): DashboardSnapshot {
@@ -45,5 +48,6 @@ export function dashboardSnapshot(d: AppData): DashboardSnapshot {
     health: { ...h, present: total - h.missing.length, total },
     revenue: fin.hasRevenue ? { value: fin.revenue, maturity: 'MEASURED' } : { value: null, maturity: 'UNAVAILABLE' },
     nextAction,
+    channelKpis: Object.values(latestByMetric(d.channelMetrics ?? [])).filter(Boolean).map(r => ({ metric: r!.metric, value: r!.value, provider: r!.provider, importedAt: r!.importedAt })),
   };
 }
