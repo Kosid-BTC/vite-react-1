@@ -23,6 +23,10 @@ assert.equal(build({ mapping: { ...mapping, status: 'revoked' } }), null, 'revoc
 assert.equal(build({ primaryWorkspaceId: 'tenant-b-workspace' }), null, 'tenant B must deny');
 assert.equal(build({ supplementaryWorkspaceId: 'tenant-b-backoffice' }), null, 'tenant B supplementary must deny');
 assert.equal(build({ mapping: null }), null, 'missing mapping must deny');
+assert.equal(build({ mapping: { ...mapping, verifiedAt: '2026-11-20T00:00:01.000Z' } }), null, 'future owner attestation must deny');
+assert.equal(build({ mapping: { ...mapping, expiresAt: mapping.verifiedAt } }), null, 'zero-lifetime attestation must deny');
+assert.equal(build({ mapping: { ...mapping, verifiedAt: 'not-a-date' } }), null, 'invalid attestation timestamp must deny');
+assert.equal(build({ mapping: { ...mapping, status: 'revoked', verifiedBy: 'owner' } }), null, 'revoked mapping must remain denied even with owner evidence');
 assert.equal(isMappingAttested({ ...mapping, verifiedBy: ' ' }, primary, secondary, now), false, 'blank attestor must deny');
 assert.ok(build(), 'valid explicitly selected mapping passes offline contract only');
 console.log('PASS: offline explicit-workspace negative contract checks (NOT authenticated tenant isolation)');
