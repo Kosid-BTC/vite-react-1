@@ -13,6 +13,7 @@ import EcosystemFlow from '../components/EcosystemFlow';
 import { de24Journey } from '../lib/de24Journey';
 import { track } from '../lib/analytics';
 import OperatingSnapshot from '../components/OperatingSnapshot';
+import GenomeRadar from '../components/GenomeRadar';
 
 interface Props {
   data: AppData;
@@ -379,6 +380,7 @@ export default function Dashboard({ data, onNavigate, onUpdate, wsId = null }: P
       </div>
 
       <OperatingSnapshot data={data} onNavigate={onNavigate} />
+      {aha.activated && <GenomeRadar data={data} />}
 
       {/* ===== Aha Moment ใน 5 นาที (activation ผู้ใช้ใหม่) — path เดียวตอน first-run ===== */}
       <AhaMoment data={data} onUpdate={onUpdate} onNavigate={onNavigate} />

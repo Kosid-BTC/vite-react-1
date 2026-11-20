@@ -6384,3 +6384,17 @@ a.bill-guide-link:hover { background: rgba(56,189,248,.12); }
 .op-nba { border-color: var(--accent); background: var(--rust-bg); }
 .op-bar { display: block; height: 6px; background: var(--cream3); border-radius: 3px; overflow: hidden; }
 .op-bar i { display: block; height: 100%; background: var(--accent); }
+
+/* ===== Business Genome (Phase C) ===== */
+.gn-card { background: var(--cream2); border: 1px solid var(--sand); border-radius: var(--r); padding: 14px 16px; margin: 0 0 18px; }
+.gn-hd { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--ink); margin-bottom: 8px; }
+.gn-hd span { color: var(--ink3); font-size: 12.5px; }
+.gn-body { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+.gn-svg { width: 240px; max-width: 100%; }
+.gn-ring { fill: none; stroke: var(--sand); stroke-width: 1; }
+.gn-area { fill: var(--rust-bg); stroke: var(--accent); stroke-width: 2; }
+.gn-lbl { fill: var(--ink3); font-size: 9px; }
+.gn-list { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 220px; display: grid; gap: 6px; }
+.gn-list li { font-size: 12.5px; color: var(--ink2); }
+.gn-list em { font-style: normal; color: var(--accent); font-weight: 700; margin-left: 6px; }
+.gn-list span { display: block; color: var(--ink3); font-size: 11.5px; }
