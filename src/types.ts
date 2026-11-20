@@ -448,6 +448,7 @@ export interface MarketingStrategy {
   channels: MarketingChannel[];
   campaigns: MarketingCampaign[];
   goals: MarketingGoal[];
+  utmLinks?: import('./lib/utm').TrackedLink[]; // ลิงก์ติดตามที่สร้างแล้ว (Phase B) — ใช้เป็นสัญญาณ utm ใน Measurement Health
 }
 
 /* ===== ISO 9001:2015 QMS ===== */
@@ -528,6 +529,7 @@ export interface AppData {
   winStories: WinStory[];
   caseStudies?: CaseStudy[]; // Case Study ที่แอดมินนำเข้าเอง (แสดงต่อท้ายชุด built-in ในหน้า Case Studies)
   marketing: MarketingStrategy;
+  contentLibrary?: import('./lib/contentLibrary').ContentItem[]; // คลังเนื้อหา + สถานะอนุมัติ (Phase C)
   feedback: FeedbackAnalysis;
   gtmAuditChecks?: boolean[];
   iso9001?: ISO9001Data;

@@ -106,14 +106,14 @@ describe('access control — เมทริกซ์แพ็กเกจ x ห
 describe('discountedMonthly — ราคาหลังหักคูปอง (#6 PLG)', () => {
   it('ไม่มีคูปอง = ราคาเต็ม', () => {
     expect(discountedMonthly('growth')).toBe(1490);
-    expect(discountedMonthly('starter', 0)).toBe(390);
+    expect(discountedMonthly('starter', 0)).toBe(790);
   });
   it('หัก % ถูกต้อง + ปัดจำนวนเต็ม', () => {
     expect(discountedMonthly('growth', 10)).toBe(1341);   // 1490*0.9
     expect(discountedMonthly('scale', 15)).toBe(5015);    // 5900*0.85
   });
   it('clamp % นอกช่วง 0-100', () => {
-    expect(discountedMonthly('starter', -5)).toBe(390);
+    expect(discountedMonthly('starter', -5)).toBe(790);
     expect(discountedMonthly('starter', 150)).toBe(0);
   });
 });

@@ -6,6 +6,7 @@
  *  และส่งต่อเมื่อผู้ใช้ยินยอม Analytics แล้วเท่านั้น
  */
 
+import { attributionParams } from './utm';
 import {
   canonicalMarketingEvent,
   trackFirstPartyMarketing,
@@ -17,7 +18,8 @@ declare global {
 
 export function track(event: string, params: Record<string, string | number> = {}) {
   try {
-    window.gtag?.('event', event, params);
+    // แนบแท็กแคมเปญ first-touch (ถ้ามี) — พารามิเตอร์ของอีเวนต์เองมีสิทธิ์เหนือกว่า
+    window.gtag?.('event', event, { ...attributionParams(), ...params });
   } catch { /* ห้ามทำ UX พัง เพราะ analytics */ }
 
   const canonical = canonicalMarketingEvent(event);

@@ -4,9 +4,11 @@ import Root from './Root.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import CookieConsent from './components/CookieConsent.tsx'
 import { installGlobalErrorReporting } from './lib/errorReport'
+import { captureFirstTouch } from './lib/utm'
 import { initMarketingPageTracking } from './lib/marketingTracking'
 import './index.css'
 
+captureFirstTouch(window.location.search); // เก็บแท็ก UTM first-touch (เฉพาะแท็กแคมเปญ)
 installGlobalErrorReporting(); // จับ error นอก React → รายงานไป GA4 + observability
 initMarketingPageTracking();  // first-party measurement — ทำงานเฉพาะเมื่อผู้ใช้ยินยอม analytics แล้ว
 

@@ -6,6 +6,10 @@ import { marketingFromDe24 } from '../lib/marketingStrategy';
 import { isSupabaseEnabled, supabase } from '../lib/supabase';
 import { withSkillDirectives } from '../lib/skillDirectives';
 import { trackAiCall } from '../lib/usage';
+import MarketingControlCenter from '../components/MarketingControlCenter';
+import UtmBuilder from '../components/UtmBuilder';
+import ContentLibrary from '../components/ContentLibrary';
+import GenomeRadar from '../components/GenomeRadar';
 
 interface Props { data: AppData; onUpdate: (d: AppData) => void; onNavigate?: (p: PageId) => void; }
 
@@ -57,7 +61,7 @@ export default function Marketing({ data, onUpdate, onNavigate }: Props) {
   const goals = mkt.goals ?? [];
 
   const strat = marketingFromDe24(data);
-  const [tab, setTab] = useState<'channels' | 'campaigns' | 'goals'>('channels');
+  const [tab, setTab] = useState<'channels' | 'campaigns' | 'goals' | 'utm' | 'library'>('channels');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiPlan, setAiPlan] = useState<string | null>(null);
   const [adopted, setAdopted] = useState<string | null>(null);
@@ -188,6 +192,9 @@ export default function Marketing({ data, onUpdate, onNavigate }: Props) {
         </>}
       />
 
+      <MarketingControlCenter data={data} />
+      <GenomeRadar data={data} />
+
       <BuyingTriggers data={data} onUpdate={onUpdate} />
 
       {/* ===== กลยุทธ์จากผล MIT 24-Step ===== */}
@@ -314,7 +321,12 @@ export default function Marketing({ data, onUpdate, onNavigate }: Props) {
         <button className={`mkt-tab${tab === 'channels' ? ' active' : ''}`} onClick={() => setTab('channels')}>📡 ช่องทางการตลาด</button>
         <button className={`mkt-tab${tab === 'campaigns' ? ' active' : ''}`} onClick={() => setTab('campaigns')}>🚀 แคมเปญ</button>
         <button className={`mkt-tab${tab === 'goals' ? ' active' : ''}`} onClick={() => setTab('goals')}>🎯 เป้าหมาย</button>
+        <button className={`mkt-tab${tab === 'utm' ? ' active' : ''}`} onClick={() => setTab('utm')}>🔗 UTM</button>
+        <button className={`mkt-tab${tab === 'library' ? ' active' : ''}`} onClick={() => setTab('library')}>📚 คลังเนื้อหา</button>
       </div>
+
+      {tab === 'library' && <ContentLibrary data={data} onUpdate={onUpdate} />}
+      {tab === 'utm' && <UtmBuilder data={data} onUpdate={onUpdate} />}
 
       {/* ===== CHANNELS ===== */}
       {tab === 'channels' && (
