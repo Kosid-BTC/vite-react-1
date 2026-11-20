@@ -448,6 +448,7 @@ export interface MarketingStrategy {
   channels: MarketingChannel[];
   campaigns: MarketingCampaign[];
   goals: MarketingGoal[];
+  utmLinks?: import('./lib/utm').TrackedLink[]; // ลิงก์ติดตามที่สร้างแล้ว (Phase B) — ใช้เป็นสัญญาณ utm ใน Measurement Health
 }
 
 /* ===== ISO 9001:2015 QMS ===== */

@@ -4,8 +4,10 @@ import Root from './Root.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import CookieConsent from './components/CookieConsent.tsx'
 import { installGlobalErrorReporting } from './lib/errorReport'
+import { captureFirstTouch } from './lib/utm'
 import './index.css'
 
+captureFirstTouch(window.location.search); // เก็บแท็ก UTM first-touch (เฉพาะแท็กแคมเปญ)
 installGlobalErrorReporting(); // จับ error นอก React → รายงานไป GA4 + observability
 
 createRoot(document.getElementById('root')!).render(

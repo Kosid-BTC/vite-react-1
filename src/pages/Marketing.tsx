@@ -7,6 +7,7 @@ import { isSupabaseEnabled, supabase } from '../lib/supabase';
 import { withSkillDirectives } from '../lib/skillDirectives';
 import { trackAiCall } from '../lib/usage';
 import MarketingControlCenter from '../components/MarketingControlCenter';
+import UtmBuilder from '../components/UtmBuilder';
 
 interface Props { data: AppData; onUpdate: (d: AppData) => void; onNavigate?: (p: PageId) => void; }
 
@@ -58,7 +59,7 @@ export default function Marketing({ data, onUpdate, onNavigate }: Props) {
   const goals = mkt.goals ?? [];
 
   const strat = marketingFromDe24(data);
-  const [tab, setTab] = useState<'channels' | 'campaigns' | 'goals'>('channels');
+  const [tab, setTab] = useState<'channels' | 'campaigns' | 'goals' | 'utm'>('channels');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiPlan, setAiPlan] = useState<string | null>(null);
   const [adopted, setAdopted] = useState<string | null>(null);
@@ -317,7 +318,10 @@ export default function Marketing({ data, onUpdate, onNavigate }: Props) {
         <button className={`mkt-tab${tab === 'channels' ? ' active' : ''}`} onClick={() => setTab('channels')}>📡 ช่องทางการตลาด</button>
         <button className={`mkt-tab${tab === 'campaigns' ? ' active' : ''}`} onClick={() => setTab('campaigns')}>🚀 แคมเปญ</button>
         <button className={`mkt-tab${tab === 'goals' ? ' active' : ''}`} onClick={() => setTab('goals')}>🎯 เป้าหมาย</button>
+        <button className={`mkt-tab${tab === 'utm' ? ' active' : ''}`} onClick={() => setTab('utm')}>🔗 UTM</button>
       </div>
+
+      {tab === 'utm' && <UtmBuilder data={data} onUpdate={onUpdate} />}
 
       {/* ===== CHANNELS ===== */}
       {tab === 'channels' && (

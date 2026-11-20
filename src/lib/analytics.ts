@@ -9,12 +9,15 @@
  *  Cross-sell: booster_hired / agent_match_run (ตลาด → บริษัท AI)
  */
 
+import { attributionParams } from './utm';
+
 declare global {
   interface Window { gtag?: (...args: unknown[]) => void }
 }
 
 export function track(event: string, params: Record<string, string | number> = {}) {
   try {
-    window.gtag?.('event', event, params);
+    // แนบแท็กแคมเปญ first-touch (ถ้ามี) — พารามิเตอร์ของอีเวนต์เองมีสิทธิ์เหนือกว่า
+    window.gtag?.('event', event, { ...attributionParams(), ...params });
   } catch { /* ห้ามทำ UX พัง เพราะ analytics */ }
 }

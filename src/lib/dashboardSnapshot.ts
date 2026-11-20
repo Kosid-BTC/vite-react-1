@@ -5,11 +5,12 @@ import { de24Journey } from './de24Journey';
 import { financeSummary } from './finance';
 import { measurementHealth, type MeasurementHealthResult, type MetricMaturity } from './marketingTruth';
 
-/** สัญญาณที่ต้องครบก่อนวินิจฉัยการตลาด — utm/activation/lead/customer/revenue ยังไม่มีตัวเก็บใน V.1 → false */
+/** สัญญาณที่ต้องครบก่อนวินิจฉัยการตลาด — utm = มีลิงก์ติดตามแล้ว · activation/lead/customer ยังไม่มีตัวเก็บใน V.1 → false */
 export function marketingSignals(d: AppData): Record<string, boolean> {
   return {
     campaign: (d.marketing?.campaigns ?? []).length > 0,
-    utm: false, activation: false, lead: false, customer: false,
+    utm: (d.marketing?.utmLinks ?? []).length > 0,
+    activation: false, lead: false, customer: false,
     revenue: financeSummary(d).hasRevenue,
   };
 }
