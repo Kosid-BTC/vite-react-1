@@ -2,10 +2,11 @@ import { lazy, Suspense } from 'react';
 import type { LegalSection } from './pages/LegalPage';
 
 /**
- * Root router แบบบาง (ไม่ import supabase) — ตัดสินเส้นทางจาก URL ก่อนโหลดอะไรหนัก:
+ * Root router แบบบาง — ตัดสินเส้นทางจาก URL ก่อนโหลดอะไรหนัก:
  *  - หน้า public (/b, /start, /shop, /legal…) → โหลดเฉพาะหน้านั้น (ไม่ดึง @supabase/supabase-js เข้ามา)
+ *  - /marketing-health → diagnostics ที่ตั้งใจโหลด Supabase/Auth เพื่ออ่านข้อมูลตาม RLS
  *  - เส้นทางอื่น → lazy-load แอปหลัก (App) ที่ใช้ supabase/auth
- * ผล: หน้า marketing/SEO โหลดแรกเบาลงมาก (ไม่มี vendor-supabase ~55KB gzip ใน first paint)
+ * ผล: หน้า marketing/SEO โหลดแรกเบาลงมาก ขณะที่ diagnostics ยังบังคับ auth/RLS ตามปกติ
  */
 const App = lazy(() => import('./App'));
 const StartLanding = lazy(() => import('./pages/StartLanding'));
@@ -13,6 +14,7 @@ const ShopSignup = lazy(() => import('./pages/ShopSignup'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const PublicPricing = lazy(() => import('./pages/PublicPricing'));
 const HandoffLanding = lazy(() => import('./pages/HandoffLanding'));
+const MarketingHealth = lazy(() => import('./pages/MarketingHealth'));
 const PublicStorefrontPage = lazy(() =>
   import('./pages/PublicStorefront').then(m => ({ default: m.PublicStorefrontPage })));
 const PublicDirectoryPage = lazy(() =>
@@ -30,6 +32,7 @@ function pick() {
   if (['/pricing', '/product', '/plans'].some(x => p === x || p === x + '/')) return <PublicPricing />;
   if (p === '/shop' || p === '/shop/') return <ShopSignup />;
   if (p === '/handoff' || p === '/handoff/') return <HandoffLanding />;
+  if (p === '/marketing-health' || p === '/marketing-health/') return <MarketingHealth />;
   if (p.startsWith('/legal') || ['/privacy', '/terms', '/refund', '/cookies'].some(x => p === x || p === x + '/')) {
     const sec: LegalSection =
       p.includes('privacy') ? 'privacy' :

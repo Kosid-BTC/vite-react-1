@@ -6,7 +6,18 @@
     "build": "next build",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "db:types": "supabase gen types typescript --linked > src/types/database.types.ts"
+    "test:p1-3": "tsx scripts/verify-p1-3-decision-boundary.ts",
+    "test:p1-4": "tsx scripts/verify-p1-4-outcome-learning.ts",
+    "test:p2-0": "tsx scripts/verify-p2-0-creative-automation.ts",
+    "test:p2-1": "tsx scripts/verify-p2-1-voice-subtitles.ts",
+    "test:p2-2": "tsx scripts/verify-p2-2-content-calendar.ts",
+    "test:p2-3": "tsx scripts/verify-p2-3-scheduler.ts",
+    "test:p3-0": "tsx scripts/verify-p3-0-analytics-foundation.ts",
+    "test:p3-1": "tsx scripts/verify-p3-1-experiment-engine.ts",
+    "test:p3-2": "tsx scripts/verify-p3-2-attribution.ts",
+    "test:p3-3": "tsx scripts/verify-p3-3-lead-sales-intelligence.ts",
+    "test:p3-4": "tsx scripts/verify-p3-4-next-best-action.ts",
+    "db:types": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
@@ -21,6 +32,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "supabase": "^2.40.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.0"
   }
 }
