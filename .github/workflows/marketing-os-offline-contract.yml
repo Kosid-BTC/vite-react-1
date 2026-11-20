@@ -1,0 +1,34 @@
+name: Marketing OS offline CEO Back Office contract
+on:
+  pull_request:
+    paths:
+      - 'apps/marketing-os/src/lib/marketing-intelligence/**'
+      - 'apps/marketing-os/scripts/verify-ceo-backoffice-offline-contract.ts'
+      - 'apps/marketing-os/scripts/verify-ceo-backoffice-contract.ts'
+      - 'apps/marketing-os/scripts/verify-explicit-workspace-offline-regression.ts'
+      - 'apps/marketing-os/security/development_workspace_mapping_attestations.sql'
+      - 'apps/marketing-os/docs/DEVELOPMENT_TENANT_ISOLATION_ACCEPTANCE_MATRIX.md'
+      - 'apps/marketing-os/CEO_BACKOFFICE_PRODUCTION_GATES.md'
+      - 'apps/marketing-os/package.json'
+      - '.github/workflows/marketing-os-offline-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/marketing-os
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked app dependencies without running lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify offline mapping and evidence contract
+        run: npm run test:ceo-backoffice-offline
+      - name: Verify explicit workspace fail-closed regression (offline only)
+        run: npx tsx scripts/verify-explicit-workspace-offline-regression.ts
