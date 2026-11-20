@@ -1,9 +1,9 @@
 import type { AppData } from '../types';
 import { CURRENT_STARTER_OFFER, measurementHealth } from '../lib/marketingTruth';
+import { marketingSignals } from '../lib/dashboardSnapshot';
 
 export default function MarketingControlCenter({ data }: { data: AppData }) {
-  const campaigns = data.marketing.campaigns ?? [];
-  const health = measurementHealth({ campaign: campaigns.length > 0, utm: false, activation: false, lead: false, customer: false, revenue: false });
+  const health = measurementHealth(marketingSignals(data));
   return (
     <section className="mkt-control-center" aria-label="Marketing Control Center">
       <div><small>ข้อเสนอที่อนุมัติ</small><strong>{CURRENT_STARTER_OFFER.plan.toUpperCase()} ฿{CURRENT_STARTER_OFFER.priceThbMonth}/เดือน</strong><span>OWNER DECISION · ห้าม AI เปลี่ยนราคาเอง</span></div>

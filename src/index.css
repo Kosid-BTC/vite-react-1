@@ -6373,3 +6373,14 @@ a.bill-guide-link:hover { background: rgba(56,189,248,.12); }
 .auth-pending-text { font-size: 13.5px; line-height: 1.7; color: var(--ink2); margin-bottom: 14px; }
 .auth-alt { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--ink3); font-family: inherit; font-size: 13px; cursor: pointer; }
 .auth-alt:hover { color: var(--ink); }
+
+/* ===== Operating Snapshot (Dashboard Phase A) ===== */
+.op-snap { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 0 0 18px; }
+.op-card { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 14px 16px; background: var(--cream2); border: 1px solid var(--sand); border-radius: var(--r); color: var(--ink2); font-family: inherit; cursor: pointer; }
+.op-card:hover { border-color: var(--accent); }
+.op-card small { color: var(--ink3); font-size: 12px; }
+.op-card strong { color: var(--ink); font-size: 17px; line-height: 1.3; }
+.op-card span { font-size: 12px; color: var(--ink3); }
+.op-nba { border-color: var(--accent); background: var(--rust-bg); }
+.op-bar { display: block; height: 6px; background: var(--cream3); border-radius: 3px; overflow: hidden; }
+.op-bar i { display: block; height: 100%; background: var(--accent); }
