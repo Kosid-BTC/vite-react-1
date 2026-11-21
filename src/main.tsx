@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { inject } from '@vercel/analytics'
 import Root from './Root.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import CookieConsent from './components/CookieConsent.tsx'
@@ -8,6 +9,7 @@ import { captureFirstTouch } from './lib/utm'
 import { initMarketingPageTracking } from './lib/marketingTracking'
 import './index.css'
 
+inject(); // Initialize Vercel Web Analytics
 captureFirstTouch(window.location.search); // เก็บแท็ก UTM first-touch (เฉพาะแท็กแคมเปญ)
 installGlobalErrorReporting(); // จับ error นอก React → รายงานไป GA4 + observability
 initMarketingPageTracking();  // first-party measurement — ทำงานเฉพาะเมื่อผู้ใช้ยินยอม analytics แล้ว
