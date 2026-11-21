@@ -30,6 +30,14 @@ export default function OperatingSnapshot({ data, onNavigate }: { data: AppData;
         <strong>{s.nextAction.label}</strong>
         <span>{s.nextAction.reason}</span>
       </button>
+      <div className="op-card" style={{ cursor: 'default', gridColumn: '1 / -1' }}>
+        <small>ตัวเลขช่องทาง (นำเข้าเอง)</small>
+        {s.channelKpis.length === 0
+          ? <strong>ยังไม่มีข้อมูล · UNAVAILABLE</strong>
+          : <strong>{s.channelKpis.map(k => `${k.metric} ${k.value.toLocaleString('th-TH')}`).join(' · ')}</strong>}
+        <button className="mkt-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => go('metrics', 'marketing')}>
+          {s.channelKpis.length === 0 ? 'นำเข้าตัวเลข' : 'จัดการ'}</button>
+      </div>
     </section>
   );
 }
