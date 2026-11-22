@@ -1,5 +1,8 @@
 name: Marketing OS cross-project read guard
 on:
+  push:
+    branches:
+      - 'fix/marketing-os-dual-db-security-gates'
   pull_request:
     paths:
       - 'apps/marketing-os/src/lib/supabase/supplementary-boundary.ts'
