@@ -3,13 +3,26 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-const roots = ['src', 'app', 'pages', 'components', 'server', 'supabase/functions']
-  .map((root) => join(process.cwd(), root))
-  .filter((root) => existsSync(root));
-
-assert.ok(roots.length > 0, 'No application source roots were found to scan');
+const root = process.cwd();
+assert.ok(existsSync(root), 'Marketing OS application root does not exist');
 
 const extensions = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
+const skippedDirectories = new Set([
+  '.git',
+  '.next',
+  '.turbo',
+  '.vercel',
+  'build',
+  'coverage',
+  'dist',
+  'e2e',
+  'node_modules',
+  'playwright-report',
+  'scripts',
+  'test',
+  'tests',
+  '__tests__',
+]);
 const forbidden = /\b(?:ensure_default_workspace|ensureDefaultWorkspace)\b/;
 const violations = [];
 
@@ -20,25 +33,24 @@ assert.equal(forbidden.test('ensure_default_workspace_v2'), false);
 
 function walk(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === '.next' || entry.name === 'dist' || entry.name === 'build') continue;
-    const absolute = join(directory, entry.name);
     if (entry.isDirectory()) {
-      walk(absolute);
+      if (!skippedDirectories.has(entry.name)) walk(join(directory, entry.name));
       continue;
     }
     if (!entry.isFile()) continue;
     if (!extensions.has(entry.name.slice(entry.name.lastIndexOf('.')))) continue;
     if (entry.name === 'database.types.ts' || entry.name.endsWith('.d.ts')) continue;
-    const content = readFileSync(absolute, 'utf8');
-    if (forbidden.test(content)) violations.push(relative(process.cwd(), absolute));
+    const absolute = join(directory, entry.name);
+    const source = readFileSync(absolute, 'utf8');
+    if (forbidden.test(source)) violations.push(relative(root, absolute));
   }
 }
 
-for (const root of roots) walk(root);
+walk(root);
 
 assert.deepEqual(
   violations,
   [],
-  'Legacy first-workspace RPC reference found in application source. Require explicit workspace selection instead.',
+  'Legacy first-workspace RPC reference found in Marketing OS application source. Require explicit workspace selection instead.',
 );
-console.log('PASS: detector canaries passed and application source contains no ensure_default_workspace / ensureDefaultWorkspace call path');
+console.log('PASS: detector canaries passed and all scanned Marketing OS runtime source contains no first-workspace RPC call path');
