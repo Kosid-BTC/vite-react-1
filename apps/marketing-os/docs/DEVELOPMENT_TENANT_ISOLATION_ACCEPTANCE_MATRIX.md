@@ -22,6 +22,10 @@
 | MAP-07 | Tenant A user requests Tenant B mapping | DENY |
 | MAP-08 | Same email/name but unrelated workspaces | DENY |
 | MAP-09 | One-to-many or many-to-one mapping attempt | DENY at registry constraint |
+| MAP-10 | Consent evidence digest does not match the independently verified event | DENY |
+| MAP-11 | Reuse of a consent event ID | DENY at unique constraint; no replay |
+| MAP-12 | Second non-revoked mapping for either workspace | DENY at active uniqueness constraint |
+| MAP-13 | Replace an expired mapping without first recording revocation | DENY; revoke the old attestation before re-attestation |
 | RLS-01 | Tenant A SELECT Tenant B rows | Zero rows / permission denied |
 | RLS-02 | Anonymous user SELECT protected rows | DENY |
 | RPC-01 | Authenticated non-owner calls SECURITY DEFINER RPC | DENY, even if EXECUTE granted |
@@ -35,7 +39,7 @@
 | UX-02 | Authenticated mobile 390×844 on exact SHA | Capture and compare Approved V4 reference |
 
 ## Evidence requirements
-For each scenario record test ID, Development project ref, isolated test tenant identifiers, exact Git SHA, UTC timestamp, expected/actual status, sanitized logs, and CI job URL. Never store tokens or personal customer records in test artifacts. Require both positive and negative tests. Offline regex/source checks are not runtime evidence.
+For each scenario record test ID, Development project ref, isolated test tenant identifiers, exact Git SHA, UTC timestamp, expected/actual status, sanitized logs, and CI job URL. Store only SHA-256 evidence digests and non-secret consent event identifiers in the proposed registry; never store raw tokens, JWTs, API keys, or personal customer records in test artifacts. Require both positive and negative tests. The SQL proposal checker is static-only and does not apply or execute SQL. Offline regex/source checks are not runtime evidence.
 
 ## Release rule
 A successful offline contract workflow, READY deployment, or an RLS-enabled flag **alone** is not a Production acceptance. Require runtime tenant-isolation results, independently verified owner consent, expiry/revocation checks, authenticated exact-SHA previews, and Approved UX/UI V4 desktop/mobile evidence before any Production changes or enabling Cross-project Read.
