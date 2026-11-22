@@ -1,5 +1,4 @@
 // Static source guard: application code must never call the legacy first-workspace RPC.
-// This does not change the database function; it prevents new app-side invocation paths.
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -11,8 +10,13 @@ const roots = ['src', 'app', 'pages', 'components', 'server', 'supabase/function
 assert.ok(roots.length > 0, 'No application source roots were found to scan');
 
 const extensions = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
-const forbidden = /\\b(?:ensure_default_workspace|ensureDefaultWorkspace)\\b/;
+const forbidden = /\b(?:ensure_default_workspace|ensureDefaultWorkspace)\b/;
 const violations = [];
+
+// Prove the detector catches both RPC spellings and does not match a longer identifier.
+assert.equal(forbidden.test("client.rpc('ensure_default_workspace')"), true);
+assert.equal(forbidden.test('ensureDefaultWorkspace()'), true);
+assert.equal(forbidden.test('ensure_default_workspace_v2'), false);
 
 function walk(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -37,4 +41,4 @@ assert.deepEqual(
   [],
   'Legacy first-workspace RPC reference found in application source. Require explicit workspace selection instead.',
 );
-console.log('PASS: application source contains no ensure_default_workspace / ensureDefaultWorkspace call path');
+console.log('PASS: detector canaries passed and application source contains no ensure_default_workspace / ensureDefaultWorkspace call path');
