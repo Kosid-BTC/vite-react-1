@@ -1,41 +1,73 @@
 -- DEVELOPMENT-ONLY PROPOSAL. DO NOT APPLY TO PRODUCTION.
 -- Owner evidence is independently verified in each project's Auth context by a trusted server.
--- Never infer a mapping from workspace names, emails or row order.
+-- Never infer a mapping from workspace names, emails, row order, or matching user IDs.
+-- This proposal is not runtime acceptance; do not enable cross-project reads from this table alone.
 begin;
+
 create schema if not exists marketing_security;
-revoke all on schema marketing_security from public, anon, authenticated;
+revoke all on schema marketing_security
+  from public, anon, authenticated, service_role, supabase_read_only_user;
+
 create table if not exists marketing_security.workspace_mapping_attestations (
   mapping_id uuid primary key default gen_random_uuid(),
-  primary_project_ref text not null check (primary_project_ref = 'bjozpwdtqbpwcxnqguka'),
-  supplementary_project_ref text not null check (supplementary_project_ref = 'waigsnxhrlwtiotspaim'),
+
+  primary_project_ref text not null
+    check (primary_project_ref = 'bjozpwdtqbpwcxnqguka'),
+  supplementary_project_ref text not null
+    check (supplementary_project_ref = 'waigsnxhrlwtiotspaim'),
+
   primary_workspace_id uuid not null,
   supplementary_workspace_id uuid not null,
   primary_owner_user_id uuid not null,
   supplementary_owner_user_id uuid not null,
-  primary_consent_event_id text not null check (length(trim(primary_consent_event_id)) > 0),
-  supplementary_consent_event_id text not null check (length(trim(supplementary_consent_event_id)) > 0),
+
+  primary_consent_event_id text not null
+    check (length(trim(primary_consent_event_id)) > 0),
+  supplementary_consent_event_id text not null
+    check (length(trim(supplementary_consent_event_id)) > 0),
+  primary_consent_evidence_sha256 text not null
+    check (primary_consent_evidence_sha256 ~ '^[0-9a-f]{64}$'),
+  supplementary_consent_evidence_sha256 text not null
+    check (supplementary_consent_evidence_sha256 ~ '^[0-9a-f]{64}$'),
+
   primary_verified_at timestamptz not null,
   supplementary_verified_at timestamptz not null,
+  reviewed_by_user_id uuid not null,
   reviewed_by text not null check (length(trim(reviewed_by)) > 0),
+
   expires_at timestamptz not null,
   revoked_at timestamptz,
   revocation_reason text,
   created_at timestamptz not null default now(),
+
   check (expires_at > greatest(primary_verified_at, supplementary_verified_at)),
   check (primary_verified_at <= created_at and supplementary_verified_at <= created_at),
-  check (revoked_at is null or revocation_reason is not null),
-  unique(primary_workspace_id, supplementary_workspace_id)
+  check ((revoked_at is null) = (revocation_reason is null)),
+  check (revoked_at is null or revoked_at >= created_at),
+  unique (primary_consent_event_id),
+  unique (supplementary_consent_event_id)
 );
-create unique index if not exists workspace_mapping_primary_unique
-  on marketing_security.workspace_mapping_attestations(primary_workspace_id);
-create unique index if not exists workspace_mapping_supplementary_unique
-  on marketing_security.workspace_mapping_attestations(supplementary_workspace_id);
+
+-- One active (not revoked) mapping per workspace on either side.
+-- Expired records must be explicitly revoked before a replacement attestation is inserted.
+create unique index if not exists workspace_mapping_primary_active_unique
+  on marketing_security.workspace_mapping_attestations(primary_workspace_id)
+  where revoked_at is null;
+create unique index if not exists workspace_mapping_supplementary_active_unique
+  on marketing_security.workspace_mapping_attestations(supplementary_workspace_id)
+  where revoked_at is null;
+
 alter table marketing_security.workspace_mapping_attestations enable row level security;
 alter table marketing_security.workspace_mapping_attestations force row level security;
-revoke all on marketing_security.workspace_mapping_attestations from public, anon, authenticated;
--- No authenticated/anon policies or EXECUTE grants. Default deny.
--- Do not enable any cross-project adapter based solely on rows in this table.
--- A trusted backend must verify BOTH authenticated owner consent events independently,
--- reject forged/expired/revoked evidence, and re-check status on EVERY read.
+revoke all on marketing_security.workspace_mapping_attestations
+  from public, anon, authenticated, service_role, supabase_read_only_user;
+
+-- No policies and no EXECUTE grants: default deny for API-facing and service roles.
+-- A later trusted backend/RPC design must be separately reviewed after isolated restore
+-- and least-privilege audit; this proposal intentionally provides no read path.
+-- A trusted server must independently verify BOTH owner consent events against each
+-- project's Auth context, validate evidence digests, reject replay/expiry/revocation,
+-- and re-check authorization on EVERY read.
 -- Do not store access tokens, JWTs, API keys, or customer records here.
+
 commit;
