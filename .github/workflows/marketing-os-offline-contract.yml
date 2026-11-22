@@ -7,6 +7,7 @@ on:
       - 'apps/marketing-os/scripts/verify-ceo-backoffice-contract.ts'
       - 'apps/marketing-os/scripts/verify-explicit-workspace-offline-regression.ts'
       - 'apps/marketing-os/security/development_workspace_mapping_attestations.sql'
+      - 'apps/marketing-os/scripts/verify-workspace-mapping-proposal.mjs'
       - 'apps/marketing-os/docs/DEVELOPMENT_TENANT_ISOLATION_ACCEPTANCE_MATRIX.md'
       - 'apps/marketing-os/CEO_BACKOFFICE_PRODUCTION_GATES.md'
       - 'apps/marketing-os/package.json'
@@ -32,3 +33,5 @@ jobs:
         run: npm run test:ceo-backoffice-offline
       - name: Verify explicit workspace fail-closed regression (offline only)
         run: npx tsx scripts/verify-explicit-workspace-offline-regression.ts
+      - name: Verify Development-only owner-attestation SQL proposal (static only)
+        run: node scripts/verify-workspace-mapping-proposal.mjs
