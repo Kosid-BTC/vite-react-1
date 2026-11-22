@@ -152,7 +152,8 @@ export function buildMarketingIntelligenceSnapshot(input: {
   const allowed: MarketingSignal['metric'][] = ['revenue', 'gross_margin', 'customer_count', 'repeat_purchase_rate'];
   const signals = input.signals.filter(s =>
     allowed.includes(s.metric) && Number.isFinite(s.value) && s.value >= 0
-    && Boolean(s.evidence.sourceTable && s.evidence.sourceRecordId)
+    && isNonBlank(s.evidence.sourceTable)
+    && isNonBlank(s.evidence.sourceRecordId)
     && s.evidence.sourceProject === 'ceo-ai-backoffice'
     && Number.isFinite(Date.parse(s.evidence.observedAt))
     && Number.isFinite(Date.parse(s.periodStart))
