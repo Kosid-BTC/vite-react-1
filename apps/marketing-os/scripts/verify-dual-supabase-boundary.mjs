@@ -22,7 +22,10 @@ assert.doesNotMatch(boundary, forbiddenCrossProjectAccess);
 assert.doesNotMatch(adapter, forbiddenCrossProjectAccess);
 assert.doesNotMatch(adapter, /service_role|SUPABASE_SERVICE_ROLE_KEY/);
 assert.doesNotMatch(adapter, /\.(?:insert|update|delete|upsert)\s*\(/);
-assert.doesNotMatch(adapter, /\bok\s*:\s*true\b/);
+
+// The TypeScript discriminant may describe a future success shape, but this
+// fail-closed implementation must never return a successful result at runtime.
+assert.doesNotMatch(adapter, /return\s*\{\s*ok\s*:\s*true\b/);
 assert.match(adapter, /return \{ ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIED' \}/);
 
 // The compatibility token may exist in the input type, but must not be consumed.
