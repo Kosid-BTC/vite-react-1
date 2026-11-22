@@ -97,6 +97,8 @@ assert.deepEqual(snapshot.unavailableMetrics, ['gross_margin', 'customer_count',
 
 const invalid: MarketingSignal[] = [
   { ...signal, value: Number.NaN },
+  { ...signal, evidence: { ...evidence, sourceTable: '   ' } },
+  { ...signal, evidence: { ...evidence, sourceRecordId: '   ' } },
   { ...signal, evidence: { ...evidence, sourceRecordId: '' } },
   { ...signal, evidence: { ...evidence, observedAt: 'invalid' } },
   { ...signal, periodStart: '2026-11-20', periodEnd: '2026-11-01' },
