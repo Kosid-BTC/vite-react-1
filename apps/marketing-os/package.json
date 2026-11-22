@@ -26,7 +26,8 @@
     "test:release-security-boundaries": "node scripts/verify-release-security-boundaries-local.mjs",
     "test:release-security": "node scripts/verify-release-readiness-security.mjs",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts",
-    "test:ceo-backoffice-offline": "tsx scripts/verify-ceo-backoffice-offline-contract.ts"
+    "test:ceo-backoffice-offline": "tsx scripts/verify-ceo-backoffice-offline-contract.ts",
+    "test:ceo-backoffice-contract": "tsx scripts/verify-ceo-backoffice-contract.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
