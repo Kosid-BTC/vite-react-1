@@ -134,21 +134,22 @@ try {
   }
 
   const desktopOrder = await page.locator('.dashboard-main-column').evaluate((column) => {
-    const classes = Array.from(column.children).map((element) => element.className);
-    return {
-      performance: classes.findIndex((value) => value.includes('performance-panel')),
-      ai: classes.findIndex((value) => value.includes('ai-panel')),
-      genome: classes.findIndex((value) => value.includes('genome-panel')),
-      mit: classes.findIndex((value) => value.includes('mit-panel')),
-      recent: classes.findIndex((value) => value.includes('recent-panel')),
-      platform: classes.findIndex((value) => value.includes('platform-panel')),
-    };
+    const selectors = [
+      '.performance-panel',
+      '.ai-panel.mobile-dashboard-panel',
+      '.genome-panel',
+      '.mit-panel',
+      '.recent-panel.mobile-dashboard-panel',
+      '.platform-panel',
+    ];
+    const elements = selectors.map((selector) => column.querySelector(selector));
+    if (elements.some((element) => !element)) return null;
+    const ordered = elements.every((element, index) =>
+      index === 0 || Boolean(elements[index - 1].compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING),
+    );
+    return { selectors, ordered };
   });
-  assert.ok(desktopOrder.performance >= 0 && desktopOrder.ai > desktopOrder.performance, 'Desktop order must place Performance before AI recommendations');
-  assert.ok(desktopOrder.genome > desktopOrder.ai, 'Business Genome must follow AI recommendations');
-  assert.ok(desktopOrder.mit > desktopOrder.genome, 'MIT 24 Steps must follow Business Genome');
-  assert.ok(desktopOrder.recent > desktopOrder.mit, 'Recent Activity must follow MIT 24 Steps');
-  assert.ok(desktopOrder.platform > desktopOrder.recent, 'Platform status must follow Recent Activity');
+  assert.ok(desktopOrder?.ordered, 'Dashboard order must be Performance → AI → Business Genome → MIT 24 Steps → Recent Activity → Platform status');
 
   await mkdir(outputDir, { recursive: true });
   const desktopPng = await page.screenshot({
