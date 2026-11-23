@@ -176,6 +176,71 @@ try {
   assert.ok(performanceBox && mobileAiBox && performanceBox.y < mobileAiBox.y, 'Mobile hierarchy must place Performance before AI recommendations');
   const mobileTitle = page.locator('.dashboard-title-row h1:visible');
   assert.equal((await mobileTitle.textContent())?.trim(), 'CEO AI Thailand', 'CEO AI Thailand branding missing on mobile');
+
+  for (const selector of [
+    '.topbar',
+    '.global-search',
+    '.topbar-actions',
+    '.dashboard-title-row',
+    '.connection-strip',
+    '.metric-grid',
+    '.performance-panel',
+    '.traffic-source',
+    '.ai-panel.mobile-dashboard-panel',
+    '.genome-panel',
+    '.mit-panel',
+    '.recent-panel.mobile-dashboard-panel',
+    '.platform-panel',
+  ]) {
+    assert.ok(await page.locator(selector).first().isVisible(), `Required mobile Approved V4 component missing: ${selector}`);
+  }
+
+  const mobileMetricStates = await page.locator('.metric-card').evaluateAll((cards) => cards.map((card) => {
+    const rect = card.getBoundingClientRect();
+    const style = getComputedStyle(card);
+    return {
+      display: style.display,
+      visibility: style.visibility,
+      width: rect.width,
+      height: rect.height,
+    };
+  }));
+  assert.equal(mobileMetricStates.length, 6, 'Mobile must preserve all six KPI cards');
+  assert.ok(
+    mobileMetricStates.every((card) => card.display !== 'none' && card.visibility !== 'hidden' && card.width > 0 && card.height > 0),
+    'All six mobile KPI cards must remain rendered',
+  );
+
+  const mobileOrder = await page.locator('.dashboard-body-grid').evaluate((grid) => {
+    const selectors = [
+      '.performance-panel',
+      '.ai-panel.mobile-dashboard-panel',
+      '.genome-panel',
+      '.mit-panel',
+      '.recent-panel.mobile-dashboard-panel',
+      '.platform-panel',
+    ];
+    const elements = selectors.map((selector) => grid.querySelector(selector));
+    if (elements.some((element) => !element)) return null;
+    const positions = elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        top: rect.top + window.scrollY,
+        bottom: rect.bottom + window.scrollY,
+        visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0,
+      };
+    });
+    const ordered = positions.every((position, index) =>
+      position.visible && (index === 0 || positions[index - 1].bottom <= position.top + 1),
+    );
+    return { selectors, ordered, positions };
+  });
+  assert.ok(
+    mobileOrder?.ordered,
+    'Mobile order must be Performance → AI → Business Genome → MIT 24 Steps → Recent Activity → Platform status',
+  );
+
   const mobilePng = await page.screenshot({
     path: join(outputDir, 'mobile-390x844.png'),
     fullPage: false,
@@ -203,7 +268,9 @@ try {
       desktopMainCorrelation: mainCorrelation,
     },
     structuralOrder: desktopOrder,
+    mobileStructuralOrder: mobileOrder,
     metricStates,
+    mobileMetricStates,
     screenshots: {
       desktop: sha256(desktopPng),
       mobile: sha256(mobilePng),
@@ -214,6 +281,7 @@ try {
   console.log('AUTHENTICATED_DASHBOARD=PASS');
   console.log('PRODUCTION_DESKTOP_1536x1024=PASS');
   console.log('PRODUCTION_MOBILE_390x844=PASS');
+  console.log('PRODUCTION_MOBILE_STRUCTURAL_ORDER=PASS');
   console.log('LOCKED_REFERENCE_VISUAL_PARITY=PASS');
   console.log('STRUCTURAL_AND_ORDER_ASSERTIONS=PASS');
   console.log(`PRODUCTION_EVIDENCE_DESKTOP_SHA256=${manifest.screenshots.desktop}`);
