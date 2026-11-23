@@ -3,6 +3,8 @@
  * Keep this module free of server-only imports so the input contract can be
  * exercised in an isolated Node test without creating any network client.
  */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function hasExplicitWorkspaceIds(input: unknown): boolean {
   if (input === null || typeof input !== 'object' || Array.isArray(input)) {
     return false;
@@ -14,8 +16,8 @@ export function hasExplicitWorkspaceIds(input: unknown): boolean {
 
   return (
     typeof primaryWorkspaceId === 'string' &&
-    primaryWorkspaceId.trim().length > 0 &&
+    UUID_PATTERN.test(primaryWorkspaceId.trim()) &&
     typeof targetWorkspaceId === 'string' &&
-    targetWorkspaceId.trim().length > 0
+    UUID_PATTERN.test(targetWorkspaceId.trim())
   );
 }
