@@ -14,16 +14,26 @@ type AccessResult =
   | { ok: false; reason: 'NOT_CONFIGURED' | 'PRIMARY_UNAUTHORIZED' | 'TARGET_UNAUTHORIZED' | 'WORKSPACE_MAPPING_UNVERIFIED' | 'QUERY_FAILED' }
   | { ok: true; rows: Array<{ id: string; name: string }> };
 
-export async function readSupplementaryBrands(input: {
-  primaryWorkspaceId: string;
-  targetWorkspaceId: string;
-  // Kept optional for call-site compatibility; never consumed while the gate is closed.
-  targetAccessToken?: string;
-}): Promise<AccessResult> {
-  if (!input.primaryWorkspaceId?.trim() || !input.targetWorkspaceId?.trim()) {
+export async function readSupplementaryBrands(input: unknown): Promise<AccessResult> {
+  // Runtime inputs are untrusted even when TypeScript callers provide a typed object.
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
     return { ok: false, reason: 'NOT_CONFIGURED' };
   }
 
+  const values = input as Record<string, unknown>;
+  const primaryWorkspaceId = values.primaryWorkspaceId;
+  const targetWorkspaceId = values.targetWorkspaceId;
+
+  if (
+    typeof primaryWorkspaceId !== 'string' ||
+    primaryWorkspaceId.trim().length === 0 ||
+    typeof targetWorkspaceId !== 'string' ||
+    targetWorkspaceId.trim().length === 0
+  ) {
+    return { ok: false, reason: 'NOT_CONFIGURED' };
+  }
+
+  // targetAccessToken is intentionally ignored; credentials are never portable across projects.
   const gate = supplementaryDatabaseAccess();
   if (!gate.enabled) {
     return { ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIED' };
