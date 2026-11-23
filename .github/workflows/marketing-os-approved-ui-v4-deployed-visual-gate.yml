@@ -1,8 +1,8 @@
-name: Marketing OS Approved UI V4 Deployed Preview Visual Gate
+name: Marketing OS Approved UI V4 Preview Fixture Visual Gate
 
 on:
   push:
-    branches: [feat/marketing-os-approved-ui-v4, fix/marketing-os-release-gates-v5]
+    branches: [feat/marketing-os-approved-ui-v4, fix/marketing-os-release-gates-v5, fix/marketing-os-p0-release-preflight-20261024]
   workflow_dispatch:
 
 permissions:
@@ -145,11 +145,11 @@ jobs:
           const contract = JSON.parse(await readFile('config/approved-ui-v4-visual-fingerprints.json', 'utf8'));
           const main = contract.sources.find((source) => source.key === 'main');
           const variant = contract.sources.find((source) => source.key === 'variant');
-          const duplicate = contract.sources.find((source) => source.key === 'main-duplicate-confirmation');
-          if (!main || !variant || !duplicate) throw new Error('Approved screenshot fingerprint contract incomplete');
+          if (!main || !variant || contract.sources.length !== 2) throw new Error('Approved V4 requires exactly the two locked user uploads');
+          if (main.filename !== '0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg') throw new Error('Main locked upload filename drifted');
+          if (variant.filename !== '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg') throw new Error('Detailed Dashboard locked upload filename drifted');
           if (main.sha256 !== 'db7bbd69b7646d4a81156c6c6b01d83a4f107302fd94fb3601ff02994f8fa2c6') throw new Error('Main approved screenshot authority hash drifted');
           if (variant.sha256 !== '609493e33900606862e9e73c413ddf2b9d10b32600a957b20d58351a9d56d738') throw new Error('Variant approved screenshot authority hash drifted');
-          if (duplicate.duplicateOf !== 'main') throw new Error('Duplicate approved screenshot confirmation drifted');
           if (contract.method.width !== 24 || contract.method.height !== 16 || contract.method.blurRadius !== 6) throw new Error('Visual fingerprint method drifted');
 
           const mime = (url, resourceType) => {
@@ -250,12 +250,14 @@ jobs:
             if (!(await mobileTitle.isVisible()) || (await mobileTitle.textContent())?.trim() !== 'CEO AI Thailand') throw new Error('CEO AI title branding missing on mobile');
             const mobileLogoBackground = await page.locator('.topbar:visible').evaluate((node) => getComputedStyle(node, '::before').backgroundImage);
             if (!mobileLogoBackground.includes('ceo-ai-reference-logo.svg')) throw new Error('CEO AI logo branding missing on mobile');
-            await page.screenshot({ path: 'deployed-visual-qa-artifacts/mobile-390x844.png', fullPage: true });
+            await page.screenshot({ path: 'deployed-visual-qa-artifacts/mobile-390x844.png', fullPage: false });
 
             console.log(`DEPLOYED_VISUAL_QA_SHA=${sha}`);
             console.log('DEPLOYED_VISUAL_STRUCTURE=PASS');
-            console.log('DEPLOYED_APPROVED_SOURCE_FIDELITY=PASS');
-            console.log('APPROVED_SOURCE_CONTRACT=0D291464-3F4B-4AD2-B7BE-C5409EC56B4F.jpeg|4C6D6E63-535F-4E43-BD88-FD10F31624DC.jpeg|0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(1).jpeg');
+            console.log('PREVIEW_FIXTURE_APPROVED_SOURCE_FINGERPRINT_CHECK=PASS');
+            console.log('AUTHENTICATED_PREVIEW_ACCEPTANCE=UNVERIFIED');
+            console.log('PRODUCTION_VISUAL_ACCEPTANCE=UNVERIFIED');
+            console.log('APPROVED_SOURCE_CONTRACT=0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg|4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg');
           } finally {
             await browser.close();
           }
