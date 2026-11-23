@@ -4,7 +4,23 @@
  * Data is admitted only after independent identity, owner-attestation, audience and RLS gates.
  */
 export type AudienceSegmentCode = 'employee' | 'graduate' | 'newbie' | 'seller' | 'growth';
+export type AudienceAlias = 'sidebiz' | 'owner' | 'seller' | 'graduate' | 'newbie';
 export type OnboardingStage = 'pre_signup' | 'beginner_onboarding' | 'post_onboarding';
+
+/**
+ * Canonical aliases only; these do NOT create or rename audience-segment rows.
+ * employee stays in the beginner journey; growth remains the stored segment and
+ * resolves to the canonical owner alias for downstream business mapping.
+ */
+export const AUDIENCE_ALIAS_MAP = {
+  employee: 'sidebiz',
+  growth: 'owner',
+} as const satisfies Partial<Record<AudienceSegmentCode, AudienceAlias>>;
+
+export function resolveAudienceAlias(segmentCode: AudienceSegmentCode): AudienceAlias {
+  const aliases = AUDIENCE_ALIAS_MAP as Partial<Record<AudienceSegmentCode, AudienceAlias>>;
+  return aliases[segmentCode] ?? segmentCode as AudienceAlias;
+}
 
 export type AudienceContext = {
   segmentCode: AudienceSegmentCode;
@@ -53,6 +69,7 @@ export type IntelligenceSnapshot = {
   primaryWorkspaceId: string;
   supplementaryWorkspaceId: string;
   audienceSegmentCode: 'seller' | 'growth';
+  audienceAlias: 'seller' | 'owner';
   generatedAt: string;
   signals: MarketingSignal[];
   unavailableMetrics: MarketingSignal['metric'][];
@@ -172,6 +189,8 @@ export function buildMarketingIntelligenceSnapshot(input: unknown): Intelligence
   if (!isAudienceContext(audienceContext)) return null;
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) return null;
   if (!isBackOfficeIntelligenceEligible(audienceContext)) return null;
+  const audienceAlias = resolveAudienceAlias(audienceContext.segmentCode);
+  if (audienceAlias !== 'seller' && audienceAlias !== 'owner') return null;
 
   const mapping = candidate.mapping && typeof candidate.mapping === 'object'
     ? candidate.mapping as MappingAttestation
@@ -217,6 +236,7 @@ export function buildMarketingIntelligenceSnapshot(input: unknown): Intelligence
     primaryWorkspaceId,
     supplementaryWorkspaceId,
     audienceSegmentCode: audienceContext.segmentCode as 'seller' | 'growth',
+    audienceAlias,
     generatedAt: now.toISOString(),
     signals,
     unavailableMetrics: allowed.filter(metric => !signals.some(s => s.metric === metric)),
