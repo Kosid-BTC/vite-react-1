@@ -8,6 +8,9 @@ on:
       - 'apps/marketing-os/scripts/verify-explicit-workspace-offline-regression.ts'
       - 'apps/marketing-os/security/development_workspace_mapping_attestations.sql'
       - 'apps/marketing-os/scripts/verify-workspace-mapping-proposal.mjs'
+      - 'apps/marketing-os/security/development_marketing_workspace_rpc_hardening.sql'
+      - 'apps/marketing-os/security/development_backoffice_workspace_rpc_hardening.sql'
+      - 'apps/marketing-os/scripts/verify-workspace-rpc-hardening-proposal.mjs'
       - 'apps/marketing-os/docs/DEVELOPMENT_TENANT_ISOLATION_ACCEPTANCE_MATRIX.md'
       - 'apps/marketing-os/CEO_BACKOFFICE_PRODUCTION_GATES.md'
       - 'apps/marketing-os/package.json'
@@ -37,3 +40,5 @@ jobs:
         run: npx tsx scripts/verify-explicit-workspace-offline-regression.ts
       - name: Verify Development-only owner-attestation SQL proposal (static only)
         run: node scripts/verify-workspace-mapping-proposal.mjs
+      - name: Verify Development-only workspace RPC hardening proposals (static only)
+        run: node scripts/verify-workspace-rpc-hardening-proposal.mjs
