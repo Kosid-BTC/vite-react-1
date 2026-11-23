@@ -1,0 +1,61 @@
+name: Marketing OS seller seed precondition guard
+
+on:
+  push:
+    branches:
+      - fix/marketing-os-seller-seed-guard-20261123
+  pull_request:
+    paths:
+      - supabase/migrations/20261116014116_seed_ceo_ai_thailand_seller_audience_hypothesis.sql
+      - scripts/verify-marketing-os-seller-seed-preconditions.mjs
+      - .github/workflows/marketing-os-seller-seed-guard.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-os-seller-seed-guard
+  cancel-in-progress: true
+
+jobs:
+  disposable-local-migration:
+    name: Disposable local migration reset / reapply
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "SELLER_SEED_SHA_VERIFIED=$GITHUB_SHA"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify no fabricated workspace or brand seed
+        run: node scripts/verify-marketing-os-seller-seed-preconditions.mjs
+
+      - name: Verify Docker
+        run: docker info
+
+      - name: Start disposable local Supabase only
+        run: npx --yes supabase@2.40.0 start
+
+      - name: Migration reset / reapply #1 (local disposable database)
+        run: npx --yes supabase@2.40.0 db reset --local
+
+      - name: Migration reset / reapply #2 (local disposable database)
+        run: npx --yes supabase@2.40.0 db reset --local
+
+      - name: Stop disposable local Supabase
+        if: always()
+        run: npx --yes supabase@2.40.0 stop --no-backup
