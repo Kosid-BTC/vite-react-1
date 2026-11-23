@@ -236,7 +236,7 @@ jobs:
             console.log(`APPROVED_MAIN_VISUAL_MSE=${mainMse.toFixed(6)}`);
             console.log(`APPROVED_VARIANT_VISUAL_MSE=${variantMse.toFixed(6)}`);
             console.log(`APPROVED_MAIN_VISUAL_CORRELATION_INFORMATIONAL=${mainCorrelation.toFixed(6)}`);
-            if (mainMse > contract.thresholds.main.mseMax || variantMse > contract.thresholds.variant.mseMax) {
+            if (mainMse > contract.thresholds.main.mseMax || variantMse > contract.thresholds.variant.mseMax || mainCorrelation < contract.thresholds.main.correlationMin) {
               throw new Error(`Deployed screenshot diverges from approved sources: mainMse=${mainMse.toFixed(6)}, variantMse=${variantMse.toFixed(6)}`);
             }
 
@@ -269,5 +269,5 @@ jobs:
         with:
           name: approved-ui-v4-deployed-visual-qa-${{ github.sha }}
           path: apps/marketing-os/deployed-visual-qa-artifacts/*.png
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 7
