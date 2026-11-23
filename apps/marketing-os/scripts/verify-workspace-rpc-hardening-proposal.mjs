@@ -10,12 +10,12 @@ const read = (name) =>
 const marketing = read('development_marketing_workspace_rpc_hardening.sql');
 const backoffice = read('development_backoffice_workspace_rpc_hardening.sql');
 
-const normalize = (value) => value.replace(/\\s+/g, ' ').toLowerCase();
+const normalize = (value) => value.replace(/\s+/g, ' ').toLowerCase();
 const marketingSql = normalize(marketing);
 const backofficeSql = normalize(backoffice);
 
 const requiredRevocation =
-  /revoke all on function public\\.ensure_default_workspace\\(\\) from public, anon, authenticated, service_role, supabase_read_only_user/;
+  /revoke all on function public\.ensure_default_workspace\(\) from public, anon, authenticated, service_role, supabase_read_only_user/;
 
 for (const [label, sql, projectRef] of [
   ['Marketing OS', marketingSql, 'bjozpwdtqbpwcxnqguka'],
@@ -23,27 +23,27 @@ for (const [label, sql, projectRef] of [
 ]) {
   assert.match(sql, /^-- development-only proposal/);
   assert.match(sql, /do not apply to production/);
-  assert.ok(sql.includes(projectRef), `${label}: missing exact Development project ref`);
-  assert.match(sql, requiredRevocation, `${label}: implicit first-workspace RPC must be revoked`);
-  assert.match(sql, /begin;[\\s\\s]*commit;/);
-  assert.doesNotMatch(sql, /\\bgrant\\b/);
-  assert.doesNotMatch(sql, /\\b(?:drop|truncate)\\b/);
+  assert.ok(sql.includes(projectRef), label + ': missing exact Development project ref');
+  assert.match(sql, requiredRevocation, label + ': implicit first-workspace RPC must be revoked');
+  assert.match(sql, /begin;[\s\S]*commit;/);
+  assert.doesNotMatch(sql, /\bgrant\b/);
+  assert.doesNotMatch(sql, /\b(?:drop|truncate)\b/);
   assert.doesNotMatch(sql, /disable row level security/);
   assert.doesNotMatch(sql, /create policy/);
-  assert.doesNotMatch(sql, /https?:\\/\\//);
+  assert.doesNotMatch(sql, /https?:\/\//);
 }
 
-assert.match(marketingSql, /create or replace function public\\.create_workspace\\(p_name text\\)/);
+assert.match(marketingSql, /create or replace function public\.create_workspace\(p_name text\)/);
 assert.match(marketingSql, /security definer set search_path to 'public'/);
 assert.match(
   marketingSql,
-  /if auth\\.uid\\(\\) is null then raise exception 'unauthorized' using errcode = '42501'; end if;/,
+  /if auth\.uid\(\) is null then raise exception 'unauthorized' using errcode = '42501'; end if;/,
 );
-assert.match(marketingSql, /insert into public\\.workspaces \\(name, owner_id\\)/);
-assert.match(marketingSql, /insert into public\\.workspace_members \\(workspace_id, user_id, role\\)/);
-assert.match(marketingSql, /insert into public\\.workspace_state \\(workspace_id, data\\)/);
+assert.match(marketingSql, /insert into public\.workspaces \(name, owner_id\)/);
+assert.match(marketingSql, /insert into public\.workspace_members \(workspace_id, user_id, role\)/);
+assert.match(marketingSql, /insert into public\.workspace_state \(workspace_id, data\)/);
 
 // CEO Back Office already has the auth.uid() guard; avoid replacing its function here.
-assert.doesNotMatch(backofficeSql, /create or replace function public\\.create_workspace/);
+assert.doesNotMatch(backofficeSql, /create or replace function public\.create_workspace/);
 
 console.log('PASS: both Development-only RPC hardening proposals are scoped, fail-closed, and static-only; no SQL was executed');
