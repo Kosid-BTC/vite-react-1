@@ -29,13 +29,20 @@ const cases: Array<{ name: string; input: unknown; reason: string }> = [
   },
 ];
 
-for (const testCase of cases) {
-  const result = await readSupplementaryBrands(testCase.input);
-  assert.deepEqual(
-    result,
-    { ok: false, reason: testCase.reason },
-    `unexpected result for ${testCase.name}`,
-  );
+async function main(): Promise<void> {
+  for (const testCase of cases) {
+    const result = await readSupplementaryBrands(testCase.input);
+    assert.deepEqual(
+      result,
+      { ok: false, reason: testCase.reason },
+      `unexpected result for ${testCase.name}`,
+    );
+  }
+
+  console.log(`PASS: supplementary adapter runtime contract (${cases.length} fail-closed cases)`);
 }
 
-console.log(`PASS: supplementary adapter runtime contract (${cases.length} fail-closed cases)`);
+void main().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});
