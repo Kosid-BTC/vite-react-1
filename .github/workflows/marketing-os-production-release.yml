@@ -50,6 +50,7 @@ jobs:
           fetch-depth: 0
 
       - name: Require merged PR review approval for this exact Production SHA
+        id: approval
         env:
           APPROVED_PRODUCTION_SHA_INPUT: ${{ inputs.approved_production_sha }}
           APPROVAL_REFERENCE: ${{ inputs.approval_reference }}
@@ -82,6 +83,8 @@ jobs:
             echo "::error::NO_NON_AUTHOR_APPROVAL_FOR_EXACT_PR_HEAD"
             exit 1
           fi
+          echo "pr_head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "approval_pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           echo "MERGED_PR_EXACT_SHA_REVIEW_APPROVAL=PASS"
           echo "APPROVED_PRODUCTION_SHA=$GITHUB_SHA"
 
@@ -97,14 +100,16 @@ jobs:
       - name: Verify exact-SHA CI, authoritative Preview and visual fixture artifact
         env:
           GH_TOKEN: ${{ github.token }}
+          APPROVED_PR_HEAD_SHA: ${{ steps.approval.outputs.pr_head_sha }}
         shell: bash
         run: |
           set -euo pipefail
-          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&per_page=100")"
+          test -n "$APPROVED_PR_HEAD_SHA"
+          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$APPROVED_PR_HEAD_SHA&per_page=100")"
           require_success() {
             local path="$1"
             local run_id
-            run_id="$(jq -r --arg path "$path" --arg sha "$GITHUB_SHA" '[.workflow_runs[] | select(.path == $path and .head_sha == $sha and .conclusion == "success")] | sort_by(.run_started_at) | last | .id // empty' <<<"$runs")"
+            run_id="$(jq -r --arg path "$path" --arg sha "$APPROVED_PR_HEAD_SHA" '[.workflow_runs[] | select(.path == $path and .head_sha == $sha and .conclusion == "success")] | sort_by(.run_started_at) | last | .id // empty' <<<"$runs")"
             if [ -z "$run_id" ]; then
               echo "::error::EXACT_SHA_WORKFLOW_NOT_GREEN: $path"
               exit 1
@@ -115,7 +120,7 @@ jobs:
           full_gate_run="$(require_success '.github/workflows/marketing-os-approved-ui-v4-full-gate.yml')"
           preview_run="$(require_success '.github/workflows/marketing-os-isolated-preview.yml')"
           visual_run="$(require_success '.github/workflows/marketing-os-approved-ui-v4-deployed-visual-gate.yml')"
-          artifact_name="approved-ui-v4-deployed-visual-qa-$GITHUB_SHA"
+          artifact_name="approved-ui-v4-deployed-visual-qa-$APPROVED_PR_HEAD_SHA"
           artifact_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$visual_run/artifacts" --jq ".artifacts[] | select(.name == \"$artifact_name\" and .expired == false) | .id" | head -n 1)"
           if [ -z "$artifact_id" ]; then
             echo "::error::EXACT_SHA_APPROVED_V4_VISUAL_ARTIFACT_MISSING"
@@ -125,6 +130,8 @@ jobs:
           echo "EXACT_SHA_AUTHORITATIVE_PREVIEW_RUN=$preview_run"
           echo "EXACT_SHA_VISUAL_FIXTURE_RUN=$visual_run"
           echo "EXACT_SHA_VISUAL_FIXTURE_ARTIFACT=$artifact_id"
+          echo "PR_HEAD_SOURCE_SHA=$APPROVED_PR_HEAD_SHA"
+          echo "RELEASE_MERGE_SHA=$GITHUB_SHA"
 
       - name: Fail closed on outdated Approved V4 visual authority
         shell: bash
@@ -161,11 +168,16 @@ jobs:
           PREVIEW_VISUAL_SHA: ${{ vars.MARKETING_OS_V4_PREVIEW_VISUAL_SHA }}
           BACKUP_RESTORE_ROLLBACK_SHA: ${{ vars.MARKETING_OS_BACKUP_RESTORE_ROLLBACK_SHA }}
           SECURITY_GATE_SHA: ${{ vars.MARKETING_OS_SECURITY_GATE_SHA }}
+          APPROVED_PR_HEAD_SHA: ${{ steps.approval.outputs.pr_head_sha }}
         run: |
           set -euo pipefail
-          for key in APPROVED_SHA PREVIEW_AUTH_SHA PREVIEW_VISUAL_SHA BACKUP_RESTORE_ROLLBACK_SHA SECURITY_GATE_SHA; do
-            if [ -z "${!key:-}" ] || [ "${!key}" != "$GITHUB_SHA" ]; then
-              echo "::error::MISSING_EXACT_SHA_RELEASE_ATTESTATION: $key; release halted before Vercel credentials"
+          if [ -z "$APPROVED_SHA" ] || [ "$APPROVED_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::APPROVED_MERGE_SHA_MISMATCH"
+            exit 1
+          fi
+          for key in PREVIEW_AUTH_SHA PREVIEW_VISUAL_SHA BACKUP_RESTORE_ROLLBACK_SHA SECURITY_GATE_SHA; do
+            if [ -z "${!key:-}" ] || [ "${!key}" != "$APPROVED_PR_HEAD_SHA" ]; then
+              echo "::error::MISSING_EXACT_SHA_RELEASE_ATTESTATION: $key; expected PR head $APPROVED_PR_HEAD_SHA"
               exit 1
             fi
           done
