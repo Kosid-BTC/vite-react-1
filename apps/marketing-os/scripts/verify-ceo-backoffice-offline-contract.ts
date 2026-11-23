@@ -1,8 +1,10 @@
 // Offline contract regression: no credentials, DB connection, or tenant data required.
 import assert from 'node:assert/strict';
 import {
+  AUDIENCE_ALIAS_MAP,
   BUSINESS_TYPE_NOT_SEGMENT,
   SELLER_SEGMENT_POLICY,
+  resolveAudienceAlias,
   isBackOfficeIntelligenceEligible,
   isMappingAttested,
   buildMarketingIntelligenceSnapshot,
@@ -65,12 +67,15 @@ const args = {
 const build = (overrides: Partial<Parameters<typeof buildMarketingIntelligenceSnapshot>[0]> = {}) =>
   buildMarketingIntelligenceSnapshot({ ...args, signals: [validSignal], ...overrides });
 
+assert.deepEqual(AUDIENCE_ALIAS_MAP, { employee: 'sidebiz', growth: 'owner' });
+assert.equal(resolveAudienceAlias('employee'), 'sidebiz');
+assert.equal(resolveAudienceAlias('growth'), 'owner');
 assert.equal(SELLER_SEGMENT_POLICY.evidenceStatus, 'hypothesis');
 assert.equal(SELLER_SEGMENT_POLICY.primaryPain, 'มีของขายแล้วแต่ลูกค้าหาไม่เจอ');
 assert.deepEqual(BUSINESS_TYPE_NOT_SEGMENT, ['food', 'palm']);
 assert.equal(isBackOfficeIntelligenceEligible(sellerAudience), true);
 assert.equal(isBackOfficeIntelligenceEligible({ ...sellerAudience, segmentCode: 'growth' }), true);
-assert.equal(isBackOfficeIntelligenceEligible({ ...sellerAudience, segmentCode: 'employee' }), false);
+assert.equal(isBackOfficeIntelligenceEligible({ ...sellerAudience, segmentCode: 'employee' }), false, 'employee alias does not bypass beginner-only eligibility');
 assert.equal(isBackOfficeIntelligenceEligible({ ...sellerAudience, segmentCode: 'graduate' }), false);
 assert.equal(isBackOfficeIntelligenceEligible({ ...sellerAudience, segmentCode: 'newbie' }), false);
 assert.equal(isBackOfficeIntelligenceEligible({ ...sellerAudience, onboardingStage: 'pre_signup' }), false);
