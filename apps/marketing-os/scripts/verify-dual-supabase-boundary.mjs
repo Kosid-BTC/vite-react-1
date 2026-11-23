@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 const dir = resolve(process.cwd(), 'src/lib/supabase');
 const boundary = readFileSync(resolve(dir, 'supplementary-boundary.ts'), 'utf8');
 const adapter = readFileSync(resolve(dir, 'supplementary-readonly.ts'), 'utf8');
+const inputGuard = readFileSync(resolve(dir, 'supplementary-input.ts'), 'utf8');
 
 const forbiddenCrossProjectAccess =
   /\b(?:fetch|axios|XMLHttpRequest|WebSocket|EventSource)\b|\bcreate(?:Server)?Client\s*\(|\bSupabaseClient\b|\.rpc\s*\(|\.from\s*\(|\.auth\b|SUPABASE_SERVICE_ROLE_KEY|CEO_AI_SUPABASE_PUBLISHABLE_KEY/;
@@ -14,21 +15,21 @@ assert.match(boundary, /import 'server-only'/);
 assert.match(adapter, /import 'server-only'/);
 assert.match(boundary, /enabled: false/);
 assert.match(adapter, /supplementaryDatabaseAccess\(\)/);
+assert.match(adapter, /hasExplicitWorkspaceIds\(input\)/);
 assert.match(adapter, /WORKSPACE_MAPPING_UNVERIFIED/);
 
-// Runtime input is untrusted: reject null, primitives, arrays and non-string IDs
-// before reading nested values or calling trim().
-assert.match(adapter, /readSupplementaryBrands\(input: unknown\)/);
-assert.match(adapter, /input === null \|\| typeof input !== 'object' \|\| Array\.isArray\(input\)/);
-assert.match(adapter, /typeof primaryWorkspaceId !== 'string'/);
-assert.match(adapter, /typeof targetWorkspaceId !== 'string'/);
-assert.match(adapter, /primaryWorkspaceId\.trim\(\)\.length === 0/);
-assert.match(adapter, /targetWorkspaceId\.trim\(\)\.length === 0/);
+// The pure input validator rejects null, primitives, arrays and non-string/blank IDs.
+assert.match(inputGuard, /export function hasExplicitWorkspaceIds\(input: unknown\)/);
+assert.match(inputGuard, /input === null \|\| typeof input !== 'object' \|\| Array\.isArray\(input\)/);
+assert.match(inputGuard, /typeof primaryWorkspaceId === 'string'/);
+assert.match(inputGuard, /primaryWorkspaceId\.trim\(\)\.length > 0/);
+assert.match(inputGuard, /typeof targetWorkspaceId === 'string'/);
+assert.match(inputGuard, /targetWorkspaceId\.trim\(\)\.length > 0/);
 
-// Neither the boundary nor adapter may create a client, authenticate against,
-// query, or make a network request to the supplementary project before acceptance.
+// Neither the boundary, adapter nor pure validator may access the supplementary project.
 assert.doesNotMatch(boundary, forbiddenCrossProjectAccess);
 assert.doesNotMatch(adapter, forbiddenCrossProjectAccess);
+assert.doesNotMatch(inputGuard, forbiddenCrossProjectAccess);
 assert.doesNotMatch(adapter, /service_role|SUPABASE_SERVICE_ROLE_KEY/);
 assert.doesNotMatch(adapter, /\.(?:insert|update|delete|upsert)\s*\(/);
 
@@ -39,4 +40,4 @@ assert.match(adapter, /return \{ ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIE
 // Compatibility credential is documented as ignored and must never be consumed.
 assert.equal((adapter.match(/targetAccessToken/g) ?? []).length, 1);
 
-console.log('PASS: supplementary adapter rejects malformed input, remains server-only and fail-closed, and makes no cross-project network/database call');
+console.log('PASS: supplementary boundary remains server-only/fail-closed and explicit workspace input is validated without cross-project access');
