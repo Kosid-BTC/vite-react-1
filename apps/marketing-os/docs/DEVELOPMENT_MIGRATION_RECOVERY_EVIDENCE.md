@@ -18,12 +18,20 @@
 
 The Marketing OS branch remains `MIGRATIONS_FAILED` despite several recovery migrations being recorded. A migration inventory is not proof that every migration or the branch replay completed successfully.
 
-Latest listed Marketing OS migration versions observed:
-- `20261116022351` — `dev_restore_pg_cron_extension_for_behavior_maintenance`
-- `20261116022142` — `dev_recover_marketing_os_rls_without_destructive_replacements`
-- `20261116022118` — `dev_recover_202608230107_workspace_slug`
-- `20261116022116` — `dev_recover_202608230106_marketing_os_storage_seed`
-- `20261116021717` — `dev_recover_202608230104_marketing_os_approval_tracking`
+Latest listed Marketing OS recovery migration ledger entries observed:
+
+| Version | Name | Statements | SQL MD5 |
+|---|---|---:|---|
+| `20261116021619` | `dev_recover_0002_workspaces` | 1 | `bbcd7ec75f658a7894ee1ff0a891a507` |
+| `20261116021703` | `dev_recover_0003_members` | 1 | `afcbd151ff23c4b11523966057222d66` |
+| `20261116021705` | `dev_recover_202608230101_marketing_os_roles_helpers` | 1 | `a733e851adf2ae19d945afbd831decb2` |
+| `20261116021712` | `dev_recover_202608230102_marketing_os_strategy` | 1 | `cbe04652244df9b10cb4a7cae4e58631` |
+| `20261116021715` | `dev_recover_202608230103_marketing_os_campaign_content` | 1 | `901507cedcfe874c2b364b9697a6059a` |
+| `20261116021717` | `dev_recover_202608230104_marketing_os_approval_tracking` | 1 | `6c6d5bbe49654b511f43e25d51b52a6d` |
+| `20261116022116` | `dev_recover_202608230106_marketing_os_storage_seed` | 1 | `a2a57325f179a7fe2105b373ca136d12` |
+| `20261116022118` | `dev_recover_202608230107_workspace_slug` | 1 | `03756d8c645f75df54af991ce6c5d48c` |
+| `20261116022142` | `dev_recover_marketing_os_rls_without_destructive_replacements` | 1 | `765a75b3a7fad15e8ce42144061ee7ca` |
+| `20261116022351` | `dev_restore_pg_cron_extension_for_behavior_maintenance` | 1 | `d78e5196bc668ec6de17e09a80320422` |
 
 ## 2. Historical Marketing OS PostgreSQL errors
 
@@ -85,11 +93,29 @@ Observed on 2026-11-23 around 16:04 UTC:
 
 These are advisor counts, not proof that every finding is exploitable. Review each function's authorization logic and each table's intended access contract before changing grants or policies.
 
-## 6. Credential-handling note
+## 6. Marketing FK-drift preflight (catalog only)
+
+A separate read-only catalog preflight was run against Marketing OS Development on 2026-11-23. It did not inspect application row contents or counts.
+
+- The candidate columns `marketing_compliance_findings.content_version_id`, and `marketing_tracking_links.content_version_id`, `audience_segment_id`, `message_pillar_id`, `offer_id`, and `cta_id` are all absent.
+- The six corresponding candidate composite foreign-key constraints in the Development-only FK repair proposal are also absent.
+- Existing workspace-scoped constraints remain present and validated:
+  - `marketing_compliance_findings(brand_rule_id, workspace_id)` → `marketing_brand_rules(id, workspace_id)`.
+  - `marketing_compliance_findings(content_item_id, workspace_id)` → `marketing_content_items(id, workspace_id)`.
+  - `marketing_tracking_links(campaign_id, workspace_id)` → `marketing_campaigns(id, workspace_id)`.
+  - `marketing_tracking_links(content_item_id, workspace_id)` → `marketing_content_items(id, workspace_id)`.
+- The existing `marketing_compliance_findings` policies are authenticated SELECT via `is_member(workspace_id)` and UPDATE via `can_review_workspace(workspace_id)`.
+- The existing `marketing_approval_requests` INSERT policy requires `can_edit_workspace(workspace_id)`, `requested_by = auth.uid()`, and `status = 'pending'`; SELECT uses `is_member`; UPDATE uses `can_review_workspace`.
+
+The six proposed columns and constraints are not present in the current catalog, so that specific column/constraint collision guard did not reproduce. The FK repair proposal also requires both target tables to be empty; row counts were deliberately not queried, so that precondition remains **UNVERIFIED**. This FK drift proposal is separate from the historical relation/cron/seed failures and does not explain the current `MIGRATIONS_FAILED` branch status.
+
+No DDL or DML was applied.
+
+## 7. Credential-handling note
 
 A historical cron-scheduling SQL log line contains an Authorization bearer JWT whose decoded role is `anon`; the token value is intentionally omitted here. The same statement references a Vault secret by name but the selected log evidence does not include the Vault secret value. This is not evidence of a leaked `service_role` key. Avoid embedding credentials in SQL text that is logged; verify the job's current credential source and keep privileged maintenance credentials in Vault/server-side execution.
 
-## 7. Required recovery sequence
+## 8. Required recovery sequence
 
 1. Obtain and attest a recoverable backup for each Development project.
 2. Restore each backup into an isolated PostgreSQL 17 target and verify schema, extensions, migration history, and rollback.
@@ -99,7 +125,7 @@ A historical cron-scheduling SQL log line contains an Authorization bearer JWT w
 6. Independently verify both owners' consent events before implementing or enabling the mapping registry.
 7. Keep the supplementary adapter fail-closed until owner attestation, RLS/RPC authorization, and per-read authorization are accepted.
 
-## 8. Current acceptance state
+## 9. Current acceptance state
 
 - Source/static CI: may pass independently; it does not certify database integration.
 - Marketing OS Development migration state: **FAIL / MIGRATIONS_FAILED**.
