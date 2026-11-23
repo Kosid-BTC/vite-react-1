@@ -129,7 +129,9 @@ export function isMappingAttested(
   supplementaryWorkspaceId: string,
   now: Date,
 ): boolean {
-  if (!mapping) return false;
+  // Runtime callers may cross this boundary with untrusted JSON despite the static type.
+  if (!mapping || typeof mapping !== 'object' || Array.isArray(mapping)) return false;
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) return false;
   if (!isNonBlank(primaryWorkspaceId) || !isNonBlank(supplementaryWorkspaceId)) return false;
 
   // Revocation is terminal for this attestation. Mismatched timestamp/reason pairs fail closed.
