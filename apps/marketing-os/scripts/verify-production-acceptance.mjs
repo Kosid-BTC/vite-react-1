@@ -100,6 +100,9 @@ try {
   assert.ok(dashboardResponse && dashboardResponse.status() === 200, 'Authenticated dashboard did not return HTTP 200');
   await page.locator('main.marketing-app-shell').waitFor({ state: 'visible', timeout: 30000 });
 
+  assert.equal(await page.locator('.ai-panel.mobile-dashboard-panel').count(), 1, 'Mobile AI panel must remain in the dashboard DOM');
+  assert.equal(await page.locator('.recent-panel.mobile-dashboard-panel').count(), 1, 'Mobile Recent Activity panel must remain in the dashboard DOM');
+
   for (const selector of [
     '.app-sidebar',
     '.topbar',
@@ -109,10 +112,10 @@ try {
     '.metric-grid',
     '.performance-panel',
     '.traffic-source',
-    '.ai-panel.mobile-dashboard-panel',
+    '.dashboard-side-column .ai-panel',
     '.genome-panel',
     '.mit-panel',
-    '.recent-panel',
+    '.dashboard-side-column .recent-panel',
     '.platform-panel',
   ]) {
     assert.ok(await page.locator(selector).first().isVisible(), `Required Approved V4 component missing: ${selector}`);
