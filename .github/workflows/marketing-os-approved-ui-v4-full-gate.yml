@@ -51,6 +51,9 @@ jobs:
       - name: Approved UX/UI V4 structural parity contract
         working-directory: apps/marketing-os
         run: npm run test:approved-ui
+      - name: Production acceptance smoke script syntax
+        working-directory: apps/marketing-os
+        run: node --check scripts/verify-production-acceptance.mjs
       - name: P1.3 Growth decision boundary verification
         working-directory: apps/marketing-os
         run: npm run test:p1-3
