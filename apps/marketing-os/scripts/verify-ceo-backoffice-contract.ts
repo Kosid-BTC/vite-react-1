@@ -68,6 +68,23 @@ const build = (
 });
 
 assert.equal(isBackOfficeIntelligenceEligible(audience), true);
+const validInput = {
+  primaryWorkspaceId: 'primary-a',
+  supplementaryWorkspaceId: 'target-a',
+  audience,
+  mapping,
+  now,
+  signals: [signal],
+};
+assert.equal(buildMarketingIntelligenceSnapshot(null), null, 'null runtime input fails closed');
+assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, audience: null }), null, 'null audience fails closed');
+assert.equal(buildMarketingIntelligenceSnapshot({
+  ...validInput,
+  audience: { segmentCode: 'owner', onboardingStage: 'post_onboarding', hasVerifiedBusinessSignals: true },
+}), null, 'unknown audience segment fails closed');
+assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, now: '2026-11-15T12:00:00Z' }), null, 'non-Date runtime clock fails closed');
+assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, now: new Date('invalid') }), null, 'invalid runtime clock fails closed');
+assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, signals: null }), null, 'null runtime signals fail closed');
 assert.equal(build(mapping, [signal], { ...audience, onboardingStage: 'pre_signup' }), null, 'pre-signup must not receive advanced KPIs');
 assert.equal(build(mapping, [signal], { ...audience, segmentCode: 'newbie' }), null, 'beginner segment must not receive advanced KPIs');
 assert.equal(build(mapping, [signal], { ...audience, hasVerifiedBusinessSignals: false }), null, 'missing verified business signals must fail closed');
