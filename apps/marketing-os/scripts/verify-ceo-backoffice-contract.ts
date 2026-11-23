@@ -108,4 +108,7 @@ const invalid: MarketingSignal[] = [
   { ...signal, metric: 'repeat_purchase_rate', value: -0.1, unit: 'ratio' },
 ];
 assert.equal(build(mapping, invalid)?.signals.length, 0, 'invalid evidence, values and units rejected');
+assert.equal(build(mapping, null as unknown as MarketingSignal[]), null, 'malformed signals collection fails closed');
+assert.equal(build(mapping, [null as unknown as MarketingSignal])?.signals.length, 0, 'null signal row is excluded without throwing');
+assert.equal(build(mapping, [{ ...signal, evidence: null } as unknown as MarketingSignal])?.signals.length, 0, 'null evidence object is excluded without throwing');
 console.log('PASS: CEO Back Office contract checks (dual owner evidence, expiry/revocation, audience, provenance)');
