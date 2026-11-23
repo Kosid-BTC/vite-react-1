@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {
   isBackOfficeIntelligenceEligible,
+  resolveAudienceAlias,
   isMappingAttested,
   buildMarketingIntelligenceSnapshot,
   type AudienceContext,
@@ -68,6 +69,10 @@ const build = (
 });
 
 assert.equal(isBackOfficeIntelligenceEligible(audience), true);
+assert.equal(resolveAudienceAlias('employee'), 'sidebiz', 'employee is a canonical sidebiz alias, not a new segment');
+assert.equal(resolveAudienceAlias('growth'), 'owner', 'growth is a canonical owner alias, not a new segment');
+assert.equal(resolveAudienceAlias('seller'), 'seller');
+assert.equal(isBackOfficeIntelligenceEligible({ ...audience, segmentCode: 'employee' }), false, 'employee remains beginner-only');
 const validInput = {
   primaryWorkspaceId: 'primary-a',
   supplementaryWorkspaceId: 'target-a',
@@ -109,7 +114,13 @@ assert.equal(build(mapping, [signal], audience, 'primary-a', ''), null, 'missing
 const snapshot = build(mapping);
 assert.ok(snapshot, 'valid dual-owner attestation and audience yield pure snapshot');
 assert.equal(snapshot.audienceSegmentCode, 'seller');
+assert.equal(snapshot.audienceAlias, 'seller');
 assert.equal(snapshot.signals.length, 1);
+
+const growthSnapshot = build(mapping, [signal], { ...audience, segmentCode: 'growth' });
+assert.ok(growthSnapshot);
+assert.equal(growthSnapshot.audienceSegmentCode, 'growth');
+assert.equal(growthSnapshot.audienceAlias, 'owner', 'growth resolves to owner without creating an owner audience segment');
 assert.deepEqual(snapshot.unavailableMetrics, ['gross_margin', 'customer_count', 'repeat_purchase_rate'], 'missing KPI must not be invented');
 
 const invalid: MarketingSignal[] = [
