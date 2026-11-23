@@ -17,7 +17,7 @@ permissions:
 jobs:
   cross-project-read-guard:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: apps/marketing-os
@@ -32,3 +32,5 @@ jobs:
         run: node scripts/verify-dual-supabase-boundary.mjs
       - name: Verify pure explicit workspace input contract
         run: npx tsx scripts/verify-supplementary-adapter-runtime.ts
+      - name: Typecheck Marketing OS
+        run: npm run typecheck -- --pretty false
