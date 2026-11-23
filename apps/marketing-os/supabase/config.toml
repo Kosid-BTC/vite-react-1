@@ -1,0 +1,9 @@
+# Marketing OS Edge Function config.
+# Intentionally omit project_id: every CLI operation must pass an explicit --project-ref.
+# The repository-root supabase/config.toml belongs to CEO Back Office, not Marketing OS.
+
+[functions.marketing-behavior-ingest]
+verify_jwt = true
+
+[functions.marketing-behavior-maintenance]
+verify_jwt = true
