@@ -59,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$APPROVED_PRODUCTION_SHA_INPUT" = "$GITHUB_SHA"
-          if [[ "$APPROVAL_REFERENCE" =~ ^https://github.com/Kosid-BTC/vite-react-1/pull/([0-9]+)$ ]]; then
+          if [[ "$APPROVAL_REFERENCE" =~ ^https://github\\.com/Kosid-BTC/vite-react-1/pull/([0-9]+)$ ]]; then
             PR_NUMBER="${BASH_REMATCH[1]}"
           else
             echo "::error::EXPLICIT_APPROVAL_REFERENCE_REQUIRED"
@@ -74,6 +74,13 @@ jobs:
           author="$(jq -r '.user.login' <<<"$pr_json")"
           if [ "$merged" != "true" ] || [ "$base_ref" != "release/marketing-os-production" ] || [ "$merge_sha" != "$GITHUB_SHA" ]; then
             echo "::error::APPROVAL_PR_NOT_MERGED_TO_RELEASE_AT_EXACT_SHA"
+            exit 1
+          fi
+
+          head_tree="$(gh api "repos/$GITHUB_REPOSITORY/commits/$head_sha" --jq '.commit.tree.sha')"
+          merge_tree="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --jq '.commit.tree.sha')"
+          if [ "$head_tree" != "$merge_tree" ]; then
+            echo "::error::RELEASE_MERGE_TREE_DIFFERS_FROM_APPROVED_PR_HEAD"
             exit 1
           fi
 
