@@ -83,7 +83,7 @@ export type MappingAttestation = {
   revocationReason: string | null;
 };
 
-const isNonBlank = (value: string | null | undefined): boolean =>
+const isNonBlank = (value: unknown): value is string =>
   typeof value === 'string' && value.trim().length > 0;
 
 const isSha256Digest = (value: string): boolean => /^[0-9a-f]{64}$/.test(value);
@@ -150,19 +150,39 @@ export function buildMarketingIntelligenceSnapshot(input: {
   if (!isMappingAttested(input.mapping, input.primaryWorkspaceId, input.supplementaryWorkspaceId, input.now)) return null;
 
   const allowed: MarketingSignal['metric'][] = ['revenue', 'gross_margin', 'customer_count', 'repeat_purchase_rate'];
-  const signals = input.signals.filter(s =>
-    allowed.includes(s.metric) && Number.isFinite(s.value) && s.value >= 0
-    && isNonBlank(s.evidence.sourceTable)
-    && isNonBlank(s.evidence.sourceRecordId)
-    && s.evidence.sourceProject === 'ceo-ai-backoffice'
-    && Number.isFinite(Date.parse(s.evidence.observedAt))
-    && Number.isFinite(Date.parse(s.periodStart))
-    && Number.isFinite(Date.parse(s.periodEnd))
-    && Date.parse(s.periodStart) <= Date.parse(s.periodEnd)
-    && (s.unit === (s.metric === 'revenue' ? 'THB' : s.metric === 'customer_count' ? 'count' : 'ratio'))
-    && (s.metric !== 'gross_margin' && s.metric !== 'repeat_purchase_rate' || s.value >= 0 && s.value <= 1)
-    && (s.metric !== 'customer_count' || s.value >= 0 && Number.isInteger(s.value))
-  );
+  // Treat runtime JSON as untrusted even though this pure contract is statically typed.
+  // A malformed collection fails closed; malformed individual rows are excluded.
+  if (!Array.isArray(input.signals)) return null;
+  const signals = input.signals.filter((candidate): candidate is MarketingSignal => {
+    if (!candidate || typeof candidate !== 'object') return false;
+    const s = candidate as Partial<MarketingSignal>;
+    if (typeof s.metric !== 'string' || !allowed.includes(s.metric as MarketingSignal['metric'])) return false;
+    if (typeof s.value !== 'number' || !Number.isFinite(s.value) || s.value < 0) return false;
+    if (!isNonBlank(s.periodStart) || !isNonBlank(s.periodEnd)) return false;
+    if (!isNonBlank(s.unit)) return false;
+    const evidence = s.evidence;
+    if (!evidence || typeof evidence !== 'object') return false;
+    const e = evidence as Partial<Evidence>;
+    if (e.sourceProject !== 'ceo-ai-backoffice'
+      || !isNonBlank(e.sourceTable)
+      || !isNonBlank(e.sourceRecordId)
+      || !isNonBlank(e.observedAt)
+      || !Number.isFinite(Date.parse(e.observedAt))
+      || !Number.isFinite(Date.parse(s.periodStart))
+      || !Number.isFinite(Date.parse(s.periodEnd))
+      || Date.parse(s.periodStart) > Date.parse(s.periodEnd)) return false;
+
+    const expectedUnit = s.metric === 'revenue'
+      ? 'THB'
+      : s.metric === 'customer_count'
+        ? 'count'
+        : 'ratio';
+    if (s.unit !== expectedUnit) return false;
+    if ((s.metric === 'gross_margin' || s.metric === 'repeat_purchase_rate')
+      && s.value > 1) return false;
+    if (s.metric === 'customer_count' && !Number.isInteger(s.value)) return false;
+    return true;
+  });
 
   return {
     primaryWorkspaceId: input.primaryWorkspaceId,
