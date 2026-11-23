@@ -94,7 +94,11 @@ assert.equal(build(mapping, [signal], { ...audience, onboardingStage: 'pre_signu
 assert.equal(build(mapping, [signal], { ...audience, segmentCode: 'newbie' }), null, 'beginner segment must not receive advanced KPIs');
 assert.equal(build(mapping, [signal], { ...audience, hasVerifiedBusinessSignals: false }), null, 'missing verified business signals must fail closed');
 assert.equal(isMappingAttested(null, 'primary-a', 'target-a', now), false, 'missing mapping must fail closed');
+assert.equal(isMappingAttested({} as unknown as MappingAttestation, 'primary-a', 'target-a', now), false, 'malformed mapping envelope must fail closed');
+assert.equal(isMappingAttested([] as unknown as MappingAttestation, 'primary-a', 'target-a', now), false, 'array mapping envelope must fail closed');
+assert.equal(isMappingAttested(mapping, 'primary-a', 'target-a', null as unknown as Date), false, 'malformed runtime clock must fail closed');
 assert.equal(build(null), null, 'no mapping: no snapshot');
+assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, mapping: { ...mapping, primary: null } }), null, 'null primary owner evidence must fail closed');
 assert.equal(build({ ...mapping, revokedAt: '2026-11-15T11:00:00Z', revocationReason: 'owner revoked' }), null, 'revoked mapping');
 assert.equal(build({ ...mapping, revocationReason: 'reason without timestamp' }), null, 'revocation reason without timestamp');
 assert.equal(build({ ...mapping, expiresAt: '2026-11-15T12:00:00Z' }), null, 'expiry boundary');
