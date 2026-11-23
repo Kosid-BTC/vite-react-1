@@ -86,6 +86,20 @@ export type MappingAttestation = {
 const isNonBlank = (value: unknown): value is string =>
   typeof value === 'string' && value.trim().length > 0;
 
+const isAudienceContext = (value: unknown): value is AudienceContext => {
+  if (!value || typeof value !== 'object') return false;
+  const context = value as Partial<AudienceContext>;
+  return (context.segmentCode === 'employee'
+      || context.segmentCode === 'graduate'
+      || context.segmentCode === 'newbie'
+      || context.segmentCode === 'seller'
+      || context.segmentCode === 'growth')
+    && (context.onboardingStage === 'pre_signup'
+      || context.onboardingStage === 'beginner_onboarding'
+      || context.onboardingStage === 'post_onboarding')
+    && typeof context.hasVerifiedBusinessSignals === 'boolean';
+};
+
 const isSha256Digest = (value: string): boolean => /^[0-9a-f]{64}$/.test(value);
 
 /**
@@ -138,24 +152,39 @@ export function isMappingAttested(
 }
 
 /** Explicitly preserve missing metrics; never fabricate business KPIs. */
-export function buildMarketingIntelligenceSnapshot(input: {
-  primaryWorkspaceId: string;
-  supplementaryWorkspaceId: string;
-  audience: AudienceContext;
-  mapping: MappingAttestation | null;
-  now: Date;
-  signals: MarketingSignal[];
-}): IntelligenceSnapshot | null {
-  if (!isBackOfficeIntelligenceEligible(input.audience)) return null;
-  if (!isMappingAttested(input.mapping, input.primaryWorkspaceId, input.supplementaryWorkspaceId, input.now)) return null;
+export function buildMarketingIntelligenceSnapshot(input: unknown): IntelligenceSnapshot | null {
+  // The public boundary accepts unknown because runtime JSON is not protected by TypeScript types.
+  if (!input || typeof input !== 'object') return null;
+  const candidate = input as {
+    primaryWorkspaceId?: unknown;
+    supplementaryWorkspaceId?: unknown;
+    audience?: unknown;
+    mapping?: unknown;
+    now?: unknown;
+    signals?: unknown;
+  };
+  const primaryWorkspaceId = candidate.primaryWorkspaceId;
+  const supplementaryWorkspaceId = candidate.supplementaryWorkspaceId;
+  const audienceContext = candidate.audience;
+  const now = candidate.now;
+
+  if (!isNonBlank(primaryWorkspaceId) || !isNonBlank(supplementaryWorkspaceId)) return null;
+  if (!isAudienceContext(audienceContext)) return null;
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) return null;
+  if (!isBackOfficeIntelligenceEligible(audienceContext)) return null;
+
+  const mapping = candidate.mapping && typeof candidate.mapping === 'object'
+    ? candidate.mapping as MappingAttestation
+    : null;
+  if (!isMappingAttested(mapping, primaryWorkspaceId, supplementaryWorkspaceId, now)) return null;
 
   const allowed: MarketingSignal['metric'][] = ['revenue', 'gross_margin', 'customer_count', 'repeat_purchase_rate'];
   // Treat runtime JSON as untrusted even though this pure contract is statically typed.
   // A malformed collection fails closed; malformed individual rows are excluded.
-  if (!Array.isArray(input.signals)) return null;
-  const signals = input.signals.filter((candidate): candidate is MarketingSignal => {
-    if (!candidate || typeof candidate !== 'object') return false;
-    const s = candidate as Partial<MarketingSignal>;
+  if (!Array.isArray(candidate.signals)) return null;
+  const signals = candidate.signals.filter((candidateSignal): candidateSignal is MarketingSignal => {
+    if (!candidateSignal || typeof candidateSignal !== 'object') return false;
+    const s = candidateSignal as Partial<MarketingSignal>;
     if (typeof s.metric !== 'string' || !allowed.includes(s.metric as MarketingSignal['metric'])) return false;
     if (typeof s.value !== 'number' || !Number.isFinite(s.value) || s.value < 0) return false;
     if (!isNonBlank(s.periodStart) || !isNonBlank(s.periodEnd)) return false;
@@ -185,10 +214,10 @@ export function buildMarketingIntelligenceSnapshot(input: {
   });
 
   return {
-    primaryWorkspaceId: input.primaryWorkspaceId,
-    supplementaryWorkspaceId: input.supplementaryWorkspaceId,
-    audienceSegmentCode: input.audience.segmentCode as 'seller' | 'growth',
-    generatedAt: input.now.toISOString(),
+    primaryWorkspaceId,
+    supplementaryWorkspaceId,
+    audienceSegmentCode: audienceContext.segmentCode as 'seller' | 'growth',
+    generatedAt: now.toISOString(),
     signals,
     unavailableMetrics: allowed.filter(metric => !signals.some(s => s.metric === metric)),
   };
