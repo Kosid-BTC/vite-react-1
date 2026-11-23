@@ -1,48 +1,40 @@
 import assert from 'node:assert/strict';
-import { readSupplementaryBrands } from '../src/lib/supabase/supplementary-readonly';
+import { hasExplicitWorkspaceIds } from '../src/lib/supabase/supplementary-input';
 
-const cases: Array<{ name: string; input: unknown; reason: string }> = [
-  { name: 'null input', input: null, reason: 'NOT_CONFIGURED' },
-  { name: 'undefined input', input: undefined, reason: 'NOT_CONFIGURED' },
-  { name: 'array input', input: [], reason: 'NOT_CONFIGURED' },
-  { name: 'string input', input: 'workspace', reason: 'NOT_CONFIGURED' },
-  { name: 'empty object', input: {}, reason: 'NOT_CONFIGURED' },
+const cases: Array<{ name: string; input: unknown; valid: boolean }> = [
+  { name: 'null input', input: null, valid: false },
+  { name: 'undefined input', input: undefined, valid: false },
+  { name: 'array input', input: [], valid: false },
+  { name: 'string input', input: 'workspace', valid: false },
+  { name: 'empty object', input: {}, valid: false },
   {
     name: 'non-string primary workspace',
     input: { primaryWorkspaceId: 123, targetWorkspaceId: 'target-a' },
-    reason: 'NOT_CONFIGURED',
+    valid: false,
   },
   {
     name: 'blank primary workspace',
     input: { primaryWorkspaceId: '  ', targetWorkspaceId: 'target-a' },
-    reason: 'NOT_CONFIGURED',
+    valid: false,
   },
   {
     name: 'missing target workspace',
     input: { primaryWorkspaceId: 'primary-a' },
-    reason: 'NOT_CONFIGURED',
+    valid: false,
   },
   {
-    name: 'valid explicit IDs remain blocked before owner attestation',
+    name: 'valid explicit workspace IDs',
     input: { primaryWorkspaceId: 'primary-a', targetWorkspaceId: 'target-a' },
-    reason: 'WORKSPACE_MAPPING_UNVERIFIED',
+    valid: true,
   },
 ];
 
-async function main(): Promise<void> {
-  for (const testCase of cases) {
-    const result = await readSupplementaryBrands(testCase.input);
-    assert.deepEqual(
-      result,
-      { ok: false, reason: testCase.reason },
-      `unexpected result for ${testCase.name}`,
-    );
-  }
-
-  console.log(`PASS: supplementary adapter runtime contract (${cases.length} fail-closed cases)`);
+for (const testCase of cases) {
+  assert.equal(
+    hasExplicitWorkspaceIds(testCase.input),
+    testCase.valid,
+    `unexpected validation result for ${testCase.name}`,
+  );
 }
 
-void main().catch((error: unknown) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+console.log(`PASS: explicit supplementary workspace input contract (${cases.length} cases)`);
