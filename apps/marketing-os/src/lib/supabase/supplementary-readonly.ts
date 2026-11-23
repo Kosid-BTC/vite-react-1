@@ -8,6 +8,7 @@
  * Do not infer a workspace from order, name, email, or a matching user ID.
  */
 import 'server-only';
+import { hasExplicitWorkspaceIds } from './supplementary-input';
 import { supplementaryDatabaseAccess } from './supplementary-boundary';
 
 type AccessResult =
@@ -16,20 +17,7 @@ type AccessResult =
 
 export async function readSupplementaryBrands(input: unknown): Promise<AccessResult> {
   // Runtime inputs are untrusted even when TypeScript callers provide a typed object.
-  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
-    return { ok: false, reason: 'NOT_CONFIGURED' };
-  }
-
-  const values = input as Record<string, unknown>;
-  const primaryWorkspaceId = values.primaryWorkspaceId;
-  const targetWorkspaceId = values.targetWorkspaceId;
-
-  if (
-    typeof primaryWorkspaceId !== 'string' ||
-    primaryWorkspaceId.trim().length === 0 ||
-    typeof targetWorkspaceId !== 'string' ||
-    targetWorkspaceId.trim().length === 0
-  ) {
+  if (!hasExplicitWorkspaceIds(input)) {
     return { ok: false, reason: 'NOT_CONFIGURED' };
   }
 
