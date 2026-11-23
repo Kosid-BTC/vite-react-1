@@ -18,13 +18,14 @@ assert.match(adapter, /supplementaryDatabaseAccess\(\)/);
 assert.match(adapter, /hasExplicitWorkspaceIds\(input\)/);
 assert.match(adapter, /WORKSPACE_MAPPING_UNVERIFIED/);
 
-// The pure input validator rejects null, primitives, arrays and non-string/blank IDs.
+// The pure input validator rejects null, primitives, arrays and malformed UUIDs.
 assert.match(inputGuard, /export function hasExplicitWorkspaceIds\(input: unknown\)/);
 assert.match(inputGuard, /input === null \|\| typeof input !== 'object' \|\| Array\.isArray\(input\)/);
+assert.match(inputGuard, /const UUID_PATTERN = \/\^\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{12\}\$\/i/);
 assert.match(inputGuard, /typeof primaryWorkspaceId === 'string'/);
-assert.match(inputGuard, /primaryWorkspaceId\.trim\(\)\.length > 0/);
+assert.match(inputGuard, /UUID_PATTERN\.test\(primaryWorkspaceId\.trim\(\)\)/);
 assert.match(inputGuard, /typeof targetWorkspaceId === 'string'/);
-assert.match(inputGuard, /targetWorkspaceId\.trim\(\)\.length > 0/);
+assert.match(inputGuard, /UUID_PATTERN\.test\(targetWorkspaceId\.trim\(\)\)/);
 
 // Neither the boundary, adapter nor pure validator may access the supplementary project.
 assert.doesNotMatch(boundary, forbiddenCrossProjectAccess);
@@ -40,4 +41,4 @@ assert.match(adapter, /return \{ ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIE
 // Compatibility credential is documented as ignored and must never be consumed.
 assert.equal((adapter.match(/targetAccessToken/g) ?? []).length, 1);
 
-console.log('PASS: supplementary boundary remains server-only/fail-closed and explicit workspace input is validated without cross-project access');
+console.log('PASS: supplementary boundary remains server-only/fail-closed and explicit workspace UUIDs are validated without cross-project access');
