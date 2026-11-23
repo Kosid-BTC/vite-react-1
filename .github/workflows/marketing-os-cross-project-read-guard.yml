@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - 'apps/marketing-os/src/lib/supabase/supplementary-boundary.ts'
+      - 'apps/marketing-os/src/lib/supabase/supplementary-input.ts'
       - 'apps/marketing-os/src/lib/supabase/supplementary-readonly.ts'
       - 'apps/marketing-os/scripts/verify-dual-supabase-boundary.mjs'
       - 'apps/marketing-os/scripts/verify-supplementary-adapter-runtime.ts'
@@ -29,5 +30,5 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify no cross-project read before security acceptance
         run: node scripts/verify-dual-supabase-boundary.mjs
-      - name: Verify fail-closed adapter runtime contract
-        run: NODE_OPTIONS='--conditions=react-server' npx tsx scripts/verify-supplementary-adapter-runtime.ts
+      - name: Verify pure explicit workspace input contract
+        run: npx tsx scripts/verify-supplementary-adapter-runtime.ts
