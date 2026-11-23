@@ -1,9 +1,18 @@
 name: Marketing OS Exact SHA Production Release
 
 on:
-  push:
-    branches:
-      - release/marketing-os-production
+  # Production promotion is manual and exact-SHA approved.
+  # A push to the release branch must never deploy Production automatically.
+  workflow_dispatch:
+    inputs:
+      approved_production_sha:
+        description: "Exact candidate SHA explicitly approved for Production"
+        required: true
+        type: string
+      approval_reference:
+        description: "GitHub PR/review URL recording approval for this exact SHA"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -14,6 +23,9 @@ concurrency:
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/release/marketing-os-production' && inputs.approved_production_sha == github.sha
+    environment:
+      name: marketing-os-production
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -29,6 +41,21 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+
+      - name: Require explicit exact-SHA Production approval
+        env:
+          APPROVED_PRODUCTION_SHA_INPUT: ${{ inputs.approved_production_sha }}
+          APPROVAL_REFERENCE: ${{ inputs.approval_reference }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$APPROVED_PRODUCTION_SHA_INPUT" = "$GITHUB_SHA"
+          case "$APPROVAL_REFERENCE" in
+            https://github.com/Kosid-BTC/vite-react-1/pull/*) ;;
+            *) echo "::error::EXPLICIT_APPROVAL_REFERENCE_REQUIRED"; exit 1 ;;
+          esac
+          echo "EXPLICIT_PRODUCTION_APPROVAL_INPUT=PASS"
+          echo "APPROVED_PRODUCTION_SHA=$GITHUB_SHA"
 
       - name: Assert exact release SHA and merged PR ancestry
         shell: bash
