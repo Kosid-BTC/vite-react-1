@@ -8,6 +8,7 @@ on:
       - 'apps/marketing-os/src/lib/supabase/supplementary-boundary.ts'
       - 'apps/marketing-os/src/lib/supabase/supplementary-readonly.ts'
       - 'apps/marketing-os/scripts/verify-dual-supabase-boundary.mjs'
+      - 'apps/marketing-os/scripts/verify-supplementary-adapter-runtime.ts'
       - '.github/workflows/marketing-os-cross-project-read-guard.yml'
   workflow_dispatch:
 permissions:
@@ -15,7 +16,7 @@ permissions:
 jobs:
   cross-project-read-guard:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: apps/marketing-os
@@ -24,5 +25,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify no cross-project read before security acceptance
         run: node scripts/verify-dual-supabase-boundary.mjs
+      - name: Verify fail-closed adapter runtime contract
+        run: NODE_OPTIONS='--conditions=react-server' npx tsx scripts/verify-supplementary-adapter-runtime.ts
