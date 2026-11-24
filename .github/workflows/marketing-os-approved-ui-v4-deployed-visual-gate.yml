@@ -269,5 +269,5 @@ jobs:
         with:
           name: approved-ui-v4-deployed-visual-qa-${{ github.sha }}
           path: apps/marketing-os/deployed-visual-qa-artifacts/*.png
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 7
