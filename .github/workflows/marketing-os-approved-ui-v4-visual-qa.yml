@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/marketing-os-approved-ui-v4
+      - fix/marketing-os-two-locked-visual-refs
   workflow_dispatch:
 
 permissions:
