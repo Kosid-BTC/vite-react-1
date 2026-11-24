@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: marketing-os-approved-ui-v4-visual-qa
+  group: marketing-os-approved-ui-v4-visual-qa-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
