@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: marketing-os-approved-ui-v4-deployed-visual-gate
+  group: marketing-os-approved-ui-v4-deployed-visual-gate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
