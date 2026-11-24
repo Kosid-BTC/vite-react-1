@@ -43,3 +43,34 @@ For each scenario record test ID, Development project ref, isolated test tenant 
 
 ## Release rule
 A successful offline contract workflow, READY deployment, or an RLS-enabled flag **alone** is not a Production acceptance. Require runtime tenant-isolation results, independently verified owner consent, expiry/revocation checks, authenticated exact-SHA previews, and Approved UX/UI V4 desktop/mobile evidence before any Production changes or enabling Cross-project Read.
+
+## Latest Development catalog-only preflight — 2026-11-24 (approximately 06:07 UTC)
+
+This is a read-only PostgreSQL catalog/privilege snapshot for the two Development branches. It is not a runtime Tenant A/B test and does not authorize a migration or Production change.
+
+| Environment | Branch ID | Project ref | Branch status | With data |
+|---|---|---|---|---|
+| CEO Back Office Development | `2172c0d4-e534-4fe8-918e-5c99ad35ae45` | `tdeuyycqbbktacmxgktn` | `FUNCTIONS_DEPLOYED` | false |
+| Marketing OS Development | `e2139d78-2675-4863-ac64-a5fad7c8f826` | `roprejhnhoaqlctltwfs` | `MIGRATIONS_FAILED` | false |
+
+### CEO Back Office Development
+- 66 public tables.
+- RLS is disabled on four tables: `organization_members`, `organizations`, `profiles`, and `standards`.
+- `organization_members` and `organizations` each have one policy while RLS is disabled; `profiles` and `standards` have no policies.
+- On these four RLS-disabled tables, the catalog reports no effective anon/authenticated SELECT, INSERT, UPDATE, or DELETE privilege, but both roles do have effective TRUNCATE privilege.
+- Across all public tables, effective TRUNCATE counts are anon 31, authenticated 62, service_role 66.
+
+### Marketing OS Development
+- 44 public tables.
+- No public table was found with RLS disabled.
+- Seven tables have RLS enabled with no policy: `marketing_behavior_batches`, `marketing_behavior_config`, `marketing_behavior_limits`, `marketing_business_types`, `marketing_segment_business_types`, `youtube_projects`, and `youtube_quota`. These require table-by-table grant and service-call-path review; an RLS flag alone does not establish a usable API path.
+- Across all public tables, effective TRUNCATE counts are anon 36, authenticated 36, service_role 44.
+
+### Shared privilege finding
+- In both Development databases, `pg_default_acl` contains public-schema table defaults created under both `postgres` and `supabase_admin` that include TRUNCATE for `anon`, `authenticated`, and `service_role`.
+- This is an effective-privilege finding, not evidence that PostgREST exposes a TRUNCATE endpoint or that a destructive action occurred.
+- Do not bulk-revoke service_role privileges until backend/service callsites, table ownership, default-privilege owners, and operational maintenance dependencies are reviewed. Any ACL correction remains a separate Development-only proposal requiring backup/restore and rollback evidence.
+- The catalog SQL session was `postgres` with `BYPASSRLS=true`. The queries in this audit were SELECT-only, but this identity cannot prove end-user RLS isolation. A dedicated non-BYPASSRLS identity is still required.
+- No SQL/DDL/DML was applied, no application rows were queried, and no cross-project application data was read.
+
+**Disposition:** keep both PRs Draft; keep Cross-project Read OFF; keep Production LOCKED; do not treat this catalog preflight as Tenant A/B or Production acceptance.
