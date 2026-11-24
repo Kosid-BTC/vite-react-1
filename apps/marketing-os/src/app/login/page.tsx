@@ -96,50 +96,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
         </footer>
       </section>
 
-      <aside className="approved-login-preview" aria-label="Approved Marketing OS dashboard preview">
-        <div className="login-preview-topbar">
-          <span className="login-preview-search">⌕ ค้นหาแคมเปญ, คอนเทนต์, หรือสิ่งที่ต้องการ...</span>
-          <span className="login-preview-pill">AI Insight</span>
-          <span className="login-preview-avatar">TC</span>
-        </div>
-        <div className="login-preview-heading">
-          <div>
-            <strong>CEO AI Thailand</strong>
-            <span>Marketing OS</span>
-          </div>
-          <span className="login-preview-cta">+ สร้างแคมเปญใหม่</span>
-        </div>
-        <div className="login-preview-connections">
-          <span>● Website · UNVERIFIED</span>
-          <span>● Facebook · UNVERIFIED</span>
-          <span>● YouTube · UNVERIFIED</span>
-          <span>● Business Genome · UNAVAILABLE</span>
-        </div>
-        <div className="login-preview-kpis">
-          {['Impressions','Reach','Video Views','CTR (All)','Conversions','Revenue'].map((label) => (
-            <div key={label}><span>{label}</span><strong>—</strong><small>UNAVAILABLE</small></div>
-          ))}
-        </div>
-        <div className="login-preview-grid">
-          <div className="login-preview-card login-preview-performance">
-            <div className="login-preview-card-head"><strong>Performance Overview</strong><span>30 วันล่าสุด</span></div>
-            <div className="login-preview-chart"><span>Measurement data unavailable</span></div>
-          </div>
-          <div className="login-preview-card">
-            <div className="login-preview-card-head"><strong>AI Recommendations</strong><span>Evidence first</span></div>
-            <div className="login-preview-lines"><i/><i/><i/></div>
-          </div>
-          <div className="login-preview-card">
-            <div className="login-preview-card-head"><strong>Business Genome</strong><span>UNAVAILABLE</span></div>
-            <div className="login-preview-genome">DNA</div>
-          </div>
-          <div className="login-preview-card">
-            <div className="login-preview-card-head"><strong>MIT 24 Steps</strong><span>— / 24</span></div>
-            <div className="login-preview-lines"><i/><i/><i/><i/></div>
-          </div>
-        </div>
-        <p className="login-preview-note">Approved UX/UI V4 · ตัวเลขจะแสดงเมื่อมีหลักฐานจริงเท่านั้น</p>
-      </aside>
     </main>
   );
 }
