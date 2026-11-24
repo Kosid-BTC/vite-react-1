@@ -222,3 +222,54 @@ The two exact locked reference images named in `APPROVED_UI_V4_SOURCE.md` were l
 | `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg` | `libfile_132cb5d89084819195666882aad11e2f` | Present and visually inspected |
 
 This closes the **reference-asset availability** check only. It does not establish visual acceptance of an application deployment: no authenticated exact-SHA Preview exists for the current PR #24 candidate, and no candidate Desktop 1536×1024 or Mobile 390×844 screenshots were captured or compared. UX/UI V4 deployment acceptance therefore remains UNVERIFIED.
+
+
+### Current Development security and release-gate refresh — 2026-11-24 19:06 ICT (12:06 UTC)
+
+**Scope:** read-only verification of the PR refs, Development branch metadata, PostgreSQL catalogs, Supabase Security Advisors, and the authoritative Vercel project. No application rows were queried. No SQL/DDL/DML, migration, Edge Function deployment, secret read/change, Vercel configuration change, merge, or Production mutation was performed. Cross-project application-data Read remains OFF.
+
+#### GitHub exact refs and CI
+
+- PR #24: OPEN / DRAFT / UNMERGED; exact head `09a14bd0d06713013cc78ebdb91f6a9c6a6c0a65`; base `f7263085138c58cdda7f3ebe2f63f023b200d277`.
+- PR #23: OPEN / DRAFT / UNMERGED; exact head `52c06743242ccc4dbf52f085acea02d1869c478a`.
+- Compare PR #23 head → PR #24 head: DIVERGED, PR #24 ahead 73 / behind 7; merge base `f7263085138c58cdda7f3ebe2f63f023b200d277`. Do not merge wholesale.
+- PR #24 exact-head PR workflows: Cross-project Read Guard run `45372761952` PASS; Offline CEO Back Office Contract run `45372761891` PASS; No-default-workspace Guard run `45372762025` PASS. These are source/static/offline checks, not authenticated Tenant A/B or database integration tests.
+- PR #23 exact-head workflow run `45020906804` PASS (Cross-project Read Guard); the combined-status endpoint returned no status entries.
+
+#### Supabase Development metadata and catalog-only audit
+
+- CEO Back Office Development: parent `waigsnxhrlwtiotspaim`; branch `dev-backoffice-rls-hardening`; project ref `tdeuyycqbbktacmxgktn`; branch status `FUNCTIONS_DEPLOYED`; `with_data=false`; 77 migration records; latest recorded migration `20261116022248`.
+- Marketing OS Development: parent `bjozpwdtqbpwcxnqguka`; branch `dev-marketing-mapping-attestation`; project ref `roprejhnhoaqlctltwfs`; branch status `MIGRATIONS_FAILED`; `with_data=false`; 55 migration records; latest recorded migration `20261116022351`.
+- Both read-only catalog sessions reported PostgreSQL `17.11`, session user `postgres`, and `BYPASSRLS=true`. This identity cannot prove end-user RLS isolation.
+- `marketing_security.workspace_mapping_attestations` is absent in both Development databases.
+- In both branches, `public.ensure_default_workspace()` remains SECURITY DEFINER, owned by `postgres`, `search_path=public`, executable by `authenticated` (not `anon`), and selects the earliest membership by `created_at`, creating a Personal Workspace when none exists. Do not invoke it.
+- CEO selected-table catalog check: `organizations` and `organization_members` have RLS disabled despite one policy each; `workspaces` and `workspace_members` have RLS enabled but FORCE RLS disabled.
+- Marketing selected-table catalog check: seven tables remain RLS-enabled with zero policies — `marketing_behavior_batches`, `marketing_behavior_config`, `marketing_behavior_limits`, `marketing_business_types`, `marketing_segment_business_types`, `youtube_projects`, and `youtube_quota`. `workspaces` and `workspace_members` have RLS enabled but FORCE RLS disabled.
+
+#### Security Advisor snapshot
+
+Observed at 2026-11-24 12:09 UTC:
+
+| Finding | CEO Back Office Development | Marketing OS Development |
+|---|---:|---:|
+| Policies exist while RLS is disabled | 2 | 0 |
+| RLS enabled without policies | 8 | 7 |
+| Mutable function search_path | 5 | 0 |
+| Anon-executable SECURITY DEFINER functions | 17 | 0 |
+| Authenticated-executable SECURITY DEFINER functions | 34 | 26 |
+| Leaked-password protection advisory | 1 | Not returned |
+
+Counts require function/table-level review; they do not alone establish exploitability. No remediation was applied.
+
+#### Authoritative Vercel Preview
+
+- Project `ceo-ai-marketing-os`, ID `prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw`, team `team_oryw9VGF4TLakA4qBU6pGx43`; SSO protection is enabled.
+- Exact-SHA deployment lookup for PR #24 head `09a14bd0d06713013cc78ebdb91f6a9c6a6c0a65` returned **zero deployments**.
+- GitHub combined Vercel status is SUCCESS but targets legacy project `usrt-btc/ceoaimk`, not the authoritative project.
+- Latest visible authoritative deployment remains READY on old SHA `f7263085138c58cdda7f3ebe2f63f023b200d277`, target `null`; it is not an authenticated Preview acceptance.
+
+#### UX/UI V4 and disposition
+
+- The exact two locked reference assets are recorded in the preceding verification entry and `APPROVED_UI_V4_SOURCE.md`. This verifies reference-asset availability only; no exact-candidate Preview screenshots exist for Desktop 1536×1024 or Mobile 390×844, so deployed visual acceptance remains UNVERIFIED.
+- Backup integrity, PostgreSQL 17 isolated restore, migration semantic parity, and rollback evidence remain UNVERIFIED. No dedicated non-BYPASSRLS audit identity is ready. Tenant A/B, mapping attestation runtime, and Read-only Adapter E2E have not run.
+- Keep PR #23/#24 Draft, the supplementary adapter fail-closed, Cross-project application-data Read OFF, and Production LOCKED. **NOT PRODUCTION COMPLETE.**
