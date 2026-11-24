@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   deployed-visual-gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       VERCEL_TOKEN_PRIMARY: ${{ secrets.VERCEL_TOKEN }}
