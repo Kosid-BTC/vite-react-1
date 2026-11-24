@@ -273,3 +273,45 @@ Counts require function/table-level review; they do not alone establish exploita
 - The exact two locked reference assets are recorded in the preceding verification entry and `APPROVED_UI_V4_SOURCE.md`. This verifies reference-asset availability only; no exact-candidate Preview screenshots exist for Desktop 1536×1024 or Mobile 390×844, so deployed visual acceptance remains UNVERIFIED.
 - Backup integrity, PostgreSQL 17 isolated restore, migration semantic parity, and rollback evidence remain UNVERIFIED. No dedicated non-BYPASSRLS audit identity is ready. Tenant A/B, mapping attestation runtime, and Read-only Adapter E2E have not run.
 - Keep PR #23/#24 Draft, the supplementary adapter fail-closed, Cross-project application-data Read OFF, and Production LOCKED. **NOT PRODUCTION COMPLETE.**
+
+
+### Fresh Development gate audit — 2026-11-25 01:06 ICT
+
+**Audit target:** PR #24 API head `ba39fd8d0a11957b940d12b1739de183eddd3c38`; PR #23 API head `52c06743242ccc4dbf52f085acea02d1869c478a`. PR #24 and PR #23 remain OPEN / DRAFT / UNMERGED. Their comparison is DIVERGED: PR #24 ahead 78 / behind 7; merge base `f7263085138c58cdda7f3ebe2f63f023b200d277`. No merge was attempted.
+
+#### Exact-head CI and Vercel
+
+- PR #24 exact-head workflow runs:
+  - Offline CEO Back Office Contract `45453268798` — PASS.
+  - Cross-project Read Guard `45453268808` — PASS.
+  - No-default-workspace Guard `45453268747` — PASS.
+- Job details confirm all steps completed successfully, including locked dependency install, offline owner/evidence checks, static proposal checks, boundary guard, explicit workspace input checks, and Marketing OS typecheck. These are source/static/offline checks, not live database integration, authenticated Tenant A/B, or runtime E2E.
+- PR #23 exact-head Cross-project Read Guard run `45020906804` — PASS.
+- PR #24 combined Vercel status is `success`, but its target URL is under legacy project `usrt-btc/ceoaimk`, not authoritative project `ceo-ai-marketing-os`.
+- Authoritative Vercel project `ceo-ai-marketing-os` (`prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw`) returns **zero deployments** for exact SHA `ba39fd8d0a11957b940d12b1739de183eddd3c38`. Latest visible deployment is READY on old SHA `f7263085138c58cdda7f3ebe2f63f023b200d277`, with target `null`; it is not an authenticated Preview acceptance.
+- The exact-head commit `ba39fd8d0a11957b940d12b1739de183eddd3c38` removes the non-functional dashboard preview panel from `apps/marketing-os/src/app/login/page.tsx`. This removes placeholder login-page UI; it is not proof of Approved UX/UI V4 deployment parity.
+
+#### Supabase Development — catalog-only, per-project reads
+
+No application rows were queried. Each Development database was inspected independently using catalog-only SELECT statements. No cross-project application-data read occurred.
+
+- CEO Back Office Development ref `tdeuyycqbbktacmxgktn`, branch `dev-backoffice-rls-hardening`: branch status `FUNCTIONS_DEPLOYED`, `with_data=false`; migration ledger latest version `20261116022248`.
+- Marketing OS Development ref `roprejhnhoaqlctltwfs`, branch `dev-marketing-mapping-attestation`: branch status `MIGRATIONS_FAILED`, `with_data=false`; migration ledger latest version `20261116022351`.
+- Both SQL sessions ran as `postgres` with `BYPASSRLS=true`. `anon` and `authenticated` have `BYPASSRLS=false`; `service_role` and `supabase_read_only_user` have `BYPASSRLS=true`. The connector session cannot prove end-user Tenant A/B isolation.
+- CEO catalog check: `organizations`, `organization_members`, `profiles`, and `standards` all have RLS disabled. Only `organizations` and `organization_members` have existing policies (one each). `workspaces` and `workspace_members` have RLS enabled but FORCE RLS disabled.
+- Marketing catalog check: seven tables remain RLS-enabled with zero policies: `marketing_behavior_batches`, `marketing_behavior_config`, `marketing_behavior_limits`, `marketing_business_types`, `marketing_segment_business_types`, `youtube_projects`, and `youtube_quota`. `workspaces` and `workspace_members` have RLS enabled but FORCE RLS disabled.
+- On both Development databases, `public.ensure_default_workspace()` remains SECURITY DEFINER, owned by `postgres`, `search_path=public`, executable by `authenticated` and not `anon`. Its body selects the earliest membership by `created_at` and creates a Personal Workspace if none exists. Do not invoke it.
+- `public.create_workspace(text)`: CEO Development contains an `auth.uid() IS NULL` guard; Marketing Development does not. Both remain SECURITY DEFINER and executable by `authenticated`.
+- `marketing_security.workspace_mapping_attestations` and its schema are absent from both Development databases.
+- CEO Development Cron catalog: active jobs `billing-cron-daily` and `weekly-report-friday` use literal `https://<PROJECT_REF>.functions.supabase.co/...` placeholders. Latest observed runs failed with `invalid URL / Bad hostname` (2026-11-24 02:00 UTC and 2026-11-20 02:00 UTC). No URL, secret, or schedule was changed. The Marketing query for these job-name patterns returned no rows; no broader absence claim is made.
+- Security Advisor snapshot observed 2026-11-24 18:07:56 UTC: CEO — 2 policies/RLS-disabled, 8 RLS/no-policy, 5 mutable search_path, 17 anon-executable SECURITY DEFINER, 34 authenticated-executable SECURITY DEFINER. Marketing — 7 RLS/no-policy, 0 anon-executable SECURITY DEFINER, 26 authenticated-executable SECURITY DEFINER. Counts require per-object review and are not by themselves proof of exploitability.
+
+#### Mapping, adapter, and release disposition
+
+- `marketing_security.workspace_mapping_attestations` is absent in both databases; owner consent and independent verification remain UNVERIFIED.
+- The supplementary adapter remains server-only and fail-closed; no target Auth, network, or database call was made.
+- No dedicated non-BYPASSRLS audit identity or authenticated Tenant A/B positive/negative test is available.
+- Marketing Development remains `MIGRATIONS_FAILED`; backup attestation, PostgreSQL 17 isolated restore, migration semantic parity, and rollback evidence remain UNVERIFIED.
+- No SQL/DDL/DML, migration, Edge Function deployment, secret read/change, Vercel setting change, merge, or Production mutation was performed. Cross-project application-data Read remains OFF. Production remains LOCKED.
+
+**Disposition:** keep PR #23/#24 Draft; do not merge; keep the supplementary adapter fail-closed. **NOT PRODUCTION COMPLETE.**
