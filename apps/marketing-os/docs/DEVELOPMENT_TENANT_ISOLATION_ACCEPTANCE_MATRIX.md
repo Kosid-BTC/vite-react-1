@@ -134,3 +134,79 @@ Marketing Development also has `public.receive_marketing_behavior(uuid,uuid,text
 - No authenticated Preview or V4 visual acceptance is established.
 
 **Disposition:** no SQL/DDL/DML, secret change, function deployment, Vercel setting change, merge, or Production mutation. Keep PR #23/#24 Draft, Cross-project Read OFF, and Production LOCKED. NOT PRODUCTION COMPLETE.
+
+
+## Fresh Development, Security and Release Snapshot — 2026-11-24 10:08 UTC
+
+This snapshot was collected with GitHub PR/status reads, Supabase project/branch metadata, migration inventory, Security Advisor, and **SELECT-only PostgreSQL catalog queries**. It is not a runtime tenant-isolation test. No application rows were queried.
+
+### Project and branch identity
+
+| System | Parent project | Parent status | Development project ref | Branch ID | Branch status | With data |
+|---|---|---|---|---|---|---|
+| CEO Back Office | `waigsnxhrlwtiotspaim` (`CEO Ai Thailand`) | `ACTIVE_HEALTHY` | `tdeuyycqbbktacmxgktn` | `2172c0d4-e534-4fe8-918e-5c99ad35ae45` | `FUNCTIONS_DEPLOYED` | false |
+| Marketing OS | `bjozpwdtqbpwcxnqguka` (`CEOAITHAILAND Marketing`) | `ACTIVE_HEALTHY` | `roprejhnhoaqlctltwfs` | `e2139d78-2675-4863-ac64-a5fad7c8f826` | `MIGRATIONS_FAILED` | false |
+
+Migration inventory is not migration-replay evidence:
+- CEO Back Office Development: 77 listed migration records; latest listed version `20261116022248`.
+- Marketing OS Development: 55 listed migration records; latest listed version `20261116022351`.
+- Supabase branch metadata still reports Marketing OS Development as `MIGRATIONS_FAILED`. No reset, rebase, merge, migration apply, or repair was attempted.
+
+### Fresh catalog-only security results
+
+Both SQL sessions ran as `postgres` with `BYPASSRLS=true`. Queries read PostgreSQL catalogs and privilege metadata only.
+
+| Finding | CEO Back Office Development | Marketing OS Development |
+|---|---:|---:|
+| Public tables | 66 | 44 |
+| RLS disabled | 4 | 0 |
+| RLS enabled but no policy | 8 | 7 |
+| RLS enabled but FORCE RLS disabled | 62 | 44 |
+| Effective anon TRUNCATE | 31 | 36 |
+| Effective authenticated TRUNCATE | 62 | 36 |
+| Effective service_role TRUNCATE | 66 | 44 |
+| `marketing_security.workspace_mapping_attestations` exists | No | No |
+
+CEO Back Office Development RLS-disabled tables:
+`organization_members`, `organizations`, `profiles`, `standards`.
+
+CEO Back Office Development RLS-enabled/no-policy tables:
+`ai_usage`, `checkup_leads`, `client_errors`, `founding_members`, `handoff_nonces`, `landing_funnel`, `quickcheck_submissions`, `referrals`.
+
+Marketing OS Development RLS-enabled/no-policy tables:
+`marketing_behavior_batches`, `marketing_behavior_config`, `marketing_behavior_limits`, `marketing_business_types`, `marketing_segment_business_types`, `youtube_projects`, `youtube_quota`.
+
+In both branches, the `public` default table ACLs owned by `postgres` and `supabase_admin` include TRUNCATE for `anon`, `authenticated`, and `service_role`. This is a privilege finding, not evidence that an API endpoint exposed TRUNCATE or that any destructive operation occurred. Do not bulk-revoke; review ownership and service dependencies first.
+
+In both branches:
+- `anon` and `authenticated` have `BYPASSRLS=false`.
+- `postgres`, `service_role`, and `supabase_read_only_user` have `BYPASSRLS=true`.
+- The active SQL connector identity is `postgres`; it cannot prove end-user RLS isolation.
+- `public.ensure_default_workspace()` is `SECURITY DEFINER`, has `search_path=public`, is executable by `authenticated`, and is not executable by `anon`. Its current definition selects a membership ordered by `created_at` and creates a Personal Workspace if no membership exists. Do not invoke it; the Development-only revoke proposal remains unapplied.
+
+### Fresh Security Advisor snapshot
+
+Observed at approximately 2026-11-24 10:08 UTC:
+
+| Finding | CEO Back Office Development | Marketing OS Development |
+|---|---:|---:|
+| Policies exist while RLS is disabled | 2 | 0 |
+| RLS enabled without policies | 8 | 7 |
+| Mutable function search_path | 5 | 0 |
+| Anon-executable SECURITY DEFINER functions | 17 | 0 |
+| Authenticated-executable SECURITY DEFINER functions | 34 | 26 |
+
+Review each finding against intended API/service call paths; counts alone do not establish exploitability.
+
+### Exact-SHA CI and Vercel
+
+- PR #24 head: `2cdeeb735684c8db117e5fc9c423e72863dfc17a` (OPEN / DRAFT / UNMERGED).
+- Exact-head PR workflows: Cross-project Read Guard run `45353817160` PASS; No-default-workspace Guard run `45353817140` PASS; Offline CEO Back Office Contract run `45353817238` PASS.
+- PR #23 head: `52c06743242ccc4dbf52f085acea02d1869c478a`; Cross-project Read Guard run `45020906804` PASS.
+- PR #32 head: `e4c4addcf3e78775ab01e1319455c5532f8955a5`; Edge Function Workspace Binding Guard run `45290896419` PASS.
+- These are source/static/offline/typecheck checks, not authenticated Tenant A/B or live database integration tests.
+- Authoritative Vercel project: `ceo-ai-marketing-os`, ID `prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw`. Exact-SHA deployment lookup for PR #24 head `2cdeeb7...` returned zero deployments.
+- The GitHub combined Vercel status is `success` but its target is under legacy project `usrt-btc/ceoaimk`, not the authoritative project.
+- Latest visible authoritative deployment remains READY on old SHA `f7263085138c58cdda7f3ebe2f63f023b200d277`, with target `null`. This is not an authenticated Preview acceptance.
+
+**Disposition:** no SQL/DDL/DML, function deployment, secret read/change, Vercel setting change, merge, or Production mutation. Keep the adapter fail-closed, Cross-project Read OFF, PRs Draft, and Production LOCKED. **NOT PRODUCTION COMPLETE.**
