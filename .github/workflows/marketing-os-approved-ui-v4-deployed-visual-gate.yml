@@ -69,27 +69,36 @@ jobs:
           grep -q "$VERCEL_PROJECT_ID" .vercel/project.json
           echo "AUTHORITATIVE_VERCEL_PROJECT=ceo-ai-marketing-os"
 
-      - name: Inject verified public Supabase config
+      - name: Validate authoritative Preview Supabase public config
+        working-directory: apps/marketing-os
         run: |
           set -euo pipefail
-          git fetch origin 'ops/deploy-rc-2bd740b9:refs/remotes/origin/ops/deploy-rc-2bd740b9' --depth=1
-          python - <<'PY'
-          import re, subprocess
-          from pathlib import Path
-          source = subprocess.check_output(['git','show','refs/remotes/origin/ops/deploy-rc-2bd740b9:.github/workflows/deploy-marketing-os-rc-production.yml'], text=True)
-          url = re.search(r'SUPABASE_PUBLIC_URL:\s*(\S+)', source)
-          key = re.search(r'SUPABASE_PUBLISHABLE_KEY:\s*(\S+)', source)
-          if not url or not key: raise SystemExit('verified Supabase public config unavailable')
-          url = url.group(1).strip().strip('"').strip("'")
-          key = key.group(1).strip().strip('"').strip("'")
-          if not url.startswith('https://') or not key.startswith('sb_publishable_'): raise SystemExit('unexpected public config format')
-          p = Path('apps/marketing-os/.vercel/.env.preview.local')
-          old = p.read_text() if p.exists() else ''
-          kept = [x for x in old.splitlines() if not x.startswith('NEXT_PUBLIC_SUPABASE_URL=') and not x.startswith('NEXT_PUBLIC_SUPABASE_ANON_KEY=')]
-          kept += [f'NEXT_PUBLIC_SUPABASE_URL="{url}"', f'NEXT_PUBLIC_SUPABASE_ANON_KEY="{key}"']
-          p.write_text('\n'.join(kept) + '\n')
-          print('SUPABASE_PREVIEW_PUBLIC_CONFIG=VERIFIED')
-          PY
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = '.vercel/.env.preview.local';
+          if (!fs.existsSync(path)) {
+            console.error('::error::AUTHORITATIVE_PREVIEW_ENV_FILE_MISSING');
+            process.exit(1);
+          }
+          process.loadEnvFile(path);
+          const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+          const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+          if (!url || !key) {
+            console.error('::error::AUTHORITATIVE_PREVIEW_PUBLIC_AUTH_CONFIG_MISSING');
+            process.exit(1);
+          }
+          try {
+            if (new URL(url).protocol !== 'https:') throw new Error();
+          } catch {
+            console.error('::error::AUTHORITATIVE_PREVIEW_SUPABASE_URL_INVALID');
+            process.exit(1);
+          }
+          if (!(key.startsWith('sb_publishable_') || key.startsWith('eyJ'))) {
+            console.error('::error::AUTHORITATIVE_PREVIEW_PUBLIC_KEY_FORMAT_UNVERIFIED');
+            process.exit(1);
+          }
+          console.log('AUTHORITATIVE_PREVIEW_SUPABASE_PUBLIC_CONFIG=PASS (values redacted)');
+          NODE
 
       - name: Build exact-SHA preview
         working-directory: apps/marketing-os
