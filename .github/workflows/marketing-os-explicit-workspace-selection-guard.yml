@@ -1,0 +1,55 @@
+name: Marketing OS Explicit Workspace Selection Guard
+
+on:
+  pull_request:
+    paths:
+      - 'apps/marketing-os/src/app/page.tsx'
+      - 'apps/marketing-os/scripts/verify-explicit-workspace-selection.mjs'
+      - '.github/workflows/marketing-os-explicit-workspace-selection-guard.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-os-explicit-workspace-selection
+  cancel-in-progress: true
+
+jobs:
+  explicit-workspace-selection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/marketing-os
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Assert exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse HEAD)" = "$expected"
+          echo "EXPLICIT_WORKSPACE_SELECTION_SHA=$expected"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/marketing-os/package-lock.json
+
+      - name: Install locked app dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify no implicit first-workspace selection
+        run: node scripts/verify-explicit-workspace-selection.mjs
+
+      - name: Typecheck Marketing OS
+        run: npm run typecheck -- --pretty false
+
+      - name: Preserve Approved UX/UI V4 structural contract
+        run: npm run test:approved-ui
