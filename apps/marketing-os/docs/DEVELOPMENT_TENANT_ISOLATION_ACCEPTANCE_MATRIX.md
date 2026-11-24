@@ -210,3 +210,15 @@ Review each finding against intended API/service call paths; counts alone do not
 - Latest visible authoritative deployment remains READY on old SHA `f7263085138c58cdda7f3ebe2f63f023b200d277`, with target `null`. This is not an authenticated Preview acceptance.
 
 **Disposition:** no SQL/DDL/DML, function deployment, secret read/change, Vercel setting change, merge, or Production mutation. Keep the adapter fail-closed, Cross-project Read OFF, PRs Draft, and Production LOCKED. **NOT PRODUCTION COMPLETE.**
+
+
+### Approved UX/UI V4 reference-file verification — 2026-11-24
+
+The two exact locked reference images named in `APPROVED_UI_V4_SOURCE.md` were located in the user's Library and opened as native images for visual inspection:
+
+| Reference | Library file ID | Verification |
+|---|---|---|
+| `0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg` | `libfile_c6e93128754081919581bba7b947b47b` | Present and visually inspected |
+| `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg` | `libfile_132cb5d89084819195666882aad11e2f` | Present and visually inspected |
+
+This closes the **reference-asset availability** check only. It does not establish visual acceptance of an application deployment: no authenticated exact-SHA Preview exists for the current PR #24 candidate, and no candidate Desktop 1536×1024 or Mobile 390×844 screenshots were captured or compared. UX/UI V4 deployment acceptance therefore remains UNVERIFIED.
