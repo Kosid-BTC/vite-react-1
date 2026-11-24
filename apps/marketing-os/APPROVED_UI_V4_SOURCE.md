@@ -20,8 +20,21 @@ These two locked uploads supersede all generated mockups, Figma alternatives, ol
 - Do not replace the agreed design with another dashboard concept.
 - Production metrics without verified evidence remain `—`, `UNAVAILABLE`, or `UNVERIFIED`; visual fidelity never justifies fabricated data.
 
+## Pre-production Authenticated Preview gate (mandatory)
+
+Before any Production Acceptance or Production promotion, the exact candidate commit must be deployed as a **Preview** to the authoritative Vercel project `ceo-ai-marketing-os` (`prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw`). A legacy-project check, a deployment with `target=null`, or a deployment for a different SHA is **FAIL**, not Preview evidence.
+
+Required evidence on the exact SHA:
+- An authenticated session protected by the authoritative project's SSO; use isolated Development test identities and synthetic Tenant A / Tenant B workspaces only.
+- Desktop capture at 1536x1024 and mobile capture at 390x844 after authentication.
+- Visual comparison against ONLY the two locked reference images above; verify the complete six-KPI sequence and the agreed content order, including all six KPI cards on mobile.
+- A sanitized evidence manifest containing exact Git SHA, authoritative Vercel project ID, deployment ID, `target=preview`, deployment URL, capture timestamp, tester identity, test result, and SHA-256 digests of both screenshots.
+- No production customer data, access tokens, JWTs, cookies, API keys, or secrets in screenshots or evidence artifacts.
+
+Fail closed if authentication, exact-SHA provenance, Tenant A/B context, screenshot evidence, or visual comparison is unavailable. A Preview PASS is a precondition only; it is not permission to promote or change Production. Production promotion requires a separate explicit approval after all Security and Integration gates pass.
+
 ## Mandatory UX/UI confirmation
-Before declaring READY FOR USE, capture and compare live Production evidence at Desktop 1536x1024 and Mobile 390x844 against ONLY the two locked uploads above and assert the required structure/order.
+After a separately approved Production promotion, capture and compare live Production evidence at Desktop 1536x1024 and Mobile 390x844 against ONLY the two locked uploads above and assert the required structure/order before declaring PRODUCTION COMPLETE.
 
 ## Release rule
 READY FOR USE means Approved UX/UI V4 is actually running on Production AND all post-deploy gates pass. Vercel READY alone is insufficient.
