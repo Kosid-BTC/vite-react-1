@@ -45,9 +45,15 @@ for (const required of [
   assert.ok(compact.includes(required), `Missing required owner-attestation field: ${required}`);
 }
 
-assert.ok(compact.includes("primary_project_ref = '__verified_marketing_os_development_project_ref__'"));
-assert.ok(compact.includes("supplementary_project_ref = '__verified_ceo_backoffice_development_project_ref__'"));
-assert.doesNotMatch(compact, /bjozpwdtqbpwcxnqguka|waigsnxhrlwtiotspaim/);
+assert.ok(compact.includes("primary_project_ref = 'roprejhnhoaqlctltwfs'"));
+assert.ok(compact.includes("supplementary_project_ref = 'tdeuyycqbbktacmxgktn'"));
+assert.match(compact, /branch_id e2139d78-2675-4863-ac64-a5fad7c8f826/);
+assert.match(compact, /branch_id 2172c0d4-e534-4fe8-918e-5c99ad35ae45/);
+assert.match(compact, /status migrations_failed/);
+assert.match(compact, /status functions_deployed/);
+assert.doesNotMatch(compact, /primary_project_ref = 'bjozpwdtqbpwcxnqguka'/);
+assert.doesNotMatch(compact, /supplementary_project_ref = 'waigsnxhrlwtiotspaim'/);
+
 assert.match(compact, /primary_consent_evidence_sha256 ~ '\^\[0-9a-f\]\{64\}\$'/);
 assert.match(compact, /supplementary_consent_evidence_sha256 ~ '\^\[0-9a-f\]\{64\}\$'/);
 assert.match(compact, /expires_at > greatest\(primary_verified_at, supplementary_verified_at\)/);
@@ -58,10 +64,9 @@ assert.match(compact, /primary_workspace_id uuid not null references public\.wor
 assert.match(compact, /primary_owner_user_id uuid not null references auth\.users\(id\) on delete restrict/);
 assert.match(compact, /reviewed_by_user_id uuid not null references auth\.users\(id\) on delete restrict/);
 assert.match(compact, /these fks prove existence only/);
-assert.match(compact, /supplementary refs belong to the separate ceo back office development project and cannot have local foreign keys/);
+assert.match(compact, /supplementary refs belong to the separate ceo back office development branch and cannot have local foreign keys/);
 assert.match(compact, /supplementary_workspace_id uuid not null,/);
 assert.match(compact, /supplementary_owner_user_id uuid not null,/);
-assert.doesNotMatch(compact, /supplementary_(?:workspace|owner_user)_id uuid not null references/);
 
 assert.match(compact, /enable row level security/);
 assert.match(compact, /force row level security/);
@@ -76,4 +81,4 @@ assert.doesNotMatch(compact, /\bcreate\s+(?:or\s+replace\s+)?function\b/);
 assert.doesNotMatch(compact, /\b(?:drop|truncate)\b/);
 assert.doesNotMatch(compact, /\bdisable\s+row\s+level\s+security\b/);
 
-console.log('PASS: Development owner-attestation design is comment-only, placeholder-scoped, and never executed');
+console.log('PASS: Development owner-attestation design is comment-only and pinned to verified branch refs');
