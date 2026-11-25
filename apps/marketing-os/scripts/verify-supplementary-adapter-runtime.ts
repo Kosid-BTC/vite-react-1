@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { hasExplicitWorkspaceIds } from '../src/lib/supabase/supplementary-input';
+import { readSupplementaryBrands } from '../src/lib/supabase/supplementary-readonly';
 
 const primaryWorkspaceId = '8a4f5a34-8a1f-4d31-9e43-5b8c8e1f4c10';
 const targetWorkspaceId = 'e2f67a91-6c3b-4e27-a7d2-9f6b8a4c1d30';
@@ -58,4 +59,36 @@ for (const testCase of cases) {
   );
 }
 
-console.log(`PASS: explicit supplementary workspace UUID contract (${cases.length} cases)`);
+// Exercise the actual server-only adapter function without enabling any target
+// client. The fake token must be ignored and no network call may be attempted.
+const originalFetch = globalThis.fetch;
+let networkCalls = 0;
+globalThis.fetch = async () => {
+  networkCalls += 1;
+  throw new Error('Unexpected network access in fail-closed adapter test');
+};
+
+try {
+  const invalidResult = await readSupplementaryBrands({
+    primaryWorkspaceId: 'not-a-uuid',
+    targetWorkspaceId,
+  });
+  assert.deepEqual(invalidResult, { ok: false, reason: 'NOT_CONFIGURED' });
+
+  const validButUnattestedResult = await readSupplementaryBrands({
+    primaryWorkspaceId,
+    targetWorkspaceId,
+    targetAccessToken: 'intentionally-invalid-test-token',
+  });
+  assert.deepEqual(validButUnattestedResult, {
+    ok: false,
+    reason: 'WORKSPACE_MAPPING_UNVERIFIED',
+  });
+  assert.equal(networkCalls, 0, 'adapter must not access the target network before attestation');
+} finally {
+  globalThis.fetch = originalFetch;
+}
+
+console.log(
+  `PASS: explicit workspace UUID contract (${cases.length} cases) + actual adapter fail-closed behavior (2 calls, 0 network calls)`,
+);
