@@ -120,7 +120,7 @@ jobs:
             await page.setViewportSize({ width: 390, height: 844 });
             await page.waitForTimeout(500);
             const pBox = await page.locator('.performance-panel').boundingBox();
-            const aBox = await page.locator('.ai-panel').boundingBox();
+            const aBox = await page.locator('.ai-panel.mobile-dashboard-panel').boundingBox();
             if (!pBox || !aBox || pBox.y >= aBox.y) throw new Error('Mobile hierarchy regression: Performance must precede AI Recommendations');
             if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Mobile must retain all six KPI cards');
             await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: true });
