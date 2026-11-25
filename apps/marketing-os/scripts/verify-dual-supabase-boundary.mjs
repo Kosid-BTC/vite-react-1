@@ -23,9 +23,9 @@ assert.match(inputGuard, /export function hasExplicitWorkspaceIds\(input: unknow
 assert.match(inputGuard, /input === null \|\| typeof input !== 'object' \|\| Array\.isArray\(input\)/);
 assert.match(inputGuard, /const UUID_PATTERN = \/\^\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{12\}\$\/i/);
 assert.match(inputGuard, /typeof primaryWorkspaceId === 'string'/);
-assert.match(inputGuard, /UUID_PATTERN\.test\(primaryWorkspaceId\.trim\(\)\)/);
+assert.match(inputGuard, /UUID_PATTERN\.test\(primaryWorkspaceId\)/);
 assert.match(inputGuard, /typeof targetWorkspaceId === 'string'/);
-assert.match(inputGuard, /UUID_PATTERN\.test\(targetWorkspaceId\.trim\(\)\)/);
+assert.match(inputGuard, /UUID_PATTERN\.test\(targetWorkspaceId\)/);
 
 // Neither the boundary, adapter nor pure validator may access the supplementary project.
 assert.doesNotMatch(boundary, forbiddenCrossProjectAccess);
