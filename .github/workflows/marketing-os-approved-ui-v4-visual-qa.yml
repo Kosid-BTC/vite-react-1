@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/marketing-os-approved-ui-v4
+      - fix/marketing-os-p0-release-preflight-20261024
   workflow_dispatch:
 
 permissions:
@@ -115,8 +116,12 @@ jobs:
             await page.waitForLoadState('networkidle');
             if (!(await page.locator('text=Performance Overview').first().isVisible())) throw new Error('Dashboard did not render Performance Overview');
             if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Expected exactly six KPI cards');
-            await page.screenshot({ path: 'visual-qa-artifacts/desktop-1536x1024.png', fullPage: true });
+            const desktopViewport = page.viewportSize();
+            if (desktopViewport?.width !== 1536 || desktopViewport?.height !== 1024) throw new Error('Desktop evidence must use the exact 1536x1024 viewport');
+            await page.screenshot({ path: 'visual-qa-artifacts/desktop-1536x1024.png', fullPage: false });
             await page.setViewportSize({ width: 390, height: 844 });
+            const mobileViewport = page.viewportSize();
+            if (mobileViewport?.width !== 390 || mobileViewport?.height !== 844) throw new Error('Mobile evidence must use the exact 390x844 viewport');
             await page.waitForTimeout(500);
             const sideColumn = page.locator('.dashboard-body-grid > .dashboard-side-column');
             if (!(await sideColumn.isHidden())) throw new Error('Mobile must hide the desktop side column to prevent duplicate AI/Activity panels');
@@ -134,7 +139,7 @@ jobs:
             if (hiddenCards !== 0) throw new Error('Mobile must not hide any KPI cards');
             const rail = await metricGrid.evaluate(el => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
             if (rail.scrollWidth <= rail.clientWidth) throw new Error('Expected a horizontally scrollable six-card KPI rail on mobile');
-            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: true });
+            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: false });
             await metricGrid.evaluate(el => { el.scrollLeft = el.scrollWidth; });
             await page.waitForTimeout(200);
             const lastCardVisible = await metricCards.last().evaluate(el => {
@@ -143,13 +148,13 @@ jobs:
               return card.left >= railBox.left - 1 && card.right <= railBox.right + 1;
             });
             if (!lastCardVisible) throw new Error('The sixth KPI card must be reachable within the mobile KPI rail');
-            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844-kpi-rail-end.png', fullPage: true });
+            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844-kpi-rail-end.png', fullPage: false });
             console.log('AUTHENTICATED_VISUAL_QA_CAPTURE=PASS');
           } catch (error) {
             console.error(`VISUAL_QA_FAILURE_URL=${page.url()}`);
             console.error(`VISUAL_QA_FAILURE_TITLE=${await page.title()}`);
             console.error(`VISUAL_QA_FAILURE_BODY=${(await page.locator('body').innerText().catch(() => '')).slice(0, 4000)}`);
-            await page.screenshot({ path: 'visual-qa-artifacts/failure.png', fullPage: true }).catch(() => {});
+            await page.screenshot({ path: 'visual-qa-artifacts/failure.png', fullPage: false }).catch(() => {});
             throw error;
           } finally {
             await browser.close();
@@ -165,7 +170,7 @@ jobs:
         with:
           name: approved-ui-v4-visual-qa-${{ github.sha }}
           path: apps/marketing-os/visual-qa-artifacts/*.png
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
       - name: Stop disposable local Supabase
         if: always()
