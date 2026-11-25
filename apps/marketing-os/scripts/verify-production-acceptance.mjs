@@ -99,10 +99,24 @@ try {
     for (const selector of [
       '.topbar', '.global-search', '.topbar-actions', '.dashboard-title-row',
       '.metric-grid', '.performance-panel', '.traffic-source',
-      '.ai-panel.mobile-dashboard-panel', '.genome-panel', '.mit-panel',
-      '.recent-panel.mobile-dashboard-panel', '.platform-panel',
+      '.genome-panel', '.mit-panel', '.platform-panel',
     ]) {
       assert.ok(await page.locator(selector).first().isVisible(), 'Overview missing ' + selector);
+    }
+    if (mobile) {
+      for (const selector of ['.ai-panel.mobile-dashboard-panel', '.recent-panel.mobile-dashboard-panel']) {
+        assert.ok(await page.locator(selector + ':visible').first().isVisible(), 'Overview mobile missing ' + selector);
+      }
+    } else {
+      for (const selector of ['.dashboard-side-column .ai-panel', '.dashboard-side-column .recent-panel']) {
+        assert.ok(await page.locator(selector + ':visible').first().isVisible(), 'Overview desktop missing ' + selector);
+      }
+      const desktopOrder = await page.locator('.dashboard-body-grid').evaluate((grid) => {
+        const performance = grid.querySelector('.performance-panel');
+        const ai = grid.querySelector('.dashboard-side-column .ai-panel');
+        return Boolean(performance && ai && (performance.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING));
+      });
+      assert.ok(desktopOrder, 'Overview desktop must place Performance before visible AI Recommendations');
     }
     assert.equal(await page.locator('.metric-card').count(), 6, 'Overview must render exactly six KPI cards');
     const metricStates = await page.locator('.metric-card').evaluateAll((cards) => cards.map((card) => ({
