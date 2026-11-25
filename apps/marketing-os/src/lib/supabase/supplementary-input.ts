@@ -16,8 +16,8 @@ export function hasExplicitWorkspaceIds(input: unknown): boolean {
 
   return (
     typeof primaryWorkspaceId === 'string' &&
-    UUID_PATTERN.test(primaryWorkspaceId.trim()) &&
+    UUID_PATTERN.test(primaryWorkspaceId) &&
     typeof targetWorkspaceId === 'string' &&
-    UUID_PATTERN.test(targetWorkspaceId.trim())
+    UUID_PATTERN.test(targetWorkspaceId)
   );
 }
