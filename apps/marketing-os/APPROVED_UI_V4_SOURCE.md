@@ -27,3 +27,16 @@ Before declaring READY FOR USE, capture and compare live Production evidence at 
 READY FOR USE means Approved UX/UI V4 is actually running on Production AND all post-deploy gates pass. Vercel READY alone is insufficient.
 
 No Production promotion until exact-SHA typecheck/build/regression gates and visual QA against the two locked uploads pass. After promotion, repeat runtime/auth/live smoke and Desktop/Mobile Production visual confirmation before declaring PRODUCTION COMPLETE / พร้อมใช้งาน.
+
+## Reference 2 — detailed Dashboard / campaign-content target
+
+The second locked upload, `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg`, is an independent detailed Dashboard / campaign-content reference. It is not a duplicate confirmation of the overview image.
+
+- Its implementation target is the authenticated `/[workspaceSlug]/dashboard` route; the overview remains `/[workspaceSlug]/home`.
+- Capture the detailed route independently at Desktop 1536x1024 and Mobile 390x844.
+- Its visual comparison must use only the second image's fingerprint. The overview comparison must use only the first image's fingerprint.
+- The detailed view preserves Campaign Performance, Top Performing Content, Channels & Integrations, Content Calendar / Factory, Audience Insights, AI Insight, Next Best Actions, Business Genome, MIT 24 Steps, Recent Activity, and Platform Status.
+- Keep major campaign/performance analytics before AI Insight and Next Best Actions on both desktop and mobile.
+- Content ranking, campaign outcomes, channel health, and AI recommendations must remain `—`, `UNAVAILABLE`, or `UNVERIFIED` unless supported by workspace-scoped evidence. Record metadata may be shown as metadata; it must not be presented as performance proof.
+- A single screenshot must never be compared against both locked references. Missing or unavailable detailed routes fail closed.
+
