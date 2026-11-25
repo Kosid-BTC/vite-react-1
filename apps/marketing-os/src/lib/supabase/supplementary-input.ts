@@ -11,6 +11,15 @@ export function hasExplicitWorkspaceIds(input: unknown): boolean {
   }
 
   const values = input as Record<string, unknown>;
+  // Accept only identifiers supplied as own properties. Inherited values can
+  // otherwise satisfy the contract after prototype pollution or object reuse.
+  if (
+    !Object.prototype.hasOwnProperty.call(values, 'primaryWorkspaceId') ||
+    !Object.prototype.hasOwnProperty.call(values, 'targetWorkspaceId')
+  ) {
+    return false;
+  }
+
   const primaryWorkspaceId = values.primaryWorkspaceId;
   const targetWorkspaceId = values.targetWorkspaceId;
 
