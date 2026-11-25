@@ -164,7 +164,7 @@
      desktop `order` values must not form two indivisible groups, otherwise the
      side column can jump ahead of Performance in Chromium. */
   .dashboard-main-column { order: initial !important; display: contents; }
-  .dashboard-side-column { display: none; }
+  .dashboard-body-grid > .dashboard-side-column { display: none; }
   .mobile-dashboard-panel { display: block; }
   .performance-panel,
   .ai-panel,
