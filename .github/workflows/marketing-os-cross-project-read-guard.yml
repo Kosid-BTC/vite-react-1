@@ -10,7 +10,7 @@ on:
       - 'apps/marketing-os/src/lib/supabase/supplementary-readonly.ts'
       - 'apps/marketing-os/scripts/verify-dual-supabase-boundary.mjs'
       - 'apps/marketing-os/scripts/verify-supplementary-adapter-runtime.ts'
-      - 'apps/marketing-os/scripts/verify-explicit-workspace-own-properties.ts'
+      - 'apps/marketing-os/**'
       - '.github/workflows/marketing-os-cross-project-read-guard.yml'
   workflow_dispatch:
 permissions:
@@ -35,5 +35,12 @@ jobs:
         run: npx tsx scripts/verify-explicit-workspace-own-properties.ts
       - name: Exercise supplementary adapter fail-closed path
         run: npx tsx scripts/verify-supplementary-adapter-runtime.ts
+      - name: Verify approved UX/UI V4 source contract
+        run: npm run test:approved-ui
       - name: Typecheck Marketing OS
         run: npm run typecheck -- --pretty false
+      - name: Build Marketing OS (offline placeholder environment)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.invalid
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-public-key
+        run: npm run build
