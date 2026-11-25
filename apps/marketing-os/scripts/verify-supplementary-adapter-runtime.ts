@@ -52,6 +52,16 @@ const cases: Array<{ name: string; input: unknown; valid: boolean }> = [
     valid: false,
   },
   {
+    name: 'primary workspace UUID with surrounding whitespace',
+    input: { primaryWorkspaceId: ` ${primaryWorkspaceId} `, targetWorkspaceId },
+    valid: false,
+  },
+  {
+    name: 'target workspace UUID with surrounding whitespace',
+    input: { primaryWorkspaceId, targetWorkspaceId: ` ${targetWorkspaceId} ` },
+    valid: false,
+  },
+  {
     name: 'missing target workspace',
     input: { primaryWorkspaceId },
     valid: false,
