@@ -18,6 +18,12 @@ assert.match(adapter, /supplementaryDatabaseAccess\(\)/);
 assert.match(adapter, /hasExplicitWorkspaceIds\(input\)/);
 assert.match(adapter, /WORKSPACE_MAPPING_UNVERIFIED/);
 
+// Pin the dormant target to the verified CEO Back Office Development branch,
+// never to its parent project. This does not enable or perform a cross-project read.
+assert.match(boundary, /SUPPLEMENTARY_CEO_AI_PROJECT_REF = 'tdeuyycqbbktacmxgktn'/);
+assert.match(boundary, /https:\/\/tdeuyycqbbktacmxgktn\.supabase\.co/);
+assert.doesNotMatch(boundary, /waigsnxhrlwtiotspaim/);
+
 // The pure input validator rejects null, primitives, arrays and malformed UUIDs.
 assert.match(inputGuard, /export function hasExplicitWorkspaceIds\(input: unknown\)/);
 assert.match(inputGuard, /input === null \|\| typeof input !== 'object' \|\| Array\.isArray\(input\)/);
@@ -41,4 +47,4 @@ assert.match(adapter, /return \{ ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIE
 // Compatibility credential is documented as ignored and must never be consumed.
 assert.equal((adapter.match(/targetAccessToken/g) ?? []).length, 1);
 
-console.log('PASS: supplementary boundary remains server-only/fail-closed and explicit workspace UUIDs are validated without cross-project access');
+console.log('PASS: adapter remains disabled, target is pinned to Development, and no cross-project access is attempted');
