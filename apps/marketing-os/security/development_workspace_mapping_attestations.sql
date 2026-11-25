@@ -1,8 +1,10 @@
 -- NON-EXECUTABLE DESIGN TEMPLATE. EVERY LINE IN THIS FILE IS A SQL COMMENT.
 -- DO NOT EXECUTE, APPLY, OR CONVERT THIS FILE INTO A MIGRATION.
--- The Supabase control-plane lookup on 2026-11-26 did not find the previously designated Development refs.
--- Do not substitute parent-project refs or infer Development identity from project names.
--- Replace both placeholders only after independently verifying the exact Development branch project refs, parent refs, branch IDs, organization, and status.
+-- Verified by Supabase list_branches on 2026-11-26:
+-- Marketing OS Development: project_ref roprejhnhoaqlctltwfs; branch_id e2139d78-2675-4863-ac64-a5fad7c8f826; parent_project_ref bjozpwdtqbpwcxnqguka; status MIGRATIONS_FAILED; preview_project_status ACTIVE_HEALTHY; with_data false.
+-- CEO Back Office Development: project_ref tdeuyycqbbktacmxgktn; branch_id 2172c0d4-e534-4fe8-918e-5c99ad35ae45; parent_project_ref waigsnxhrlwtiotspaim; status FUNCTIONS_DEPLOYED; preview_project_status ACTIVE_HEALTHY; with_data false.
+-- Use the branch project refs as targets. Parent project refs identify the branch parent only and must never be used as the target.
+-- This template remains non-executable. Marketing OS Development recovery and all release preconditions must pass before preparing an executable migration.
 -- This template is not an authorization to create a mapping or enable cross-project reads.
 -- 
 -- begin;
@@ -15,11 +17,11 @@
 --   mapping_id uuid primary key default gen_random_uuid(),
 -- 
 --   primary_project_ref text not null
---     check (primary_project_ref = '__VERIFIED_MARKETING_OS_DEVELOPMENT_PROJECT_REF__'),
+--     check (primary_project_ref = 'roprejhnhoaqlctltwfs'),
 --   supplementary_project_ref text not null
---     check (supplementary_project_ref = '__VERIFIED_CEO_BACKOFFICE_DEVELOPMENT_PROJECT_REF__'),
+--     check (supplementary_project_ref = 'tdeuyycqbbktacmxgktn'),
 -- 
---   -- Primary refs are local to the Marketing OS Development project. These FKs prove existence only;
+--   -- Primary refs are local to the Marketing OS Development branch. These FKs prove existence only;
 --   -- the trusted verifier must still prove owner membership and consent independently.
 --   primary_workspace_id uuid not null
 --     references public.workspaces(id) on delete restrict,
@@ -56,8 +58,8 @@
 --   unique (supplementary_consent_event_id)
 -- );
 -- 
--- -- Supplementary refs belong to the separate CEO Back Office Development project and cannot have local foreign keys;
--- -- the trusted verifier must validate them in that project's own Auth/database context on every read.
+-- -- Supplementary refs belong to the separate CEO Back Office Development branch and cannot have local foreign keys;
+-- -- the trusted verifier must validate them in that branch's own Auth/database context on every read.
 -- -- One active (not revoked) mapping per workspace on either side.
 -- -- Expired records must be explicitly revoked before a replacement attestation is inserted.
 -- create unique index if not exists workspace_mapping_primary_active_unique
@@ -76,7 +78,7 @@
 -- -- A later trusted backend/RPC design must be separately reviewed after isolated restore
 -- -- and least-privilege audit; this template intentionally provides no read path.
 -- -- A trusted server must independently verify BOTH owner consent events against each
--- -- project's Auth context, validate evidence digests, reject replay/expiry/revocation,
+-- -- branch's Auth context, validate evidence digests, reject replay/expiry/revocation,
 -- -- and re-check authorization on EVERY read.
 -- -- Do not store access tokens, JWTs, API keys, or customer records here.
 -- 
