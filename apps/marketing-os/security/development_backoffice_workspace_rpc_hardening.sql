@@ -1,7 +1,7 @@
 -- NON-EXECUTABLE DESIGN TEMPLATE. EVERY LINE IN THIS FILE IS A SQL COMMENT.
 -- DO NOT EXECUTE, APPLY, OR CONVERT THIS FILE INTO A MIGRATION.
--- Target placeholder: __VERIFIED_CEO_BACKOFFICE_DEVELOPMENT_PROJECT_REF__.
--- The exact Development project ref, parent ref, branch ID, organization, and status must be re-verified in Supabase before any executable migration is prepared.
+-- Target CEO Back Office Development branch: project_ref tdeuyycqbbktacmxgktn; branch_id 2172c0d4-e534-4fe8-918e-5c99ad35ae45; parent_project_ref waigsnxhrlwtiotspaim; status FUNCTIONS_DEPLOYED; preview_project_status ACTIVE_HEALTHY; with_data false.
+-- The parent project ref is metadata only. The target is the Development branch project ref.
 -- This template does not create a mapping, read another project, or enable cross-project access.
 -- 
 -- begin;
