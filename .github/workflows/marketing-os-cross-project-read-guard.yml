@@ -31,8 +31,6 @@ jobs:
       - name: Verify no cross-project read before security acceptance
         run: node scripts/verify-dual-supabase-boundary.mjs
       - name: Exercise supplementary adapter fail-closed path
-        env:
-          NODE_OPTIONS: --conditions=react-server
         run: npx tsx scripts/verify-supplementary-adapter-runtime.ts
       - name: Typecheck Marketing OS
         run: npm run typecheck -- --pretty false
