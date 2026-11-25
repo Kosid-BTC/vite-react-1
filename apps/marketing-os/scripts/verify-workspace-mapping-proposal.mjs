@@ -38,7 +38,7 @@ for (const required of [
   assert.ok(compact.includes(required), `Missing required owner-attestation field: ${required}`);
 }
 
-assert.ok(compact.includes("primary_project_ref = 'bjozpwdtqbpwcxnqgktn'"));
+assert.ok(compact.includes("primary_project_ref = 'bjozpwdtqbpwcxnqguka'"));
 assert.ok(compact.includes("supplementary_project_ref = 'waigsnxhrlwtiotspaim'"));
 assert.match(compact, /primary_consent_evidence_sha256 ~ '\^\[0-9a-f\]\{64\}\$'/);
 assert.match(compact, /supplementary_consent_evidence_sha256 ~ '\^\[0-9a-f\]\{64\}\$'/);
