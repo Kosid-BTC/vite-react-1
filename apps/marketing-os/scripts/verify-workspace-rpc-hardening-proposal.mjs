@@ -23,14 +23,16 @@ const backofficeSql = normalize(unwrapCommentTemplate('development_backoffice_wo
 const requiredRevocation =
   /revoke all on function public\.ensure_default_workspace\(\) from public, anon, authenticated, service_role, supabase_read_only_user/;
 
-for (const [label, sql, placeholder] of [
-  ['Marketing OS', marketingSql, '__verified_marketing_os_development_project_ref__'],
-  ['CEO Back Office', backofficeSql, '__verified_ceo_backoffice_development_project_ref__'],
+for (const [label, sql, projectRef, branchId, parentRef, status] of [
+  ['Marketing OS', marketingSql, 'roprejhnhoaqlctltwfs', 'e2139d78-2675-4863-ac64-a5fad7c8f826', 'bjozpwdtqbpwcxnqguka', 'migrations_failed'],
+  ['CEO Back Office', backofficeSql, 'tdeuyycqbbktacmxgktn', '2172c0d4-e534-4fe8-918e-5c99ad35ae45', 'waigsnxhrlwtiotspaim', 'functions_deployed'],
 ]) {
   assert.match(sql, /^non-executable design template/);
   assert.match(sql, /do not execute, apply, or convert this file into a migration/);
-  assert.ok(sql.includes(placeholder), label + ': missing verified Development project-ref placeholder');
-  assert.doesNotMatch(sql, /bjozpwdtqbpwcxnqguka|waigsnxhrlwtiotspaim/);
+  assert.ok(sql.includes(projectRef), label + ': missing verified Development project ref');
+  assert.ok(sql.includes(branchId), label + ': missing verified Development branch ID');
+  assert.ok(sql.includes(parentRef), label + ': missing parent project ref metadata');
+  assert.ok(sql.includes('status ' + status), label + ': branch status mismatch');
   assert.match(sql, requiredRevocation, label + ': implicit first-workspace RPC must be revoked');
   assert.match(sql, /begin;[\s\S]*commit;/);
   assert.doesNotMatch(sql, /\bgrant\b/);
@@ -52,4 +54,4 @@ assert.match(marketingSql, /insert into public\.workspace_state \(workspace_id, 
 
 assert.doesNotMatch(backofficeSql, /create or replace function public\.create_workspace/);
 
-console.log('PASS: Development RPC designs are comment-only, placeholder-scoped, and never executed');
+console.log('PASS: Development RPC designs are comment-only and pinned to verified branch refs');
