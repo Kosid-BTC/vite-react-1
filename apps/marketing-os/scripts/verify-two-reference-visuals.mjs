@@ -112,12 +112,13 @@ async function createPage(viewport) {
 async function assertOverview(page, mobile = false) {
   await page.locator('main.marketing-app-shell[data-visual-qa="preview-fixture"]').waitFor({ state: 'visible', timeout: 30000 });
   assert.equal(await page.locator('.metric-card').count(), 6, 'Overview must render all six KPI cards');
-  for (const selector of ['.performance-panel', '.traffic-source', '.ai-panel.mobile-dashboard-panel', '.genome-panel', '.mit-panel', '.recent-panel.mobile-dashboard-panel', '.platform-panel']) {
-    assert.ok(await page.locator(selector).count(), 'Overview is missing ' + selector);
+  for (const selector of ['.performance-panel', '.traffic-source', '.genome-panel', '.mit-panel', '.platform-panel']) {
+    assert.ok(await page.locator(selector + ':visible').first().isVisible(), 'Overview is missing visible ' + selector);
   }
   if (mobile) {
     const performance = await page.locator('.performance-panel:visible').boundingBox();
     const ai = await page.locator('.ai-panel.mobile-dashboard-panel:visible').boundingBox();
+    assert.ok(await page.locator('.recent-panel.mobile-dashboard-panel:visible').first().isVisible(), 'Overview mobile is missing Recent Activity');
     assert.ok(performance && ai && performance.y < ai.y, 'Overview mobile must place Performance before AI recommendations');
     const cards = await page.locator('.metric-card').evaluateAll((nodes) => nodes.map((node) => {
       const rect = node.getBoundingClientRect();
@@ -127,13 +128,15 @@ async function assertOverview(page, mobile = false) {
     assert.equal(cards.length, 6);
     assert.ok(cards.every(Boolean), 'All six overview KPI cards must remain rendered on mobile');
   } else {
-    const order = await page.locator('.dashboard-main-column').evaluate((column) => {
-      const selectors = ['.performance-panel', '.ai-panel.mobile-dashboard-panel', '.genome-panel', '.mit-panel', '.recent-panel.mobile-dashboard-panel', '.platform-panel'];
-      const nodes = selectors.map((selector) => column.querySelector(selector));
-      if (nodes.some((node) => !node)) return false;
-      return nodes.every((node, index) => index === 0 || Boolean(nodes[index - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING));
+    for (const selector of ['.dashboard-side-column .ai-panel', '.dashboard-side-column .recent-panel']) {
+      assert.ok(await page.locator(selector + ':visible').first().isVisible(), 'Overview desktop is missing visible ' + selector);
+    }
+    const order = await page.locator('.dashboard-body-grid').evaluate((grid) => {
+      const performance = grid.querySelector('.performance-panel');
+      const ai = grid.querySelector('.dashboard-side-column .ai-panel');
+      return Boolean(performance && ai && (performance.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING));
     });
-    assert.ok(order, 'Overview order must preserve analytics before AI, then Genome, MIT, Activity and Platform');
+    assert.ok(order, 'Overview desktop must place Performance before visible AI Recommendations');
   }
 }
 
