@@ -1,7 +1,7 @@
 -- NON-EXECUTABLE DESIGN TEMPLATE. EVERY LINE IN THIS FILE IS A SQL COMMENT.
 -- DO NOT EXECUTE, APPLY, OR CONVERT THIS FILE INTO A MIGRATION.
--- Target placeholder: __VERIFIED_MARKETING_OS_DEVELOPMENT_PROJECT_REF__.
--- The exact Development project ref, parent ref, branch ID, organization, and status must be re-verified in Supabase before any executable migration is prepared.
+-- Target Marketing OS Development branch: project_ref roprejhnhoaqlctltwfs; branch_id e2139d78-2675-4863-ac64-a5fad7c8f826; parent_project_ref bjozpwdtqbpwcxnqguka; status MIGRATIONS_FAILED; preview_project_status ACTIVE_HEALTHY; with_data false.
+-- The parent project ref is metadata only. The target is the Development branch project ref.
 -- This template does not create a mapping, read another project, or enable cross-project access.
 -- 
 -- begin;
