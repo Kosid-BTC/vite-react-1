@@ -10,23 +10,32 @@ export function hasExplicitWorkspaceIds(input: unknown): boolean {
     return false;
   }
 
-  const values = input as Record<string, unknown>;
-  // Accept only identifiers supplied as own properties. Inherited values can
-  // otherwise satisfy the contract after prototype pollution or object reuse.
-  if (
-    !Object.prototype.hasOwnProperty.call(values, 'primaryWorkspaceId') ||
-    !Object.prototype.hasOwnProperty.call(values, 'targetWorkspaceId')
-  ) {
+  try {
+    // Read descriptors instead of properties so accessor getters are never
+    // invoked. Proxy descriptor traps may throw; fail closed in that case.
+    const primaryDescriptor = Object.getOwnPropertyDescriptor(input, 'primaryWorkspaceId');
+    const targetDescriptor = Object.getOwnPropertyDescriptor(input, 'targetWorkspaceId');
+
+    if (
+      !primaryDescriptor ||
+      !targetDescriptor ||
+      !Object.prototype.hasOwnProperty.call(primaryDescriptor, 'value') ||
+      !Object.prototype.hasOwnProperty.call(targetDescriptor, 'value')
+    ) {
+      return false;
+    }
+
+    const primaryWorkspaceId = primaryDescriptor.value;
+    const targetWorkspaceId = targetDescriptor.value;
+
+    return (
+      typeof primaryWorkspaceId === 'string' &&
+      UUID_PATTERN.test(primaryWorkspaceId) &&
+      typeof targetWorkspaceId === 'string' &&
+      UUID_PATTERN.test(targetWorkspaceId)
+    );
+  } catch {
+    // Validation must not throw for hostile runtime objects.
     return false;
   }
-
-  const primaryWorkspaceId = values.primaryWorkspaceId;
-  const targetWorkspaceId = values.targetWorkspaceId;
-
-  return (
-    typeof primaryWorkspaceId === 'string' &&
-    UUID_PATTERN.test(primaryWorkspaceId) &&
-    typeof targetWorkspaceId === 'string' &&
-    UUID_PATTERN.test(targetWorkspaceId)
-  );
 }
