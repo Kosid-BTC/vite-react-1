@@ -16,9 +16,13 @@ create table if not exists marketing_security.workspace_mapping_attestations (
   supplementary_project_ref text not null
     check (supplementary_project_ref = 'waigsnxhrlwtiotspaim'),
 
-  primary_workspace_id uuid not null,
+  -- Primary refs are local to this Marketing OS project. These FKs prove existence only;
+  -- the trusted verifier must still prove owner membership and consent independently.
+  primary_workspace_id uuid not null
+    references public.workspaces(id) on delete restrict,
   supplementary_workspace_id uuid not null,
-  primary_owner_user_id uuid not null,
+  primary_owner_user_id uuid not null
+    references auth.users(id) on delete restrict,
   supplementary_owner_user_id uuid not null,
 
   primary_consent_event_id text not null
@@ -32,7 +36,8 @@ create table if not exists marketing_security.workspace_mapping_attestations (
 
   primary_verified_at timestamptz not null,
   supplementary_verified_at timestamptz not null,
-  reviewed_by_user_id uuid not null,
+  reviewed_by_user_id uuid not null
+    references auth.users(id) on delete restrict,
   reviewed_by text not null check (length(trim(reviewed_by)) > 0),
 
   expires_at timestamptz not null,
@@ -48,6 +53,9 @@ create table if not exists marketing_security.workspace_mapping_attestations (
   unique (supplementary_consent_event_id)
 );
 
+-- The supplementary refs belong to the separate CEO Back Office project and cannot
+-- have local foreign keys. The trusted verifier must validate them in that project's
+-- own Auth/database context on every read.
 -- One active (not revoked) mapping per workspace on either side.
 -- Expired records must be explicitly revoked before a replacement attestation is inserted.
 create unique index if not exists workspace_mapping_primary_active_unique
