@@ -1,18 +1,25 @@
-// Static review of the DEVELOPMENT-ONLY owner-attestation SQL proposal.
+// Static review of the NON-EXECUTABLE Development owner-attestation design template.
 // This script reads SQL text only; it never connects to or executes against a database.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const sql = readFileSync(
+const raw = readFileSync(
   resolve(process.cwd(), 'security/development_workspace_mapping_attestations.sql'),
   'utf8',
 );
+const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
+assert.ok(lines.length > 0, 'Mapping template must not be empty');
+assert.ok(
+  lines.every((line) => /^\s*--/.test(line)),
+  'Mapping template must remain comment-only so accidental SQL execution is a no-op',
+);
 
-const compact = sql.replace(/\s+/g, ' ').toLowerCase();
+const design = lines.map((line) => line.replace(/^\s*--\s?/, '')).join(' ');
+const compact = design.replace(/\s+/g, ' ').toLowerCase();
 
-assert.match(compact, /^-- development-only proposal\./);
-assert.match(compact, /do not apply to production/);
+assert.match(compact, /^non-executable design template\./);
+assert.match(compact, /do not execute, apply, or convert this file into a migration/);
 assert.match(compact, /create schema if not exists marketing_security/);
 assert.match(compact, /create table if not exists marketing_security\.workspace_mapping_attestations/);
 
@@ -38,21 +45,20 @@ for (const required of [
   assert.ok(compact.includes(required), `Missing required owner-attestation field: ${required}`);
 }
 
-assert.ok(compact.includes("primary_project_ref = 'bjozpwdtqbpwcxnqguka'"));
-assert.ok(compact.includes("supplementary_project_ref = 'waigsnxhrlwtiotspaim'"));
+assert.ok(compact.includes("primary_project_ref = '__verified_marketing_os_development_project_ref__'"));
+assert.ok(compact.includes("supplementary_project_ref = '__verified_ceo_backoffice_development_project_ref__'"));
+assert.doesNotMatch(compact, /bjozpwdtqbpwcxnqguka|waigsnxhrlwtiotspaim/);
 assert.match(compact, /primary_consent_evidence_sha256 ~ '\^\[0-9a-f\]\{64\}\$'/);
 assert.match(compact, /supplementary_consent_evidence_sha256 ~ '\^\[0-9a-f\]\{64\}\$'/);
 assert.match(compact, /expires_at > greatest\(primary_verified_at, supplementary_verified_at\)/);
 assert.match(compact, /\(revoked_at is null\) = \(revocation_reason is null\)/);
 assert.match(compact, /revoked_at is null or revoked_at >= created_at/);
 
-// The local (Marketing OS) workspace, owner, and reviewer must exist locally.
-// These FKs do not prove owner membership or consent; the trusted verifier still must.
 assert.match(compact, /primary_workspace_id uuid not null references public\.workspaces\(id\) on delete restrict/);
 assert.match(compact, /primary_owner_user_id uuid not null references auth\.users\(id\) on delete restrict/);
 assert.match(compact, /reviewed_by_user_id uuid not null references auth\.users\(id\) on delete restrict/);
 assert.match(compact, /these fks prove existence only/);
-assert.match(compact, /supplementary refs belong to the separate ceo back office project and cannot have local foreign keys/);
+assert.match(compact, /supplementary refs belong to the separate ceo back office development project and cannot have local foreign keys/);
 assert.match(compact, /supplementary_workspace_id uuid not null,/);
 assert.match(compact, /supplementary_owner_user_id uuid not null,/);
 assert.doesNotMatch(compact, /supplementary_(?:workspace|owner_user)_id uuid not null references/);
@@ -70,4 +76,4 @@ assert.doesNotMatch(compact, /\bcreate\s+(?:or\s+replace\s+)?function\b/);
 assert.doesNotMatch(compact, /\b(?:drop|truncate)\b/);
 assert.doesNotMatch(compact, /\bdisable\s+row\s+level\s+security\b/);
 
-console.log('PASS: Development-only owner-attestation proposal invariants; no SQL was executed');
+console.log('PASS: Development owner-attestation design is comment-only, placeholder-scoped, and never executed');
