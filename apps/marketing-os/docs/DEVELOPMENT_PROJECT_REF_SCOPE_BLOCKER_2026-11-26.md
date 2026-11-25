@@ -1,30 +1,36 @@
-# Development project-ref scope blocker — 2026-11-26
+# Development branch scope and recovery status — 2026-11-26
 
-## Finding
+## Supabase control-plane verification
 
-A fresh Supabase control-plane lookup returned the parent projects below as `ACTIVE_HEALTHY`:
+The correct lookup for Supabase Development branches is `list_branches` on the parent project. A `get_project` call using a branch project ref returns `Project not found`; that response alone does not establish that the branch is absent.
 
-- Marketing OS parent project: `bjozpwdtqbpwcxnqguka` (listed as `CEOAITHAILAND Marketing`)
-- CEO AI Thailand parent project: `waigsnxhrlwtiotspaim` (listed as `CEO Ai Thailand`)
+Fresh `list_branches` results:
 
-The previously designated Development branch refs were `roprejhnhoaqlctltwfs` (Marketing OS Development) and `tdeuyycqbbktacmxgktn` (CEO Back Office Development). A fresh `list_projects` response did not include either ref, and `get_project` returned `Project not found` for both.
+| Environment | Parent project | Development branch | Branch ID | Branch status | Preview DB status | With data |
+|---|---|---|---|---|---|---|
+| Marketing OS | `bjozpwdtqbpwcxnqguka` | `roprejhnhoaqlctltwfs` | `e2139d78-2675-4863-ac64-a5fad7c8f826` | `MIGRATIONS_FAILED` | `ACTIVE_HEALTHY` | `false` |
+| CEO Back Office | `waigsnxhrlwtiotspaim` | `tdeuyycqbbktacmxgktn` | `2172c0d4-e534-4fe8-918e-5c99ad35ae45` | `FUNCTIONS_DEPLOYED` | `ACTIVE_HEALTHY` | `false` |
 
-The owner-attestation and RPC SQL proposals at the prior PR #24 head embedded the parent-project refs rather than refs that were verified as Development branches. This is a **scope blocker**: applying those proposals as written could target a parent project. No SQL, DDL, DML, migration, or Edge Function deployment was executed in this work round.
+Both branches are non-default and non-persistent. The parent project refs are branch-parent metadata; they are not the Development target refs.
 
-## Containment committed to PR #24
+## Scope defect found and contained
 
-- Converted all three SQL proposal files into comment-only design templates. Every non-empty line starts with a SQL comment, so executing the files as SQL is a no-op.
-- Removed embedded parent-project refs and replaced them with explicit Development-ref placeholders.
-- Updated static verifiers to require comment-only templates, require the placeholders, and reject the previously embedded parent refs.
-- Kept the supplementary adapter fail-closed. Cross-project application-data Read remains OFF.
+At the prior PR #24 head, the owner-attestation and RPC proposal files used the parent project refs as their target identifiers. If those proposals had been applied to a parent project, they could have changed the wrong database. No SQL, DDL, DML, migration, or Edge Function deployment was executed.
 
-## Recovery required before any executable SQL
+Containment committed to PR #24:
 
-1. Restore visibility of the two dedicated Development branches in the correct Supabase organization.
-2. Independently verify each branch's exact project ref, parent project ref, branch ID, status, PostgreSQL version, and `with_data` state.
-3. Obtain backup integrity, PostgreSQL 17 isolated-restore, schema-parity, and rollback evidence.
-4. Review the proposed SQL against the actual Development schemas and a least-privilege, non-BYPASSRLS audit identity.
-5. Only then prepare a new executable Development migration and request separate approval before applying it.
+- All three SQL proposal files remain comment-only; every non-empty line starts with `--`, so accidental SQL execution is a no-op.
+- The design templates now pin their target identifiers to the verified Development branch refs above and record the branch IDs and status.
+- Static verifiers require comment-only files and the exact branch refs/IDs.
+- The dormant supplementary URL in the application boundary now points to the CEO Back Office Development branch, not its parent project.
+- The adapter still returns `WORKSPACE_MAPPING_UNVERIFIED` and makes zero target network/database calls.
+
+## Recovery blockers
+
+- Marketing OS Development branch status is `MIGRATIONS_FAILED`; do not apply any migration until its failure is diagnosed from the actual migration ledger and a verified backup/isolated-restore/rollback package exists.
+- CEO Back Office Development branch status is `FUNCTIONS_DEPLOYED`; this does not establish schema parity or security acceptance.
+- Both branches have `with_data=false`; do not treat that as backup or restore evidence.
+- Dedicated non-BYPASSRLS audit identity, independent owner consent verification, RLS/RPC runtime tests, and Tenant A/B tests remain UNVERIFIED.
 
 ## Release disposition
 
