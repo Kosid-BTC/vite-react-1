@@ -182,14 +182,6 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
     trackingLinks = (trackingResult.data ?? []) as TrackingRow[];
   }
 
-  const evidenceByContent = new Map<string, EvidenceRow[]>();
-  for (const evidence of evidenceItems) {
-    if (!evidence.content_item_id) continue;
-    const rows = evidenceByContent.get(evidence.content_item_id) ?? [];
-    rows.push(evidence);
-    evidenceByContent.set(evidence.content_item_id, rows);
-  }
-
   return (
     <main className="marketing-app-shell detail-dashboard-shell" data-visual-qa={isPreviewVisualQa ? 'preview-fixture' : undefined}>
       <aside className="app-sidebar" aria-label="เมนูหลัก">
