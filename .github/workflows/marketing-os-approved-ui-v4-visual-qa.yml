@@ -118,11 +118,32 @@ jobs:
             await page.screenshot({ path: 'visual-qa-artifacts/desktop-1536x1024.png', fullPage: true });
             await page.setViewportSize({ width: 390, height: 844 });
             await page.waitForTimeout(500);
+            const sideColumn = page.locator('.dashboard-body-grid > .dashboard-side-column');
+            if (!(await sideColumn.isHidden())) throw new Error('Mobile must hide the desktop side column to prevent duplicate AI/Activity panels');
+            const mobileAi = page.locator('.ai-panel.mobile-dashboard-panel');
+            const mobileActivity = page.locator('.recent-panel.mobile-dashboard-panel');
+            if ((await mobileAi.count()) !== 1 || !(await mobileAi.first().isVisible())) throw new Error('Expected one visible mobile AI Recommendations panel');
+            if ((await mobileActivity.count()) !== 1 || !(await mobileActivity.first().isVisible())) throw new Error('Expected one visible mobile Recent Activity panel');
             const pBox = await page.locator('.performance-panel').boundingBox();
-            const aBox = await page.locator('.ai-panel.mobile-dashboard-panel').boundingBox();
+            const aBox = await mobileAi.first().boundingBox();
             if (!pBox || !aBox || pBox.y >= aBox.y) throw new Error('Mobile hierarchy regression: Performance must precede AI Recommendations');
-            if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Mobile must retain all six KPI cards');
+            const metricGrid = page.locator('.metric-grid');
+            const metricCards = page.locator('.metric-card');
+            if ((await metricCards.count()) !== 6) throw new Error('Mobile must retain all six KPI cards');
+            const hiddenCards = await metricCards.evaluateAll(nodes => nodes.filter(node => getComputedStyle(node).display === 'none').length);
+            if (hiddenCards !== 0) throw new Error('Mobile must not hide any KPI cards');
+            const rail = await metricGrid.evaluate(el => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+            if (rail.scrollWidth <= rail.clientWidth) throw new Error('Expected a horizontally scrollable six-card KPI rail on mobile');
             await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: true });
+            await metricGrid.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+            await page.waitForTimeout(200);
+            const lastCardVisible = await metricCards.last().evaluate(el => {
+              const card = el.getBoundingClientRect();
+              const railBox = el.parentElement.getBoundingClientRect();
+              return card.left >= railBox.left - 1 && card.right <= railBox.right + 1;
+            });
+            if (!lastCardVisible) throw new Error('The sixth KPI card must be reachable within the mobile KPI rail');
+            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844-kpi-rail-end.png', fullPage: true });
             console.log('AUTHENTICATED_VISUAL_QA_CAPTURE=PASS');
           } catch (error) {
             console.error(`VISUAL_QA_FAILURE_URL=${page.url()}`);
