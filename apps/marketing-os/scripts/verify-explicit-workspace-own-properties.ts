@@ -15,4 +15,37 @@ assert.equal(
   'own explicit workspace identifiers should satisfy the syntax contract',
 );
 
-console.log('PASS: explicit workspace identifiers must be own properties');
+let getterCalls = 0;
+const accessorInput = Object.defineProperties({}, {
+  primaryWorkspaceId: {
+    get() {
+      getterCalls += 1;
+      return primaryWorkspaceId;
+    },
+  },
+  targetWorkspaceId: {
+    get() {
+      getterCalls += 1;
+      return targetWorkspaceId;
+    },
+  },
+});
+assert.equal(
+  hasExplicitWorkspaceIds(accessorInput),
+  false,
+  'accessor properties must be rejected without invoking their getters',
+);
+assert.equal(getterCalls, 0, 'validation must not invoke accessor getters');
+
+const throwingProxy = new Proxy({}, {
+  getOwnPropertyDescriptor() {
+    throw new Error('unexpected descriptor trap');
+  },
+});
+assert.equal(
+  hasExplicitWorkspaceIds(throwingProxy),
+  false,
+  'descriptor-trap errors must fail closed rather than escape validation',
+);
+
+console.log('PASS: explicit workspace identifiers must be own data properties');
