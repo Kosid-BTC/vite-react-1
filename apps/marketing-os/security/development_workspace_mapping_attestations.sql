@@ -53,9 +53,7 @@ create table if not exists marketing_security.workspace_mapping_attestations (
   unique (supplementary_consent_event_id)
 );
 
--- The supplementary refs belong to the separate CEO Back Office project and cannot
--- have local foreign keys. The trusted verifier must validate them in that project's
--- own Auth/database context on every read.
+-- Supplementary refs belong to the separate CEO Back Office project and cannot have local foreign keys; the trusted verifier must validate them in that project's own Auth/database context on every read.
 -- One active (not revoked) mapping per workspace on either side.
 -- Expired records must be explicitly revoked before a replacement attestation is inserted.
 create unique index if not exists workspace_mapping_primary_active_unique
