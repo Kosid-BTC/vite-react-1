@@ -39,4 +39,3 @@ The second locked upload, `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg`, is an 
 - Keep major campaign/performance analytics before AI Insight and Next Best Actions on both desktop and mobile.
 - Content ranking, campaign outcomes, channel health, and AI recommendations must remain `—`, `UNAVAILABLE`, or `UNVERIFIED` unless supported by workspace-scoped evidence. Record metadata may be shown as metadata; it must not be presented as performance proof.
 - A single screenshot must never be compared against both locked references. Missing or unavailable detailed routes fail closed.
-
