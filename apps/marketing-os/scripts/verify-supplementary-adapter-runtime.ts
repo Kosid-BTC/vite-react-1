@@ -51,44 +51,51 @@ const cases: Array<{ name: string; input: unknown; valid: boolean }> = [
   },
 ];
 
-for (const testCase of cases) {
-  assert.equal(
-    hasExplicitWorkspaceIds(testCase.input),
-    testCase.valid,
-    `unexpected validation result for ${testCase.name}`,
+async function main(): Promise<void> {
+  for (const testCase of cases) {
+    assert.equal(
+      hasExplicitWorkspaceIds(testCase.input),
+      testCase.valid,
+      `unexpected validation result for ${testCase.name}`,
+    );
+  }
+
+  // Exercise the actual server-only adapter function without enabling any target
+  // client. The fake token must be ignored and no network call may be attempted.
+  const originalFetch = globalThis.fetch;
+  let networkCalls = 0;
+  globalThis.fetch = async () => {
+    networkCalls += 1;
+    throw new Error('Unexpected network access in fail-closed adapter test');
+  };
+
+  try {
+    const invalidResult = await readSupplementaryBrands({
+      primaryWorkspaceId: 'not-a-uuid',
+      targetWorkspaceId,
+    });
+    assert.deepEqual(invalidResult, { ok: false, reason: 'NOT_CONFIGURED' });
+
+    const validButUnattestedResult = await readSupplementaryBrands({
+      primaryWorkspaceId,
+      targetWorkspaceId,
+      targetAccessToken: 'intentionally-invalid-test-token',
+    });
+    assert.deepEqual(validButUnattestedResult, {
+      ok: false,
+      reason: 'WORKSPACE_MAPPING_UNVERIFIED',
+    });
+    assert.equal(networkCalls, 0, 'adapter must not access the target network before attestation');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  console.log(
+    `PASS: explicit workspace UUID contract (${cases.length} cases) + actual adapter fail-closed behavior (2 calls, 0 network calls)`,
   );
 }
 
-// Exercise the actual server-only adapter function without enabling any target
-// client. The fake token must be ignored and no network call may be attempted.
-const originalFetch = globalThis.fetch;
-let networkCalls = 0;
-globalThis.fetch = async () => {
-  networkCalls += 1;
-  throw new Error('Unexpected network access in fail-closed adapter test');
-};
-
-try {
-  const invalidResult = await readSupplementaryBrands({
-    primaryWorkspaceId: 'not-a-uuid',
-    targetWorkspaceId,
-  });
-  assert.deepEqual(invalidResult, { ok: false, reason: 'NOT_CONFIGURED' });
-
-  const validButUnattestedResult = await readSupplementaryBrands({
-    primaryWorkspaceId,
-    targetWorkspaceId,
-    targetAccessToken: 'intentionally-invalid-test-token',
-  });
-  assert.deepEqual(validButUnattestedResult, {
-    ok: false,
-    reason: 'WORKSPACE_MAPPING_UNVERIFIED',
-  });
-  assert.equal(networkCalls, 0, 'adapter must not access the target network before attestation');
-} finally {
-  globalThis.fetch = originalFetch;
-}
-
-console.log(
-  `PASS: explicit workspace UUID contract (${cases.length} cases) + actual adapter fail-closed behavior (2 calls, 0 network calls)`,
-);
+void main().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});
