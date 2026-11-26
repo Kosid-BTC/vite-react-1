@@ -12,6 +12,7 @@ on:
       - 'apps/marketing-os/security/development_backoffice_workspace_rpc_hardening.sql'
       - 'apps/marketing-os/scripts/verify-workspace-rpc-hardening-proposal.mjs'
       - 'apps/marketing-os/docs/DEVELOPMENT_TENANT_ISOLATION_ACCEPTANCE_MATRIX.md'
+      - 'apps/marketing-os/docs/DEVELOPMENT_ACL_RLS_REMEDIATION_MATRIX_2026-11-26.md'
       - 'apps/marketing-os/CEO_BACKOFFICE_PRODUCTION_GATES.md'
       - 'apps/marketing-os/package.json'
       - '.github/workflows/marketing-os-offline-contract.yml'
