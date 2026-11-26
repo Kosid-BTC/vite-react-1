@@ -129,3 +129,15 @@ Read-only inspection of the CEO Back Office Development branch `tdeuyycqbbktacmx
 Marketing OS Development PostgreSQL logs in the same 24-hour window contain three errors attributable to audit SELECT statements issued through the management API: a missing `public.brands` relation, a missing `public.campaigns` relation, and a query using a nonexistent `information_schema.routines.schema_name` column. The logged SQL text and `mgmt-api` / `POST /mcp` source identify these as audit-query errors, not proof of new application migration failures. Marketing OS branch status nevertheless remains `MIGRATIONS_FAILED`.
 
 **Required next action:** keep both Development cron jobs unchanged until the Development owner approves a controlled correction. Confirm the correct branch-specific function URL, verify the secret is configured without disclosing its value, make the function return 503/deny when the secret is absent, and test in an isolated branch before updating any scheduled job. Do not copy these placeholder URLs or secrets to Production.
+
+
+## Fresh workspace RPC body inspection — 2026-11-26
+
+Read-only `pg_proc` catalog inspection on both Development branch refs confirms:
+
+- `public.ensure_default_workspace()` is `SECURITY DEFINER`, owned by `postgres`, and selects the earliest `workspace_members.created_at` membership. If none exists, it calls `public.create_workspace('ส่วนตัว')`. The Security Advisor reports authenticated EXECUTE. This is incompatible with the required explicit-workspace/no-first-workspace contract. Do not invoke it.
+- Marketing OS Development `public.create_workspace(text)` is `SECURITY DEFINER`, owned by `postgres`, and does not check `auth.uid() IS NULL` before inserting a workspace and owner membership.
+- CEO Back Office Development `public.create_workspace(text)` is `SECURITY DEFINER`, owned by `postgres`, and includes an `auth.uid() IS NULL` rejection with SQLSTATE `42501`.
+- Both functions set `search_path TO 'public'`; this inspection does not establish the correctness of all other SECURITY DEFINER grants or call paths.
+
+These are Development catalog findings. No RPC was invoked and no function definition, grant, policy, migration, or data was changed. The existing comment-only Development RPC hardening proposals remain unapplied pending backup/restore/rollback proof and dependency review.
