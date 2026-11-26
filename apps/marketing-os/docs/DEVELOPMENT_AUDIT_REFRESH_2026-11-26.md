@@ -68,3 +68,43 @@ These are Advisor findings, not proof of exploitability. Review the intended tab
 - Production: LOCKED.
 
 **NOT PRODUCTION COMPLETE.**
+
+## Fresh evidence refresh — 2026-11-26 08:47 ICT
+
+This section supersedes stale deployment and branch references above. Read-only checks were performed against the current Development branch and authoritative Vercel project. No Production mutation, Development DDL/DML, migration, deployment, seed, or Cross-project application-data Read was performed.
+
+### Exact refs and workflows
+- PR #24 current head before this evidence commit: `a86051b800db1562c39edabfcb4f8737d426d97e`, OPEN / DRAFT / UNMERGED.
+- Exact-head workflow runs: Cross-project Read Guard `45726795931` PASS; No-default-workspace Guard `45726795947` PASS; Offline CEO Back Office Contract `45726795937` PASS. Static/offline checks only.
+- PR #20 current head `9c13f93697260acd443718ef607825f4712bc10a`: PR-triggered Actions lookup and combined status returned no current checks; authoritative exact-SHA deployment lookup returned 0.
+- PR #34 current head `08a6ec4138393c1592c354eba0e61b3a7980c659`: exact-head Actions lookup returned 0; combined Vercel status is on legacy `ceoaimk`, not the authoritative project; exact-SHA deployment lookup returned 0.
+- PR #33 current head `25347a2eee9deb384f62299f4bb6d80cacad5892`: explicit-workspace guard run `45407817007` PASS. PR #30 run `44992687838`, PR #31 run `45152600055`, and PR #32 run `45290896419` are exact-head PASS. These do not prove remote tenant isolation or live integration.
+
+### Supabase Development — fresh direct read
+- Marketing OS Development ref `roprejhnhoaqlctltwfs`, branch ID `e2139d78-2675-4863-ac64-a5fad7c8f826`, status `MIGRATIONS_FAILED`, preview status `ACTIVE_HEALTHY`, `with_data=false`.
+- Migration ledger remains 55 entries; Production ledger 48; Development has 10 `dev_recover_*` entries and 3 Production-only migration versions absent in Development.
+- Read-only counts: workspaces 0, brands 0, audience segments 0, business types 0, segment/business-type links 0, campaigns 0, content items 0, tracking links 0, evidence 0, cron jobs 0.
+- `marketing_security.workspace_mapping_attestations` is absent.
+- Current SQL connector session is `postgres`: `rolsuper=false`, `rolbypassrls=true`, `rolcreatedb=true`, `rolcreaterole=true`, `rolreplication=true`. It is not a least-privilege Tenant A/B identity.
+- Security Advisor: 7 RLS-enabled tables without policies; 26 authenticated-executable SECURITY DEFINER functions. Health Advisor empty. No Development PostgreSQL ERROR rows returned in the queried 24-hour window.
+- No canonical workspace/brand/seller rows were fabricated. No remote migration or seed was applied.
+
+### Supabase Production — unchanged
+- Production ref `bjozpwdtqbpwcxnqguka`: Health Advisor empty.
+- Security Advisor: 7 RLS-enabled tables without policies; `pg_net` in public; 26 authenticated-executable SECURITY DEFINER functions.
+- No Production Auth/RLS/Security settings or data changed.
+
+### Vercel / Production runtime evidence
+- Authoritative Production deployment remains `dpl_7WSDaycLq8vhWy8JbnFLy3rzzSvj`, SHA `536d928ca6ad94a3fcb2d388f6cd83350d634fed`, metadata READY.
+- Latest authoritative Preview deployment remains `dpl_6hmFzFVNhu6XCRPeK8a1Xq6ce4zW`, old SHA `f7263085138c58cdda7f3ebe2f63f023b200d277`, target null.
+- No Preview for current PR #20 or #34 candidates. Exact candidate deployment lookups returned 0.
+- Current runtime error query (24h) and Production error/fatal log query (30m) returned no records. This does not establish direct homepage/login HTTP success or authenticated runtime.
+- Direct Production homepage and login were not freshly verified through the web-access path; therefore HTTP/runtime smoke is UNVERIFIED. Earlier exact candidate logs recorded the Vercel overdue-balance `DEPLOYMENT_DISABLED` blocker; no billing change was made.
+
+### Acceptance
+- READY FOR USE: NOT PASS — approved UX/UI V4 is not freshly verified on live Production and all post-deploy gates are not complete.
+- UX/UI CONFIRMATION: UNVERIFIED — no authenticated Production screenshots at 1536x1024 and 390x844; no structural/order assertions from live Production.
+- Owner attestation, mapping registry runtime/expiry/revocation, dedicated non-BYPASSRLS identity, backup integrity, PostgreSQL 17 isolated restore, rollback parity, authenticated Tenant A/B, one-way Landing Page/Attribution E2E, and exact-SHA authoritative Preview remain BLOCKED/UNVERIFIED.
+- Cross-project application-data Read remains OFF. Production remains LOCKED.
+
+**NO-GO / NOT PRODUCTION COMPLETE.**
