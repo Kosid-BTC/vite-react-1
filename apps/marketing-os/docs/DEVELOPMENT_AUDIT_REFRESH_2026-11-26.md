@@ -108,3 +108,85 @@ This section supersedes stale deployment and branch references above. Read-only 
 - Cross-project application-data Read remains OFF. Production remains LOCKED.
 
 **NO-GO / NOT PRODUCTION COMPLETE.**
+
+
+## Post-audit verification — 2026-11-26 (latest connector snapshot)
+
+This addendum supersedes the preceding PR-head and exact-deployment references. Scope remained Development metadata, source CI, and authoritative Vercel deployment metadata only. No application-row read, SQL execution, DDL/DML, migration, seed, function deployment, Vercel configuration change, deployment, merge, Cross-project application-data Read, or Production mutation was performed.
+
+### GitHub exact refs and CI
+
+- PR #24 API head: `873363be86ef646ee5ef6f4a203d946deebb1916`; OPEN / DRAFT / UNMERGED; mergeable=true.
+- PR #23 API head: `52c06743242ccc4dbf52f085acea02d1869c478a`; OPEN / DRAFT / UNMERGED; mergeable=true.
+- Compare PR #23 → PR #24: DIVERGED, ahead 116 / behind 7; merge base `f7263085138c58cdda7f3ebe2f63f023b200d277`. Do not merge wholesale.
+- Exact-head PR #24 workflows for `873363be...`:
+  - Cross-project Read Guard run `45738416695` — PASS.
+  - No-default-workspace Guard run `45738416666` — PASS.
+  - Offline CEO Back Office Contract run `45738416730` — PASS.
+- Job-step inspection confirms the Cross-project workflow completed the explicit-workspace own-property check, fail-closed adapter exercise, Approved UX/UI V4 source-contract check, Marketing OS typecheck, and offline-placeholder build. The offline workflow completed dual-owner, mapping/evidence, explicit-workspace, and static Development SQL proposal checks.
+- These are source/static/offline checks. They do not prove owner identity, a live mapping registry, authenticated Tenant A/B, live RLS/RPC isolation, or adapter E2E.
+
+### Supabase Development branch and migration inventory
+
+Branch metadata was read from each parent project:
+
+| Environment | Parent | Development ref | Branch ID | Status | Preview DB | with_data |
+|---|---|---|---|---|---|---|
+| Marketing OS | `bjozpwdtqbpwcxnqguka` | `roprejhnhoaqlctltwfs` | `e2139d78-2675-4863-ac64-a5fad7c8f826` | `MIGRATIONS_FAILED` | `ACTIVE_HEALTHY` | false |
+| CEO Back Office | `waigsnxhrlwtiotspaim` | `tdeuyycqbbktacmxgktn` | `2172c0d4-e534-4fe8-918e-5c99ad35ae45` | `FUNCTIONS_DEPLOYED` | `ACTIVE_HEALTHY` | false |
+
+- Marketing OS Development: 55 migration records; latest `20261116022351` / `dev_restore_pg_cron_extension_for_behavior_maintenance`. The ledger contains 9 names beginning `dev_recover_` plus the separate `dev_restore_` entry. Branch status remains `MIGRATIONS_FAILED`.
+- CEO Back Office Development: 77 migration records; latest `20261116022248` / `dev_fixture_for_data_dependent_marketing_seed`.
+- The branch project-detail endpoint returned NotFound for both branch refs in this run; branch metadata, migration inventory, advisors, and table metadata endpoints did resolve them. Do not substitute either parent project for a Development target.
+- Table metadata listing returned 44 Marketing OS public tables and 66 CEO Back Office public tables. No `marketing_security.workspace_mapping_attestations` table was listed in either Development target.
+- Both branches are non-default/non-persistent and `with_data=false`; this is not backup, restore, or rollback evidence.
+
+### Development Security Advisor and critical RLS finding
+
+Fresh Development Advisor results:
+
+| Finding | Marketing OS Development | CEO Back Office Development |
+|---|---:|---:|
+| RLS enabled / no policy | 7 | 8 |
+| Policy exists / RLS disabled | 0 | 2 |
+| Authenticated-executable SECURITY DEFINER | 26 | 34 |
+| Anon-executable SECURITY DEFINER | 0 | 17 |
+| Mutable function search_path | 0 | 5 |
+| Leaked-password protection disabled | Not returned | 1 |
+
+**Critical table-metadata advisory on CEO Back Office Development:** RLS is disabled on `public.profiles`, `public.organizations`, `public.organization_members`, and `public.standards`. The Supabase table metadata response warns that these tables are exposed to the `anon` and `authenticated` API roles under the current grants. This is a Development-branch finding, not a claim about Production.
+
+The tool-provided RLS-enable statements are recorded as a proposal only and were NOT executed:
+
+```sql
+ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."organizations" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."organization_members" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."standards" ENABLE ROW LEVEL SECURITY;
+```
+
+Do not run these statements alone: enabling RLS without reviewed policies can block legitimate application access. First define and review table-specific owner/member/admin policies, validate dependent RPCs and service call paths, and prove backup/restore/rollback in an isolated PostgreSQL 17 environment. No bulk grants or policy changes are authorized by this audit.
+
+Marketing OS Development still has seven RLS-enabled/no-policy findings: `marketing_behavior_batches`, `marketing_behavior_config`, `marketing_behavior_limits`, `marketing_business_types`, `marketing_segment_business_types`, `youtube_projects`, and `youtube_quota`. Review intended API grants and service-only access table by table; do not add broad policies merely to silence the Advisor.
+
+### Authoritative Vercel
+
+- Project: `ceo-ai-marketing-os`; ID `prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw`; team `team_oryw9VGF4TLakA4qBU6pGx43`; SSO protection enabled.
+- Exact-SHA lookup for PR #24 head `873363be86ef646ee5ef6f4a203d946deebb1916`: **0 deployments**.
+- Latest visible deployment remains READY on older SHA `f7263085138c58cdda7f3ebe2f63f023b200d277`, target `null`; it is not an authenticated PR Preview.
+- No deployment was attempted in this run. The previously observed HTTP 402 billing/resource-creation blocker remains unresolved unless separately cleared by the Team owner.
+
+### Release disposition
+
+- CI exact-head source/offline checks: PASS.
+- Marketing OS Development migration recovery: FAIL / `MIGRATIONS_FAILED`.
+- CEO Back Office Development critical RLS-disabled tables: FAIL / remediation required.
+- Owner-attestation registry and independent owner verification: UNVERIFIED.
+- Dedicated non-`BYPASSRLS` audit identity and authenticated Tenant A/B: NOT READY / NOT RUN.
+- Read-only Adapter E2E: UNVERIFIED; keep fail-closed.
+- Exact-SHA authoritative Preview: NOT AVAILABLE; zero deployments.
+- Approved UX/UI V4 source contract: PASS in CI; authenticated desktop/mobile visual acceptance: UNVERIFIED.
+- Cross-project application-data Read: OFF.
+- Production: LOCKED.
+
+**NO-GO / NOT PRODUCTION COMPLETE.**
