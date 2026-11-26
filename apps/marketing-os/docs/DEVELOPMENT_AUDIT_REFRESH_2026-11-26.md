@@ -190,3 +190,90 @@ Marketing OS Development still has seven RLS-enabled/no-policy findings: `market
 - Production: LOCKED.
 
 **NO-GO / NOT PRODUCTION COMPLETE.**
+
+
+## Post-contract hardening and catalog ACL verification — 2026-11-26
+
+This addendum supersedes the previous code-head and Development security snapshots. All database queries in this section were SELECT-only catalog/privilege metadata queries against the two Development branches. No application records were read. No DDL/DML, migration, seed, function deployment, secret read/change, Vercel setting change, deployment, merge, Cross-project application-data Read, or Production mutation was performed.
+
+### Exact GitHub refs and CI before this documentation-only commit
+
+- PR #24 code/test head: `1d4c9b83dea8bced489be976aa134fdfba38f949`; OPEN / DRAFT / UNMERGED.
+- PR #23 head: `52c06743242ccc4dbf52f085acea02d1869c478a`; OPEN / DRAFT / UNMERGED.
+- Compare PR #23 → PR #24 code/test head: DIVERGED, ahead 122 / behind 7; merge base `f7263085138c58cdda7f3ebe2f63f023b200d277`.
+- Exact-head PR-triggered workflows for `1d4c9b8...`:
+  - Cross-project Read Guard run `45753669172` — PASS.
+  - No-default-workspace Guard run `45753669101` — PASS.
+  - Offline CEO Back Office Contract run `45753669114` — PASS.
+- The cross-project job confirms explicit own-property UUID checks, adapter fail-closed (2 calls / 0 network calls), Approved UX/UI V4 source contract, TypeScript typecheck, and offline-placeholder Full Build all passed. The offline job confirms both owner/mapping contracts, UUID regression, and comment-only Development SQL proposal verifiers passed.
+- Code hardening in this head pins the pure attestation type to the two verified Development branch refs and requires explicit UUID-shaped workspace IDs. It does not implement trusted owner verification, a registry read path, or cross-project access. Production refs are deliberately rejected by the Development-only contract.
+
+### Supabase Development: branch and migration state
+
+| Environment | Development ref | Branch ID | Status | Preview DB | with_data |
+|---|---|---|---|---|---|
+| Marketing OS | `roprejhnhoaqlctltwfs` | `e2139d78-2675-4863-ac64-a5fad7c8f826` | `MIGRATIONS_FAILED` | `ACTIVE_HEALTHY` | false |
+| CEO Back Office | `tdeuyycqbbktacmxgktn` | `2172c0d4-e534-4fe8-918e-5c99ad35ae45` | `FUNCTIONS_DEPLOYED` | `ACTIVE_HEALTHY` | false |
+
+- Marketing OS: 55 migration records; latest `20261116022351`; branch remains `MIGRATIONS_FAILED`.
+- CEO Back Office: 77 migration records; latest `20261116022248`.
+- No mapping registry table was listed in the `marketing_security` schema on either branch.
+- Neither branch has data copied from its parent. No backup/restore/rollback acceptance is implied.
+
+### Fresh Development RLS, policies, RPC and effective privilege findings
+
+**CEO Back Office Development**
+- Four public tables have RLS disabled: `profiles`, `organizations`, `organization_members`, `standards`.
+- `organizations` and `organization_members` have INSERT-only policies, but RLS is disabled so those policies are not enforcing row access. `profiles` and `standards` have no policies in the inspected catalog.
+- `workspaces` and `workspace_members` have RLS enabled but FORCE RLS disabled. Their existing policies are owner/member-oriented; they do not neutralize table-level TRUNCATE privileges.
+- `public.ensure_default_workspace()` remains SECURITY DEFINER, owner `postgres`, EXECUTE granted to `authenticated`; it selects the earliest membership and creates a personal workspace if none exists. Do not invoke it.
+- `public.create_workspace(text)` is SECURITY DEFINER and has an `auth.uid() IS NULL` guard.
+
+**Marketing OS Development**
+- No public table in the inspected table list has RLS disabled.
+- Seven tables remain RLS-enabled with no policies: `marketing_behavior_batches`, `marketing_behavior_config`, `marketing_behavior_limits`, `marketing_business_types`, `marketing_segment_business_types`, `youtube_projects`, and `youtube_quota`. The inspected API-role privileges on these seven tables were false for anon/authenticated SELECT, INSERT, UPDATE, DELETE and TRUNCATE; review intended service-only call paths rather than adding broad policies.
+- `workspaces` and `workspace_members` have RLS enabled but FORCE RLS disabled, with owner/member policies; both still have anon/authenticated TRUNCATE and MAINTAIN privileges.
+- `public.ensure_default_workspace()` remains SECURITY DEFINER, owner `postgres`, EXECUTE granted to `authenticated`, with implicit earliest-membership selection and personal-workspace creation.
+- `public.create_workspace(text)` is SECURITY DEFINER but does not currently contain the `auth.uid() IS NULL` guard present on the CEO Back Office Development branch.
+
+**Critical default-privilege finding on both Development branches**
+- Read-only PostgreSQL catalog checks show effective TRUNCATE and MAINTAIN privileges for API roles on many public tables:
+  - CEO Back Office Development: anon on 31/66 public tables; authenticated on 62/66.
+  - Marketing OS Development: anon on 36/44 public tables; authenticated on 36/44.
+- The same aggregate counts apply to MAINTAIN. Direct table ACL inspection confirms grantor `postgres` on the six inspected CEO core tables and on Marketing `workspaces` / `workspace_members`.
+- Default ACL catalog entries show both `postgres` and `supabase_admin` have public-schema default privileges granting TRUNCATE and MAINTAIN to `anon` and `authenticated`. This can reintroduce the privilege on newly created tables. Do not bulk-revoke or change default ACLs without owner/dependency review and an isolated rollback.
+- The Supabase table-listing advisory describes the four RLS-disabled CEO tables as fully exposed. The separate effective-privilege query did **not** confirm anon/authenticated SELECT, INSERT, UPDATE or DELETE on those four tables; it **did** confirm anon/authenticated TRUNCATE and MAINTAIN. No PostgREST TRUNCATE route or exploitation was tested. Treat the RLS-off state and direct destructive privileges as critical Development security debt, without claiming a demonstrated exploit.
+- The SQL connector session is privileged `postgres` with BYPASSRLS=true. It cannot be used as a Tenant A/B acceptance identity.
+
+The Supabase-generated RLS-enable statements remain a proposal only and were not executed:
+
+```sql
+ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."organizations" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."organization_members" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."standards" ENABLE ROW LEVEL SECURITY;
+```
+
+Do not run these four statements alone: without table-specific policies they can block legitimate access. Prepare reviewed owner/member/admin policies, API privilege corrections, default-ACL remediation, and RPC dependency tests only after backup attestation, PostgreSQL 17 isolated restore, schema parity, and rollback proof.
+
+### Authoritative Vercel
+
+- Project `ceo-ai-marketing-os`, ID `prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw`; team `team_oryw9VGF4TLakA4qBU6pGx43`; SSO protection enabled.
+- Exact-SHA deployment lookup for `1d4c9b83dea8bced489be976aa134fdfba38f949`: 0 deployments.
+- Combined GitHub Vercel status is pending under legacy `usrt-btc/ceoaimk`, not authoritative project acceptance.
+- Latest visible authoritative deployment remains READY on old SHA `f7263085138c58cdda7f3ebe2f63f023b200d277`, target `null`. No Authenticated Preview or V4 visual acceptance is established.
+
+### Release disposition
+
+- Exact-head PR CI source/static/offline/build checks: PASS 3/3.
+- Marketing OS Development recovery: FAIL / `MIGRATIONS_FAILED`.
+- CEO Back Office Development RLS and API privilege posture: FAIL / critical remediation required.
+- Trusted owner verification and mapping registry runtime: UNVERIFIED.
+- Dedicated non-`BYPASSRLS` audit identity and Tenant A/B: NOT READY / NOT RUN.
+- Read-only Adapter E2E: UNVERIFIED; remain fail-closed.
+- Exact-SHA authoritative Preview: unavailable; zero deployments.
+- Approved UX/UI V4 source contract: PASS; authenticated desktop/mobile visual acceptance: UNVERIFIED.
+- Cross-project application-data Read: OFF.
+- Production: LOCKED.
+
+**NO-GO / NOT PRODUCTION COMPLETE.**
