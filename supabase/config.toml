@@ -17,6 +17,9 @@ verify_jwt = true
 [functions.content-image]
 verify_jwt = true
 
+[functions.content-video]
+verify_jwt = true
+
 [functions.delete-account]
 verify_jwt = true
 
