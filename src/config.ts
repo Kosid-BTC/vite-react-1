@@ -111,4 +111,8 @@ export const INTEGRATIONS = {
   // เปลี่ยนเป็น true เมื่อ: (1) ตั้ง secret FIREWORKS_API_KEY (2) deploy content-image (3) smoke test ผ่าน
   //   — ยังไม่ได้ยืนยันกับ API จริง · ภาพเป็นร่างให้คนตรวจก่อนใช้
   imageGenLive: false,
+  // Content Factory: Text→Video (fal.ai queue ผ่าน Edge Function content-video) — async + จำกัดโควตา/วัน/ผู้ใช้ที่ server
+  // เปลี่ยนเป็น true เมื่อ: (1) apply migration 20261126000000_content_video_jobs (2) ตั้ง secret FAL_KEY
+  //   (3) deploy content-video (4) smoke test ผ่าน — ยังไม่ได้ยืนยันกับ API จริง · สร้างได้เฉพาะเนื้อหาที่อนุมัติแล้ว
+  videoGenLive: false,
 };

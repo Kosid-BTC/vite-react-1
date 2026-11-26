@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { AppData, MarketingChannelType } from '../types';
 import { checkGuardrails, newContentItem, transition, type ContentItem, type ContentStatus } from '../lib/contentLibrary';
 import { track } from '../lib/analytics';
 import { generateImage } from '../lib/contentImage';
+import { startVideo, pollVideo, POLL_INTERVAL_MS, POLL_MAX_MS } from '../lib/contentVideo';
 import { INTEGRATIONS } from '../config';
 
 const STATUS_LABEL: Record<ContentStatus, string> = { draft: 'ร่าง', review: 'รออนุมัติ', approved: 'อนุมัติแล้ว', published: 'เผยแพร่แล้ว', rejected: 'ตีกลับ' };
@@ -25,6 +26,10 @@ export default function ContentLibrary({ data, onUpdate }: { data: AppData; onUp
   const [campaignId, setCampaignId] = useState('');
   const [msg, setMsg] = useState('');
   const [imgBusy, setImgBusy] = useState('');
+  const [vidBusy, setVidBusy] = useState('');
+  const [vids, setVids] = useState<Record<string, string>>({}); // URL วิดีโอร่าง (หมดอายุ — ให้ดาวน์โหลดเก็บ) ไม่เก็บใน AppData
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
   const [imgs, setImgs] = useState<Record<string, string>>({}); // ภาพร่างอยู่ในหน่วยความจำเท่านั้น ไม่เก็บใน AppData
 
   const save = (list: ContentItem[]) => onUpdate({ ...data, contentLibrary: list });
@@ -49,6 +54,27 @@ export default function ContentLibrary({ data, onUpdate }: { data: AppData; onUp
     if (!r.ok) { setMsg(`${it.title}: ${r.reason}`); return; }
     setImgs(p => ({ ...p, [it.id]: r.dataUrl }));
     track('content_image_generated', { channel: it.channel });
+  }
+
+  async function makeVideo(it: ContentItem) {
+    setVidBusy(it.id); setMsg('');
+    const st = await startVideo(it);
+    if (!st.ok) { setVidBusy(''); setMsg(`${it.title}: ${st.reason}`); return; }
+    track('content_video_started', { channel: it.channel });
+    setMsg(`${it.title}: กำลังสร้างวิดีโอ (ใช้เวลาประมาณ 1–3 นาที) · เหลือโควตาวันนี้ ${st.remaining} คลิป`);
+    const t0 = Date.now();
+    while (alive.current && Date.now() - t0 < POLL_MAX_MS) {
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+      if (!alive.current) return;
+      const p = await pollVideo(st.statusUrl, st.responseUrl);
+      if (!p.ok) { setVidBusy(''); setMsg(`${it.title}: ${p.reason}`); return; }
+      if (p.status === 'COMPLETED' && p.videoUrl) {
+        setVids(v => ({ ...v, [it.id]: p.videoUrl! })); setVidBusy(''); setMsg('');
+        track('content_video_ready', { channel: it.channel });
+        return;
+      }
+    }
+    if (alive.current) { setVidBusy(''); setMsg(`${it.title}: วิดีโอยังไม่เสร็จภายในเวลาที่กำหนด ลองใหม่ภายหลัง`); }
   }
 
   return (
@@ -86,11 +112,15 @@ export default function ContentLibrary({ data, onUpdate }: { data: AppData; onUp
               <div style={{ color: 'var(--amber)', fontSize: 12, marginTop: 6 }}>⚠ {issues.map(i => i.message).join(' · ')}</div>
             )}
             {imgs[it.id] && <img src={imgs[it.id]} alt="ภาพร่างที่ AI สร้าง — ตรวจก่อนใช้" style={{ maxWidth: 240, borderRadius: 8, marginTop: 8 }} />}
+            {vids[it.id] && <video src={vids[it.id]} controls style={{ maxWidth: 320, borderRadius: 8, marginTop: 8, display: 'block' }} />}
             <div className="mkt-goal-actions" style={{ marginTop: 8 }}>
               {NEXT[it.status].map(n => <button key={n.to} className="mkt-btn-sm" onClick={() => move(it, n.to)}>{n.label}</button>)}
               <button className="mkt-btn-sm" disabled={!INTEGRATIONS.imageGenLive || imgBusy === it.id} onClick={() => makeImage(it)}
                 title={INTEGRATIONS.imageGenLive ? 'สร้างภาพร่างจากหัวข้อ/เนื้อหา' : 'ยังไม่เปิดใช้งาน — รอตั้งค่าผู้ให้บริการภาพ'}>
                 {imgBusy === it.id ? 'กำลังสร้าง…' : '🖼️ สร้างภาพ'}</button>
+              <button className="mkt-btn-sm" disabled={!INTEGRATIONS.videoGenLive || it.status !== 'approved' || vidBusy === it.id} onClick={() => makeVideo(it)}
+                title={!INTEGRATIONS.videoGenLive ? 'ยังไม่เปิดใช้งาน — รอตั้งค่าผู้ให้บริการวิดีโอ' : it.status !== 'approved' ? 'สร้างวิดีโอได้เฉพาะเนื้อหาที่อนุมัติแล้ว' : 'สร้างวิดีโอร่าง (จำกัดโควตา/วัน)'}>
+                {vidBusy === it.id ? 'กำลังสร้าง…' : '🎬 สร้างวิดีโอ'}</button>
               <button className="mkt-btn-sm mkt-btn-del" onClick={() => save(items.filter(x => x.id !== it.id))}>ลบ</button>
             </div>
           </div>
