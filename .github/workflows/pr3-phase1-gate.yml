@@ -103,26 +103,21 @@ jobs:
         run: npx --yes supabase@2.40.0 db reset --local
       - name: Migration reset / reapply #2
         run: npx --yes supabase@2.40.0 db reset --local
-      - name: Generate local Supabase database types
-        run: npx --yes supabase@2.40.0 gen types typescript --local > apps/marketing-os/src/types/database.types.generated.ts
-      - name: Verify Marketing OS against generated local schema types
+      # ADR-0011/0016 (Kosid-B/vite-react · 26 พ.ย. 2569): แอป OS ย้ายไปใช้ schema `marketing_os`
+      # บน production `waigsnxhrlwtiotspaim` ซึ่ง migration เป็นของรีโป Kosid-B/vite-react (0066–0075)
+      # ⇒ local Supabase ของรีโปนี้ (schema public) ไม่ใช่ schema ที่แอปใช้แล้ว — ขั้นเดิมที่ "สลับ types เป็นของ
+      #   local public แล้ว typecheck" จึงแดงเสมอโดยไม่บอกอะไรเรื่องความถูกต้อง ⇒ ถอดเฉพาะขั้นสลับ
+      # ✅ ยังคงไว้: typecheck + build กับ types ที่ตรงกับ marketing_os · และตรวจ RLS/vertical slice/trusted evidence
+      #    ของ schema public ในรีโปนี้ครบเหมือนเดิม
+      # ⚠️ ทางที่เข้มกว่า (ยังไม่ทำ): สร้าง marketing_os จำลองจาก migration ของ Kosid-B/vite-react แล้ว generate types
+      - name: Verify Marketing OS against marketing_os type contract
         shell: bash
         run: |
           set -euo pipefail
-          cp apps/marketing-os/src/types/database.types.ts /tmp/database.types.curated.ts
-          cp apps/marketing-os/src/types/database.types.generated.ts apps/marketing-os/src/types/database.types.ts
           cd apps/marketing-os
           npm install --no-audit --no-fund
           npm run typecheck
           npm run build
-      - name: Restore curated type contract and remove generated comparison file
-        if: always()
-        shell: bash
-        run: |
-          if [ -f /tmp/database.types.curated.ts ]; then
-            cp /tmp/database.types.curated.ts apps/marketing-os/src/types/database.types.ts
-          fi
-          rm -f apps/marketing-os/src/types/database.types.generated.ts
       - name: Authenticated JWT RLS CRUD verification
         shell: bash
         run: |
