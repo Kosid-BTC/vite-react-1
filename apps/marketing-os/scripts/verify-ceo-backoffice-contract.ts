@@ -61,11 +61,11 @@ const build = (
   attestation: DevelopmentMappingAttestation | null,
   signals: MarketingSignal[] = [signal],
   audienceContext: AudienceContext = audience,
-  primaryWorkspaceId = primaryWorkspaceId,
-  supplementaryWorkspaceId = supplementaryWorkspaceId,
+  primaryId = primaryWorkspaceId,
+  supplementaryId = supplementaryWorkspaceId,
 ) => buildMarketingIntelligenceSnapshot({
-  primaryWorkspaceId,
-  supplementaryWorkspaceId,
+  primaryWorkspaceId: primaryId,
+  supplementaryWorkspaceId: supplementaryId,
   audience: audienceContext,
   mapping: attestation,
   now,
@@ -100,6 +100,8 @@ assert.equal(build(mapping, [signal], { ...audience, hasVerifiedBusinessSignals:
 assert.equal(isMappingAttested(null, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'missing mapping must fail closed');
 assert.equal(isMappingAttested(mapping, 'not-a-uuid', supplementaryWorkspaceId, now), false, 'primary workspace must be a UUID');
 assert.equal(isMappingAttested(mapping, primaryWorkspaceId, 'target-a', now), false, 'supplementary workspace must be a UUID');
+assert.equal(isMappingAttested({ ...mapping, primary: { ...mapping.primary, projectRef: 'bjozpwdtqbpwcxnqguka' } } as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'Production primary ref must not be accepted by Development contract');
+assert.equal(isMappingAttested({ ...mapping, supplementary: { ...mapping.supplementary, projectRef: 'waigsnxhrlwtiotspaim' } } as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'Production supplementary ref must not be accepted by Development contract');
 assert.equal(isMappingAttested({} as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'malformed mapping envelope must fail closed');
 assert.equal(isMappingAttested([] as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'array mapping envelope must fail closed');
 assert.equal(isMappingAttested(mapping, primaryWorkspaceId, supplementaryWorkspaceId, null as unknown as Date), false, 'malformed runtime clock must fail closed');
