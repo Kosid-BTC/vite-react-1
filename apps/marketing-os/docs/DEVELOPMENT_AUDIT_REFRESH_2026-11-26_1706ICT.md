@@ -113,3 +113,19 @@ The `marketing_security.workspace_mapping_attestations` registry table was not p
 - Production: LOCKED.
 
 **NO-GO / NOT PRODUCTION COMPLETE.**
+
+
+## Additional Development cron/function review — 2026-11-26
+
+Read-only inspection of the CEO Back Office Development branch `tdeuyycqbbktacmxgktn` identified an operational issue outside the Marketing OS schema migration:
+
+- Active cron job `billing-cron-daily`, schedule `0 2 * * *`, posts to the literal URL `https://<PROJECT_REF>.functions.supabase.co/billing-cron` and sends the literal header value `<CRON_SECRET>`.
+- Active cron job `weekly-report-friday`, schedule `0 2 * * 5`, posts to `https://<PROJECT_REF>.functions.supabase.co/weekly-report`; its header reads `current_setting('app.cron_secret', true)`.
+- PostgreSQL log at `2026-11-26T02:00:00.063Z` records `invalid URL "https://<PROJECT_REF>.functions.supabase.co/billing-cron": Bad hostname`. This is a confirmed failed request from the Development cron job, not a successful function invocation.
+- Edge Function inventory shows `billing-cron` ACTIVE version 47 and `weekly-report` ACTIVE version 33; both have `verify_jwt=false`.
+- Source inspection shows both functions read `CRON_SECRET` with an empty-string fallback and only reject a request when the configured secret is non-empty and mismatched. If the secret is absent, this guard fails open. Actual secret presence/value was not inspected and remains UNVERIFIED.
+- The billing function uses the service-role client and can update subscription state; the weekly report function reads workspace data and sends email. Neither function was invoked. No secret was read, rotated, or changed; no cron job was modified.
+
+Marketing OS Development PostgreSQL logs in the same 24-hour window contain three errors attributable to audit SELECT statements issued through the management API: a missing `public.brands` relation, a missing `public.campaigns` relation, and a query using a nonexistent `information_schema.routines.schema_name` column. The logged SQL text and `mgmt-api` / `POST /mcp` source identify these as audit-query errors, not proof of new application migration failures. Marketing OS branch status nevertheless remains `MIGRATIONS_FAILED`.
+
+**Required next action:** keep both Development cron jobs unchanged until the Development owner approves a controlled correction. Confirm the correct branch-specific function URL, verify the secret is configured without disclosing its value, make the function return 503/deny when the secret is absent, and test in an isolated branch before updating any scheduled job. Do not copy these placeholder URLs or secrets to Production.
