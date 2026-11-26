@@ -75,8 +75,8 @@ export type IntelligenceSnapshot = {
   unavailableMetrics: MarketingSignal['metric'][];
 };
 
-export type OwnerConsentAttestation = {
-  projectRef: 'bjozpwdtqbpwcxnqguka' | 'waigsnxhrlwtiotspaim';
+export type DevelopmentOwnerConsentAttestation = {
+  projectRef: 'roprejhnhoaqlctltwfs' | 'tdeuyycqbbktacmxgktn';
   workspaceId: string;
   ownerUserId: string;
   consentEventId: string;
@@ -85,14 +85,15 @@ export type OwnerConsentAttestation = {
 };
 
 /**
- * Trusted-server attestation envelope only.
- * A client-supplied object is NOT proof: the runtime service must independently
- * authenticate the owner in each project's Auth context, verify both consent
- * events and their evidence digests, and load this record from the protected registry.
+ * Development-only trusted-server attestation envelope.
+ * Project refs are pinned to the two verified Development branches; Production refs
+ * are intentionally not accepted by this contract. A client-supplied object is NOT
+ * proof: a runtime service must independently authenticate both owners, verify both
+ * consent events and evidence digests, and load the record from a protected registry.
  */
-export type MappingAttestation = {
-  primary: OwnerConsentAttestation & { projectRef: 'bjozpwdtqbpwcxnqguka' };
-  supplementary: OwnerConsentAttestation & { projectRef: 'waigsnxhrlwtiotspaim' };
+export type DevelopmentMappingAttestation = {
+  primary: DevelopmentOwnerConsentAttestation & { projectRef: 'roprejhnhoaqlctltwfs' };
+  supplementary: DevelopmentOwnerConsentAttestation & { projectRef: 'tdeuyycqbbktacmxgktn' };
   reviewedByUserId: string;
   reviewedBy: string;
   expiresAt: string;
@@ -102,6 +103,10 @@ export type MappingAttestation = {
 
 const isNonBlank = (value: unknown): value is string =>
   typeof value === 'string' && value.trim().length > 0;
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isWorkspaceUuid = (value: unknown): value is string =>
+  typeof value === 'string' && UUID_PATTERN.test(value);
 
 const isAudienceContext = (value: unknown): value is AudienceContext => {
   if (!value || typeof value !== 'object') return false;
@@ -120,11 +125,11 @@ const isAudienceContext = (value: unknown): value is AudienceContext => {
 const isSha256Digest = (value: string): boolean => /^[0-9a-f]{64}$/.test(value);
 
 /**
- * Validate a trusted server-produced attestation envelope against explicit IDs.
+ * Validate a Development attestation envelope against explicit UUIDs.
  * This is a pure shape/time check, NOT independent Auth verification or RLS proof.
  */
 export function isMappingAttested(
-  mapping: MappingAttestation | null,
+  mapping: DevelopmentMappingAttestation | null,
   primaryWorkspaceId: string,
   supplementaryWorkspaceId: string,
   now: Date,
@@ -132,7 +137,7 @@ export function isMappingAttested(
   // Runtime callers may cross this boundary with untrusted JSON despite the static type.
   if (!mapping || typeof mapping !== 'object' || Array.isArray(mapping)) return false;
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) return false;
-  if (!isNonBlank(primaryWorkspaceId) || !isNonBlank(supplementaryWorkspaceId)) return false;
+  if (!isWorkspaceUuid(primaryWorkspaceId) || !isWorkspaceUuid(supplementaryWorkspaceId)) return false;
 
   // Revocation is terminal for this attestation. Mismatched timestamp/reason pairs fail closed.
   if (mapping.revokedAt !== null || mapping.revocationReason !== null) return false;
@@ -147,7 +152,7 @@ export function isMappingAttested(
   const expires = Date.parse(mapping.expiresAt);
   const nowMs = now.getTime();
 
-  const primaryValid = primary.projectRef === 'bjozpwdtqbpwcxnqguka'
+  const primaryValid = primary.projectRef === 'roprejhnhoaqlctltwfs'
     && primary.workspaceId === primaryWorkspaceId
     && isNonBlank(primary.ownerUserId)
     && isNonBlank(primary.consentEventId)
@@ -155,7 +160,7 @@ export function isMappingAttested(
     && Number.isFinite(primaryVerified)
     && primaryVerified <= nowMs;
 
-  const supplementaryValid = supplementary.projectRef === 'waigsnxhrlwtiotspaim'
+  const supplementaryValid = supplementary.projectRef === 'tdeuyycqbbktacmxgktn'
     && supplementary.workspaceId === supplementaryWorkspaceId
     && isNonBlank(supplementary.ownerUserId)
     && isNonBlank(supplementary.consentEventId)
@@ -187,7 +192,7 @@ export function buildMarketingIntelligenceSnapshot(input: unknown): Intelligence
   const audienceContext = candidate.audience;
   const now = candidate.now;
 
-  if (!isNonBlank(primaryWorkspaceId) || !isNonBlank(supplementaryWorkspaceId)) return null;
+  if (!isWorkspaceUuid(primaryWorkspaceId) || !isWorkspaceUuid(supplementaryWorkspaceId)) return null;
   if (!isAudienceContext(audienceContext)) return null;
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) return null;
   if (!isBackOfficeIntelligenceEligible(audienceContext)) return null;
@@ -195,7 +200,7 @@ export function buildMarketingIntelligenceSnapshot(input: unknown): Intelligence
   if (audienceAlias !== 'seller' && audienceAlias !== 'owner') return null;
 
   const mapping = candidate.mapping && typeof candidate.mapping === 'object'
-    ? candidate.mapping as MappingAttestation
+    ? candidate.mapping as DevelopmentMappingAttestation
     : null;
   if (!isMappingAttested(mapping, primaryWorkspaceId, supplementaryWorkspaceId, now)) return null;
 
