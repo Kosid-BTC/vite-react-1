@@ -75,3 +75,21 @@ Security Advisor snapshot (observed 2026-11-26 18:06 UTC):
 3. Integration acceptance: trusted dual-owner verification, non-BYPASSRLS Tenant A/B positive/negative tests, read-only adapter E2E, exact-SHA authoritative Preview, and approved UX/UI V4 screenshots at 1536x1024 and 390x844.
 
 **Status: NOT PRODUCTION COMPLETE. Cross-project application-data Read remains OFF. Production remains LOCKED.**
+
+
+## Additional fresh Development ACL privilege snapshot — 2026-11-27 01:06 ICT
+
+Read-only privilege-count queries across public base tables (no application rows read):
+
+| Development DB | Public tables | Role | TRUNCATE | MAINTAIN | SELECT | INSERT | UPDATE | DELETE |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| Marketing OS | 44 | anon | 36 | 36 | 0 | 0 | 0 | 0 |
+| Marketing OS | 44 | authenticated | 36 | 36 | 1 | 0 | 0 | 0 |
+| Marketing OS | 44 | service_role | 44 | 44 | 6 | 5 | 5 | 5 |
+| CEO Back Office | 66 | anon | 31 | 31 | 0 | 0 | 0 | 0 |
+| CEO Back Office | 66 | authenticated | 62 | 62 | 31 | 19 | 17 | 17 |
+| CEO Back Office | 66 | service_role | 66 | 66 | 0 | 0 | 0 | 0 |
+
+Public-schema table default ACL catalog also shows entries owned by both `postgres` and `supabase_admin`; these include broad API-role privileges (notably TRUNCATE and MAINTAIN, and the supabase_admin table defaults include DML privileges). Default ACL entries govern future objects created by those owners; effective privilege counts above separately cover current tables. This is a privilege-risk finding, not proof of an exploit or of a PostgREST endpoint exposing these privileges.
+
+**Remediation remains blocked:** classify every affected object, owner, grantor, platform dependency and callsite; capture backup/restore/rollback evidence; then propose narrow Development-only corrections. Do not bulk-revoke grants or modify Production.
