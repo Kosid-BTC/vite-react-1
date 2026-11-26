@@ -6,28 +6,32 @@ import {
   isMappingAttested,
   buildMarketingIntelligenceSnapshot,
   type AudienceContext,
-  type MappingAttestation,
+  type DevelopmentMappingAttestation,
   type MarketingSignal,
 } from '../src/lib/marketing-intelligence/ceo-backoffice-contract';
 
 const now = new Date('2026-11-15T12:00:00.000Z');
+const primaryWorkspaceId = '11111111-1111-4111-8111-111111111111';
+const supplementaryWorkspaceId = '22222222-2222-4222-8222-222222222222';
+const otherPrimaryWorkspaceId = '33333333-3333-4333-8333-333333333333';
+const otherSupplementaryWorkspaceId = '44444444-4444-4444-8444-444444444444';
 const audience: AudienceContext = {
   segmentCode: 'seller',
   onboardingStage: 'post_onboarding',
   hasVerifiedBusinessSignals: true,
 };
-const mapping: MappingAttestation = {
+const mapping: DevelopmentMappingAttestation = {
   primary: {
-    projectRef: 'bjozpwdtqbpwcxnqguka',
-    workspaceId: 'primary-a',
+    projectRef: 'roprejhnhoaqlctltwfs',
+    workspaceId: primaryWorkspaceId,
     ownerUserId: 'primary-owner-1',
     consentEventId: 'primary-consent-1',
     evidenceSha256: 'a'.repeat(64),
     verifiedAt: '2026-11-14T00:00:00Z',
   },
   supplementary: {
-    projectRef: 'waigsnxhrlwtiotspaim',
-    workspaceId: 'target-a',
+    projectRef: 'tdeuyycqbbktacmxgktn',
+    workspaceId: supplementaryWorkspaceId,
     ownerUserId: 'supplementary-owner-1',
     consentEventId: 'supplementary-consent-1',
     evidenceSha256: 'b'.repeat(64),
@@ -54,11 +58,11 @@ const signal: MarketingSignal = {
   evidence,
 };
 const build = (
-  attestation: MappingAttestation | null,
+  attestation: DevelopmentMappingAttestation | null,
   signals: MarketingSignal[] = [signal],
   audienceContext: AudienceContext = audience,
-  primaryWorkspaceId = 'primary-a',
-  supplementaryWorkspaceId = 'target-a',
+  primaryWorkspaceId = primaryWorkspaceId,
+  supplementaryWorkspaceId = supplementaryWorkspaceId,
 ) => buildMarketingIntelligenceSnapshot({
   primaryWorkspaceId,
   supplementaryWorkspaceId,
@@ -74,8 +78,8 @@ assert.equal(resolveAudienceAlias('growth'), 'owner', 'growth is a canonical own
 assert.equal(resolveAudienceAlias('seller'), 'seller');
 assert.equal(isBackOfficeIntelligenceEligible({ ...audience, segmentCode: 'employee' }), false, 'employee remains beginner-only');
 const validInput = {
-  primaryWorkspaceId: 'primary-a',
-  supplementaryWorkspaceId: 'target-a',
+  primaryWorkspaceId,
+  supplementaryWorkspaceId,
   audience,
   mapping,
   now,
@@ -93,10 +97,12 @@ assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, signals: null }
 assert.equal(build(mapping, [signal], { ...audience, onboardingStage: 'pre_signup' }), null, 'pre-signup must not receive advanced KPIs');
 assert.equal(build(mapping, [signal], { ...audience, segmentCode: 'newbie' }), null, 'beginner segment must not receive advanced KPIs');
 assert.equal(build(mapping, [signal], { ...audience, hasVerifiedBusinessSignals: false }), null, 'missing verified business signals must fail closed');
-assert.equal(isMappingAttested(null, 'primary-a', 'target-a', now), false, 'missing mapping must fail closed');
-assert.equal(isMappingAttested({} as unknown as MappingAttestation, 'primary-a', 'target-a', now), false, 'malformed mapping envelope must fail closed');
-assert.equal(isMappingAttested([] as unknown as MappingAttestation, 'primary-a', 'target-a', now), false, 'array mapping envelope must fail closed');
-assert.equal(isMappingAttested(mapping, 'primary-a', 'target-a', null as unknown as Date), false, 'malformed runtime clock must fail closed');
+assert.equal(isMappingAttested(null, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'missing mapping must fail closed');
+assert.equal(isMappingAttested(mapping, 'not-a-uuid', supplementaryWorkspaceId, now), false, 'primary workspace must be a UUID');
+assert.equal(isMappingAttested(mapping, primaryWorkspaceId, 'target-a', now), false, 'supplementary workspace must be a UUID');
+assert.equal(isMappingAttested({} as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'malformed mapping envelope must fail closed');
+assert.equal(isMappingAttested([] as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'array mapping envelope must fail closed');
+assert.equal(isMappingAttested(mapping, primaryWorkspaceId, supplementaryWorkspaceId, null as unknown as Date), false, 'malformed runtime clock must fail closed');
 assert.equal(build(null), null, 'no mapping: no snapshot');
 assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, mapping: { ...mapping, primary: null } }), null, 'null primary owner evidence must fail closed');
 assert.equal(build({ ...mapping, revokedAt: '2026-11-15T11:00:00Z', revocationReason: 'owner revoked' }), null, 'revoked mapping');
@@ -105,15 +111,17 @@ assert.equal(build({ ...mapping, expiresAt: '2026-11-15T12:00:00Z' }), null, 'ex
 assert.equal(build({ ...mapping, expiresAt: '2026-11-14T00:30:00Z' }), null, 'expiry before latest owner verification');
 assert.equal(build({ ...mapping, primary: { ...mapping.primary, verifiedAt: '2026-11-16T00:00:00Z' } }), null, 'future primary owner attestation');
 assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, verifiedAt: '2026-11-16T00:00:00Z' } }), null, 'future supplementary owner attestation');
-assert.equal(build({ ...mapping, primary: { ...mapping.primary, workspaceId: 'primary-b' } }), null, 'primary tenant mismatch');
-assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, workspaceId: 'target-b' } }), null, 'supplementary tenant mismatch');
+assert.equal(build({ ...mapping, primary: { ...mapping.primary, workspaceId: otherPrimaryWorkspaceId } }), null, 'primary tenant mismatch');
+assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, workspaceId: otherSupplementaryWorkspaceId } }), null, 'supplementary tenant mismatch');
 assert.equal(build({ ...mapping, primary: { ...mapping.primary, ownerUserId: ' ' } }), null, 'missing primary owner');
 assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, consentEventId: '' } }), null, 'missing supplementary consent event');
 assert.equal(build({ ...mapping, primary: { ...mapping.primary, evidenceSha256: 'not-a-digest' } }), null, 'invalid primary evidence digest');
 assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, evidenceSha256: 'C'.repeat(64) } }), null, 'digest must be normalized lowercase hex');
 assert.equal(build({ ...mapping, reviewedByUserId: '' }), null, 'missing reviewer identity');
 assert.equal(build(mapping, [signal], audience, ''), null, 'missing explicit primary workspace');
-assert.equal(build(mapping, [signal], audience, 'primary-a', ''), null, 'missing explicit supplementary workspace');
+assert.equal(build(mapping, [signal], audience, primaryWorkspaceId, ''), null, 'missing explicit supplementary workspace');
+assert.equal(build(mapping, [signal], audience, 'primary-a', supplementaryWorkspaceId), null, 'malformed primary workspace UUID must fail closed');
+assert.equal(build(mapping, [signal], audience, primaryWorkspaceId, 'target-a'), null, 'malformed supplementary workspace UUID must fail closed');
 
 const snapshot = build(mapping);
 assert.ok(snapshot, 'valid dual-owner attestation and audience yield pure snapshot');
