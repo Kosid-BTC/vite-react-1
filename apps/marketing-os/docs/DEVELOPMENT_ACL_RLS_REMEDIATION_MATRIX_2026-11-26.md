@@ -93,7 +93,7 @@ Do not simply enable RLS without designing and testing least-privilege policies.
 - Release: **NOT PRODUCTION COMPLETE**
 
 
-## Latest evidence refresh — 2026-11-26 15:xx ICT (tool audit)
+## Latest evidence refresh — 2026-11-26 (tool audit)
 
 ### PR #24 exact-head CI
 - Current head before this documentation refresh: `87835b94fa89b5d5337bcef1ba46f89f877f985e`.
