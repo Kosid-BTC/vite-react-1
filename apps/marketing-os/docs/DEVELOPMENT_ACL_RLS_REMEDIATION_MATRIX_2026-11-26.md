@@ -91,3 +91,33 @@ Do not simply enable RLS without designing and testing least-privilege policies.
 - Tenant A/B runtime: **UNVERIFIED**
 - Authenticated Preview / UX/UI V4 visual acceptance: **UNVERIFIED / BLOCKED**
 - Release: **NOT PRODUCTION COMPLETE**
+
+
+## Latest evidence refresh — 2026-11-26 15:xx ICT (tool audit)
+
+### PR #24 exact-head CI
+- Current head before this documentation refresh: `87835b94fa89b5d5337bcef1ba46f89f877f985e`.
+- Exact-head run `45766066478` — Cross-project Read Guard: **PASS**. Job `cross-project-read-guard`; locked dependency install, static boundary/own-property checks, adapter fail-closed, Approved UX/UI V4 source contract, TypeScript typecheck, and offline placeholder build completed successfully.
+- Exact-head run `45766066556` — No-default-workspace Guard: **PASS**. Job `no-default-workspace`; reject implicit first-workspace callsites completed successfully.
+- Exact-head run `45766066502` — Offline CEO Back Office Contract: **PASS**. Job `offline-contract`; dual-owner contract, offline mapping/evidence, explicit-workspace regression, and static Development SQL/RPC proposal checks completed successfully.
+- These exact-head runs are static/offline/build checks; they do not establish owner authentication, database runtime, Tenant A/B, cross-project application-data access, or visual acceptance.
+
+### Supabase Development access limitation
+- Security Advisor calls returned current snapshots at 2026-11-26 08:04 UTC:
+  - Marketing OS: 7 RLS-enabled/no-policy and 26 authenticated-executable SECURITY DEFINER findings.
+  - CEO Back Office: 2 policy/RLS-disabled, 8 RLS-enabled/no-policy, 5 mutable search_path, 17 anon-executable SECURITY DEFINER, 34 authenticated-executable SECURITY DEFINER, and leaked-password-protection advisory.
+- Project detail lookups for the two Development refs returned NotFound; branch listing returned permission denied. The current project list contains parent projects but not the two named Development refs. **Do not substitute or query the parent/Production projects.**
+- No fresh catalog SQL, table ACL recheck, migration execution, or application-data read was performed in this refresh. The table ACL counts in this matrix remain from the earlier catalog-only audit and must be revalidated when authorized Development access is restored.
+
+### Vercel
+- Exact-SHA lookup for `87835b94fa89b5d5337bcef1ba46f89f877f985e` on authoritative project `ceo-ai-marketing-os` returned **zero deployments**.
+- Latest project deployment metadata remains READY but does not provide an accepted exact-SHA Preview; authenticated desktop/mobile visual acceptance remains UNVERIFIED.
+
+### Release disposition
+- PR #24 and PR #23: OPEN / DRAFT / UNMERGED.
+- Cross-project application-data Read: **OFF**.
+- Production: **LOCKED**.
+- Supabase SQL: **NONE in this refresh**.
+- Authenticated Tenant A/B and Read-only Adapter E2E: **UNVERIFIED**.
+- Exact-SHA Authenticated Preview and Approved UX/UI V4 visual acceptance: **UNVERIFIED / BLOCKED**.
+- Release: **NOT PRODUCTION COMPLETE**.
