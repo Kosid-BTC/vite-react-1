@@ -8,6 +8,7 @@ import { logoutAction } from '@/app/login/actions';
 const ITEMS = [
   { href: 'home', label: 'หน้าหลัก', match: ['home'] },
   { href: 'campaigns/new', label: 'สร้างแคมเปญ', match: ['campaigns'] },
+  { href: 'studio', label: 'สร้างสื่อ', match: ['studio', 'content'] },
   { href: 'results', label: 'ผลลัพธ์', match: ['results'] },
   { href: 'brand-rules', label: 'กฎแบรนด์', match: ['brand-rules'] },
 ] as const;
