@@ -7,13 +7,17 @@ export class MarketingService {
     const workspace = await this.repo.getWorkspaceBySlug(workspaceSlug);
     const actions = await this.repo.getOpenActions(workspace.id);
 
+    // Fitts/clarity: ปุ่มต้องบอกสิ่งที่จะเกิดขึ้นเมื่อกด ไม่ใช่ "ดำเนินการต่อ" แบบกว้าง ๆ
+    const labelled = actions.map((a) => ({ ...a, cta_label: `ทำต่อ: ${a.title}` }));
+
     return {
       workspace,
-      actions,
-      primaryAction: actions[0] ?? {
-        title: 'สร้าง Campaign แรก',
+      actions: labelled,
+      primaryAction: labelled[0] ?? {
+        title: 'สร้างแคมเปญแรก',
         description: 'เริ่มจากกลุ่มเป้าหมาย ปัญหา และสมมติฐานที่ต้องการทดสอบ',
         action_href: `/${workspace.slug}/campaigns/new`,
+        cta_label: 'เริ่มสร้างแคมเปญ →',
       },
     };
   }
@@ -80,12 +84,12 @@ export class MarketingService {
       : !hasImage
         ? { label: 'สร้างภาพ', code: 'generate_image' }
         : blockingFindings.length > 0
-          ? { label: 'แก้ Brand / Compliance', code: 'resolve_compliance' }
+          ? { label: 'แก้ตามกฎแบรนด์', code: 'resolve_compliance' }
           : !approved
             ? { label: 'ส่งตรวจอนุมัติ', code: 'request_approval' }
             : !hasTracking
-              ? { label: 'สร้าง Tracking Link', code: 'create_tracking' }
-              : { label: 'พร้อมเผยแพร่แบบ Manual', code: 'ready' };
+              ? { label: 'สร้างลิงก์ติดตามผล', code: 'create_tracking' }
+              : { label: 'พร้อมเผยแพร่ (โพสต์เอง)', code: 'ready' };
 
     return { workspace, ...detail, nextAction, blockingFindings };
   }

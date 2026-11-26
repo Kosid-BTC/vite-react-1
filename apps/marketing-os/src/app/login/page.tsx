@@ -1,4 +1,4 @@
-import { signIn, signUp } from './actions';
+import { signIn } from './actions';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -26,7 +26,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
         <header>
           <p className="eyebrow">CEO AI Thailand · Marketing OS</p>
           <h1 id="login-title">เข้าสู่ระบบ</h1>
-          <p className="muted">บัญชีใหม่สามารถสร้างจากหน้านี้ได้ ระบบจะสร้าง Owner Workspace ให้หลังเข้าสู่ระบบครั้งแรก</p>
+          <p className="muted">ใช้บัญชีเดียวกับ ceoaithailand.org · เฉพาะสมาชิกของ workspace การตลาดเท่านั้น</p>
         </header>
 
         {registered === 'check_email' && (
@@ -48,7 +48,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
             <input name="password" type="password" autoComplete="current-password" minLength={8} required />
           </label>
           <button className="primary" type="submit" formAction={signIn}>เข้าสู่ระบบ</button>
-          <button className="secondary" type="submit" formAction={signUp}>สร้างบัญชีใหม่</button>
         </form>
       </section>
     </main>

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
-type Client = SupabaseClient<Database>;
+type Client = SupabaseClient<Database, 'marketing_os'>;
 
 export class MarketingRepository {
   constructor(private readonly db: Client) {}
@@ -14,6 +14,49 @@ export class MarketingRepository {
       .single();
     if (error) throw error;
     return data;
+  }
+
+  // Service-role reads bypass RLS: every query below MUST keep its workspace_id filter.
+  async getBrandRules(workspaceId: string) {
+    const { data, error } = await this.db
+      .from('marketing_brand_rules')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .order('created_at');
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async getAudienceSegments(workspaceId: string) {
+    const { data, error } = await this.db
+      .from('marketing_audience_segments')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .order('created_at');
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  // ข้อ ค — event พฤติกรรมที่ท่อ ingest (ADR-0009/0012) เขียนเข้า marketing_os แล้ว · ไม่ส่ง session_id ออกหน้าจอ
+  async getBehaviorEvents(workspaceId: string, limit = 50) {
+    const { data, error } = await this.db
+      .from('marketing_behavior_events')
+      .select('id,occurred_at,source,name,topic,format,mode') // ตรงกับคอลัมน์ที่ 0075 grant (ไม่มี session_id)
+      .eq('workspace_id', workspaceId)
+      .order('occurred_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  // ข้อ ข — ผลบนหน้าเว็บ SaaS (public) ผ่าน rpc 0075 ที่ตรวจการเป็นสมาชิกก่อน · ตัวเลขรวมเท่านั้น ไม่มีข้อมูลส่วนบุคคล
+  async getSaasFunnelSummary(workspaceId: string, sinceDays = 30) {
+    const since = new Date(Date.now() - sinceDays * 86_400_000).toISOString();
+    const { data, error } = await this.db
+      .schema('public')
+      .rpc('os_member_funnel_summary', { p_workspace: workspaceId, p_since: since });
+    if (error) throw error;
+    return data ?? [];
   }
 
   async getStrategyOptions(workspaceId: string) {

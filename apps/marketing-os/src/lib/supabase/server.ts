@@ -1,14 +1,29 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Database } from '@/types/database.types';
+import { MARKETING_SCHEMA, type Database } from '@/types/database.types';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://bjozpwdtqbpwcxnqguka.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb3pwd2R0cWJwd2N4bnFndWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDk1MDAsImV4cCI6MjEwMjY4NTUwMH0.Peq5vB5N5kgYIg68QVhJ8VvRr2mo9xEoZ5BqA6_Gp5U';
+// ADR-0011: Marketing OS reads schema `marketing_os` on waigsnxhrlwtiotspaim.
+// The old project bjozpwdtqbpwcxnqguka is retired — refuse it so a stale env can't silently point back.
+const RETIRED_PROJECT_REF = 'bjozpwdtqbpwcxnqguka';
+
+function supabaseEnv() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are not set (see .env.example)');
+  }
+  if (url.includes(RETIRED_PROJECT_REF)) {
+    throw new Error(`NEXT_PUBLIC_SUPABASE_URL points at retired project ${RETIRED_PROJECT_REF}; use waigsnxhrlwtiotspaim`);
+  }
+  return { url, key };
+}
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
+  const { url, key } = supabaseEnv();
 
-  return createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  return createServerClient<Database, typeof MARKETING_SCHEMA>(url, key, {
+    db: { schema: MARKETING_SCHEMA },
     cookies: {
       getAll() {
         return cookieStore.getAll();
