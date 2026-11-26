@@ -8,16 +8,16 @@ import {
   isBackOfficeIntelligenceEligible,
   isMappingAttested,
   buildMarketingIntelligenceSnapshot,
-  type MappingAttestation,
+  type DevelopmentMappingAttestation,
   type MarketingSignal,
 } from '../src/lib/marketing-intelligence/ceo-backoffice-contract';
 
 const now = new Date('2026-11-16T00:00:00.000Z');
-const primaryWorkspaceId = 'primary-tenant-a';
-const supplementaryWorkspaceId = 'backoffice-tenant-a';
-const approved: MappingAttestation = {
+const primaryWorkspaceId = '11111111-1111-4111-8111-111111111111';
+const supplementaryWorkspaceId = '22222222-2222-4222-8222-222222222222';
+const approved: DevelopmentMappingAttestation = {
   primary: {
-    projectRef: 'bjozpwdtqbpwcxnqguka',
+    projectRef: 'roprejhnhoaqlctltwfs',
     workspaceId: primaryWorkspaceId,
     ownerUserId: 'primary-owner-a',
     consentEventId: 'primary-consent-event-a',
@@ -25,7 +25,7 @@ const approved: MappingAttestation = {
     verifiedAt: '2026-11-15T00:00:00.000Z',
   },
   supplementary: {
-    projectRef: 'waigsnxhrlwtiotspaim',
+    projectRef: 'tdeuyycqbbktacmxgktn',
     workspaceId: supplementaryWorkspaceId,
     ownerUserId: 'backoffice-owner-a',
     consentEventId: 'backoffice-consent-event-a',
@@ -83,17 +83,19 @@ assert.equal(isBackOfficeIntelligenceEligible({ ...sellerAudience, onboardingSta
 assert.equal(isBackOfficeIntelligenceEligible({ ...sellerAudience, hasVerifiedBusinessSignals: false }), false);
 
 assert.equal(isMappingAttested(null, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested(approved, 'not-a-uuid', supplementaryWorkspaceId, now), false, 'primary workspace must be a UUID');
+assert.equal(isMappingAttested(approved, primaryWorkspaceId, 'backoffice-tenant-a', now), false, 'supplementary workspace must be a UUID');
 assert.equal(isMappingAttested({ ...approved, revokedAt: now.toISOString(), revocationReason: 'owner revoked' }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, revocationReason: 'missing timestamp' }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, expiresAt: now.toISOString() }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
-assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, projectRef: 'waigsnxhrlwtiotspaim' } } as unknown as MappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
-assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, projectRef: 'bjozpwdtqbpwcxnqguka' } } as unknown as MappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, projectRef: 'tdeuyycqbbktacmxgktn' } } as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, projectRef: 'roprejhnhoaqlctltwfs' } } as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, ownerUserId: '' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, consentEventId: ' ' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, evidenceSha256: 'invalid' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, reviewedByUserId: ' ' }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, verifiedAt: '2026-11-18T00:00:00.000Z' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
-assert.equal(isMappingAttested(approved, primaryWorkspaceId, 'backoffice-tenant-b', now), false);
+assert.equal(isMappingAttested(approved, primaryWorkspaceId, '33333333-3333-4333-8333-333333333333', now), false);
 
 assert.equal(build({ audience: { ...sellerAudience, onboardingStage: 'pre_signup' } }), null);
 assert.equal(build({ audience: { ...sellerAudience, segmentCode: 'newbie' } }), null);
@@ -101,6 +103,8 @@ assert.equal(build({ mapping: null }), null);
 assert.equal(build({ mapping: { ...approved, revokedAt: now.toISOString(), revocationReason: 'revoked' } }), null);
 assert.equal(build({ primaryWorkspaceId: '' }), null, 'empty primary workspace must fail closed');
 assert.equal(build({ supplementaryWorkspaceId: '' }), null, 'empty supplementary workspace must fail closed');
+assert.equal(build({ primaryWorkspaceId: 'primary-tenant-a' }), null, 'malformed primary workspace UUID must fail closed');
+assert.equal(build({ supplementaryWorkspaceId: 'backoffice-tenant-a' }), null, 'malformed supplementary workspace UUID must fail closed');
 
 const snapshot = build();
 assert.ok(snapshot);
