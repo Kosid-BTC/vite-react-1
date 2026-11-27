@@ -96,6 +96,16 @@ try {
 
   const assertOverview = async (mobile) => {
     await page.locator('main.marketing-app-shell').waitFor({ state: 'visible', timeout: 30000 });
+    if (!mobile) {
+      for (const selector of ['.app-sidebar', '.sidebar-nav', '.sidebar-item.active']) {
+        assert.ok(await page.locator(selector + ':visible').first().isVisible(), 'Overview desktop missing ' + selector);
+      }
+    } else {
+      const sidebarHidden = await page.locator('.app-sidebar').evaluate((node) => getComputedStyle(node).display === 'none');
+      const mobileBrand = await page.locator('.topbar').evaluate((node) => getComputedStyle(node, '::before').backgroundImage);
+      assert.ok(sidebarHidden, 'Overview mobile must collapse the desktop sidebar');
+      assert.ok(mobileBrand.includes('ceo-ai-reference-logo.svg'), 'Overview mobile must retain CEO AI Thailand branding');
+    }
     for (const selector of [
       '.topbar', '.global-search', '.topbar-actions', '.dashboard-title-row',
       '.metric-grid', '.performance-panel', '.traffic-source',
@@ -153,6 +163,16 @@ try {
 
   const assertDetail = async (mobile) => {
     await page.locator('main.detail-dashboard-shell').waitFor({ state: 'visible', timeout: 30000 });
+    if (!mobile) {
+      for (const selector of ['.app-sidebar', '.sidebar-nav', '.sidebar-item.active']) {
+        assert.ok(await page.locator(selector + ':visible').first().isVisible(), 'Detailed Dashboard desktop missing ' + selector);
+      }
+    } else {
+      const sidebarHidden = await page.locator('.app-sidebar').evaluate((node) => getComputedStyle(node).display === 'none');
+      const mobileBrand = await page.locator('.topbar').evaluate((node) => getComputedStyle(node, '::before').backgroundImage);
+      assert.ok(sidebarHidden, 'Detailed Dashboard mobile must collapse the desktop sidebar');
+      assert.ok(mobileBrand.includes('ceo-ai-reference-logo.svg'), 'Detailed Dashboard mobile must retain CEO AI Thailand branding');
+    }
     for (const selector of [
       '.topbar', '.global-search', '.topbar-actions', '.detail-title-row',
       '.detail-workspace-strip', '.detail-campaign-performance', '.detail-top-content',
