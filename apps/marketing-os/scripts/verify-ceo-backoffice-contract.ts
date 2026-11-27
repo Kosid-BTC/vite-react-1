@@ -24,21 +24,26 @@ const mapping: DevelopmentMappingAttestation = {
   primary: {
     projectRef: 'roprejhnhoaqlctltwfs',
     workspaceId: primaryWorkspaceId,
-    ownerUserId: 'primary-owner-1',
     consentEventId: 'primary-consent-1',
-    evidenceSha256: 'a'.repeat(64),
+    consentReceiptSha256: 'a'.repeat(64),
+    issuerKeyId: 'marketing-dev-key-1',
+    challengeId: 'challenge-1',
+    audience: 'marketing-os-workspace-mapping',
+    scope: 'marketing.backoffice.export',
     verifiedAt: '2026-11-14T00:00:00Z',
   },
   supplementary: {
     projectRef: 'tdeuyycqbbktacmxgktn',
     workspaceId: supplementaryWorkspaceId,
-    ownerUserId: 'supplementary-owner-1',
     consentEventId: 'supplementary-consent-1',
-    evidenceSha256: 'b'.repeat(64),
+    consentReceiptSha256: 'b'.repeat(64),
+    issuerKeyId: 'backoffice-dev-key-1',
+    challengeId: 'challenge-1',
+    audience: 'marketing-os-workspace-mapping',
+    scope: 'marketing.backoffice.export',
     verifiedAt: '2026-11-14T01:00:00Z',
   },
-  reviewedByUserId: 'reviewer-user-1',
-  reviewedBy: 'independent-security-reviewer',
+  challengeId: 'challenge-1',
   expiresAt: '2026-11-16T00:00:00Z',
   revokedAt: null,
   revocationReason: null,
@@ -106,7 +111,7 @@ assert.equal(isMappingAttested({} as unknown as DevelopmentMappingAttestation, p
 assert.equal(isMappingAttested([] as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false, 'array mapping envelope must fail closed');
 assert.equal(isMappingAttested(mapping, primaryWorkspaceId, supplementaryWorkspaceId, null as unknown as Date), false, 'malformed runtime clock must fail closed');
 assert.equal(build(null), null, 'no mapping: no snapshot');
-assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, mapping: { ...mapping, primary: null } }), null, 'null primary owner evidence must fail closed');
+assert.equal(buildMarketingIntelligenceSnapshot({ ...validInput, mapping: { ...mapping, primary: null } }), null, 'null primary consent receipt must fail closed');
 assert.equal(build({ ...mapping, revokedAt: '2026-11-15T11:00:00Z', revocationReason: 'owner revoked' }), null, 'revoked mapping');
 assert.equal(build({ ...mapping, revocationReason: 'reason without timestamp' }), null, 'revocation reason without timestamp');
 assert.equal(build({ ...mapping, expiresAt: '2026-11-15T12:00:00Z' }), null, 'expiry boundary');
@@ -115,11 +120,14 @@ assert.equal(build({ ...mapping, primary: { ...mapping.primary, verifiedAt: '202
 assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, verifiedAt: '2026-11-16T00:00:00Z' } }), null, 'future supplementary owner attestation');
 assert.equal(build({ ...mapping, primary: { ...mapping.primary, workspaceId: otherPrimaryWorkspaceId } }), null, 'primary tenant mismatch');
 assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, workspaceId: otherSupplementaryWorkspaceId } }), null, 'supplementary tenant mismatch');
-assert.equal(build({ ...mapping, primary: { ...mapping.primary, ownerUserId: ' ' } }), null, 'missing primary owner');
 assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, consentEventId: '' } }), null, 'missing supplementary consent event');
-assert.equal(build({ ...mapping, primary: { ...mapping.primary, evidenceSha256: 'not-a-digest' } }), null, 'invalid primary evidence digest');
-assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, evidenceSha256: 'C'.repeat(64) } }), null, 'digest must be normalized lowercase hex');
-assert.equal(build({ ...mapping, reviewedByUserId: '' }), null, 'missing reviewer identity');
+assert.equal(build({ ...mapping, primary: { ...mapping.primary, consentReceiptSha256: 'not-a-digest' } }), null, 'invalid primary consent receipt digest');
+assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, consentReceiptSha256: 'C'.repeat(64) } }), null, 'digest must be normalized lowercase hex');
+assert.equal(build({ ...mapping, challengeId: '' }), null, 'missing shared challenge');
+assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, challengeId: 'other-challenge' } }), null, 'consent receipts must share the same challenge');
+assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, issuerKeyId: ' ' } }), null, 'missing issuer key id');
+assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, audience: 'wrong-audience' } } as unknown as DevelopmentMappingAttestation), null, 'wrong receipt audience');
+assert.equal(build({ ...mapping, supplementary: { ...mapping.supplementary, scope: 'marketing.user.export' } } as unknown as DevelopmentMappingAttestation), null, 'forbidden receipt scope');
 assert.equal(build(mapping, [signal], audience, ''), null, 'missing explicit primary workspace');
 assert.equal(build(mapping, [signal], audience, primaryWorkspaceId, ''), null, 'missing explicit supplementary workspace');
 assert.equal(build(mapping, [signal], audience, 'primary-a', supplementaryWorkspaceId), null, 'malformed primary workspace UUID must fail closed');
@@ -153,4 +161,4 @@ assert.equal(build(mapping, invalid)?.signals.length, 0, 'invalid evidence, valu
 assert.equal(build(mapping, null as unknown as MarketingSignal[]), null, 'malformed signals collection fails closed');
 assert.equal(build(mapping, [null as unknown as MarketingSignal])?.signals.length, 0, 'null signal row is excluded without throwing');
 assert.equal(build(mapping, [{ ...signal, evidence: null } as unknown as MarketingSignal])?.signals.length, 0, 'null evidence object is excluded without throwing');
-console.log('PASS: CEO Back Office contract checks (dual owner evidence, expiry/revocation, audience, provenance)');
+console.log('PASS: CEO Back Office contract checks (opaque consent receipts, expiry/revocation, audience, provenance)');
