@@ -1,0 +1,49 @@
+name: Marketing OS offline CEO Back Office contract
+on:
+  pull_request:
+    paths:
+      - 'apps/marketing-os/src/lib/marketing-intelligence/**'
+      - 'apps/marketing-os/scripts/verify-ceo-backoffice-offline-contract.ts'
+      - 'apps/marketing-os/scripts/verify-ceo-backoffice-contract.ts'
+      - 'apps/marketing-os/scripts/verify-explicit-workspace-offline-regression.ts'
+      - 'apps/marketing-os/security/development_workspace_mapping_attestations.sql'
+      - 'apps/marketing-os/scripts/verify-workspace-mapping-proposal.mjs'
+      - 'apps/marketing-os/docs/WORKSPACE_MAPPING_OWNER_ATTESTATION_NO_USER_DB.md'
+      - 'apps/marketing-os/scripts/verify-workspace-mapping-no-identity-contract.mjs'
+      - 'apps/marketing-os/security/development_marketing_workspace_rpc_hardening.sql'
+      - 'apps/marketing-os/security/development_backoffice_workspace_rpc_hardening.sql'
+      - 'apps/marketing-os/scripts/verify-workspace-rpc-hardening-proposal.mjs'
+      - 'apps/marketing-os/docs/DEVELOPMENT_TENANT_ISOLATION_ACCEPTANCE_MATRIX.md'
+      - 'apps/marketing-os/docs/DEVELOPMENT_ACL_RLS_REMEDIATION_MATRIX_2026-11-26.md'
+      - 'apps/marketing-os/CEO_BACKOFFICE_PRODUCTION_GATES.md'
+      - 'apps/marketing-os/package.json'
+      - '.github/workflows/marketing-os-offline-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/marketing-os
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked app dependencies without running lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify dual-owner attestation contract (offline only)
+        run: npm run test:ceo-backoffice-contract
+      - name: Verify offline mapping and evidence contract
+        run: npm run test:ceo-backoffice-offline
+      - name: Verify explicit workspace fail-closed regression (offline only)
+        run: npx tsx scripts/verify-explicit-workspace-offline-regression.ts
+      - name: Verify Development-only owner-attestation SQL proposal (static only)
+        run: node scripts/verify-workspace-mapping-proposal.mjs
+      - name: Verify no-User-DB owner-attestation boundary (static only)
+        run: node scripts/verify-workspace-mapping-no-identity-contract.mjs
+      - name: Verify Development-only workspace RPC hardening proposals (static only)
+        run: node scripts/verify-workspace-rpc-hardening-proposal.mjs

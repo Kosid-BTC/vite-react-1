@@ -1,0 +1,43 @@
+-- NON-EXECUTABLE DESIGN TEMPLATE. EVERY LINE IN THIS FILE IS A SQL COMMENT.
+-- DO NOT EXECUTE, APPLY, OR CONVERT THIS FILE INTO A MIGRATION.
+-- Target Marketing OS Development branch: project_ref roprejhnhoaqlctltwfs; branch_id e2139d78-2675-4863-ac64-a5fad7c8f826; parent_project_ref bjozpwdtqbpwcxnqguka; status MIGRATIONS_FAILED; preview_project_status ACTIVE_HEALTHY; with_data false.
+-- The parent project ref is metadata only. The target is the Development branch project ref.
+-- This template does not create a mapping, read another project, or enable cross-project access.
+-- 
+-- begin;
+-- 
+-- -- Remove API-role execution of implicit first-workspace selection.
+-- revoke all on function public.ensure_default_workspace()
+--   from public, anon, authenticated, service_role, supabase_read_only_user;
+-- 
+-- -- Keep workspace creation available to its existing authorized callers, but make
+-- -- the authenticated identity requirement explicit inside the SECURITY DEFINER body.
+-- create or replace function public.create_workspace(p_name text)
+-- returns uuid
+-- language plpgsql
+-- security definer
+-- set search_path to 'public'
+-- as $function$
+-- declare
+--   new_id uuid;
+-- begin
+--   if auth.uid() is null then
+--     raise exception 'unauthorized' using errcode = '42501';
+--   end if;
+-- 
+--   insert into public.workspaces (name, owner_id)
+--   values (coalesce(nullif(p_name, ''), 'บริษัทของฉัน'), auth.uid())
+--   returning id into new_id;
+-- 
+--   insert into public.workspace_members (workspace_id, user_id, role)
+--   values (new_id, auth.uid(), 'owner');
+-- 
+--   insert into public.workspace_state (workspace_id, data)
+--   values (new_id, '{}'::jsonb)
+--   on conflict (workspace_id) do nothing;
+-- 
+--   return new_id;
+-- end;
+-- $function$;
+-- 
+-- commit;

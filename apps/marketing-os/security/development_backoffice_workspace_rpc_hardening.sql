@@ -1,0 +1,13 @@
+-- NON-EXECUTABLE DESIGN TEMPLATE. EVERY LINE IN THIS FILE IS A SQL COMMENT.
+-- DO NOT EXECUTE, APPLY, OR CONVERT THIS FILE INTO A MIGRATION.
+-- Target CEO Back Office Development branch: project_ref tdeuyycqbbktacmxgktn; branch_id 2172c0d4-e534-4fe8-918e-5c99ad35ae45; parent_project_ref waigsnxhrlwtiotspaim; status FUNCTIONS_DEPLOYED; preview_project_status ACTIVE_HEALTHY; with_data false.
+-- The parent project ref is metadata only. The target is the Development branch project ref.
+-- This template does not create a mapping, read another project, or enable cross-project access.
+-- 
+-- begin;
+-- 
+-- -- Remove API-role execution of implicit first-workspace selection.
+-- revoke all on function public.ensure_default_workspace()
+--   from public, anon, authenticated, service_role, supabase_read_only_user;
+-- 
+-- commit;

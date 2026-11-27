@@ -1,0 +1,28 @@
+name: Marketing OS no-default-workspace guard
+on:
+  push:
+    branches:
+      - 'feat/marketing-os-ceo-backoffice-intelligence-contract'
+  pull_request:
+    paths:
+      # The detector scans the whole app root; trigger it for every app change,
+      # including root-level middleware/lib/api files and future runtime folders.
+      - 'apps/marketing-os/**'
+      - '.github/workflows/marketing-os-no-default-workspace-guard.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  no-default-workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/marketing-os
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reject implicit first-workspace RPC callsites
+        run: node scripts/verify-no-default-workspace-rpc.mjs

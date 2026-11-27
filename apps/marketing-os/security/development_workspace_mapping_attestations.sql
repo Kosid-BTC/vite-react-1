@@ -1,0 +1,85 @@
+-- NON-EXECUTABLE DESIGN TEMPLATE. EVERY LINE IN THIS FILE IS A SQL COMMENT.
+-- DO NOT EXECUTE, APPLY, OR CONVERT THIS FILE INTO A MIGRATION.
+-- Verified by Supabase list_branches on 2026-11-26:
+-- Marketing OS Development: project_ref roprejhnhoaqlctltwfs; branch_id e2139d78-2675-4863-ac64-a5fad7c8f826; parent_project_ref bjozpwdtqbpwcxnqguka; status MIGRATIONS_FAILED; preview_project_status ACTIVE_HEALTHY; with_data false.
+-- CEO Back Office Development: project_ref tdeuyycqbbktacmxgktn; branch_id 2172c0d4-e534-4fe8-918e-5c99ad35ae45; parent_project_ref waigsnxhrlwtiotspaim; status FUNCTIONS_DEPLOYED; preview_project_status ACTIVE_HEALTHY; with_data false.
+-- Use the branch project refs as targets. Parent project refs identify the branch parent only and must never be used as the target.
+-- This template remains non-executable. Marketing OS Development recovery and all release preconditions must pass before preparing an executable migration.
+-- This template is not an authorization to create a mapping or enable cross-project reads.
+-- 
+-- begin;
+-- 
+-- create schema if not exists marketing_security;
+-- revoke all on schema marketing_security
+--   from public, anon, authenticated, service_role, supabase_read_only_user;
+-- 
+-- create table if not exists marketing_security.workspace_mapping_attestations (
+--   mapping_id uuid primary key default gen_random_uuid(),
+-- 
+--   primary_project_ref text not null
+--     check (primary_project_ref = 'roprejhnhoaqlctltwfs'),
+--   supplementary_project_ref text not null
+--     check (supplementary_project_ref = 'tdeuyycqbbktacmxgktn'),
+-- 
+--   -- Primary refs are local to the Marketing OS Development branch. These FKs prove existence only;
+--   -- the trusted verifier must still prove owner membership and consent independently.
+--   primary_workspace_id uuid not null
+--     references public.workspaces(id) on delete restrict,
+--   supplementary_workspace_id uuid not null,
+--   primary_owner_user_id uuid not null
+--     references auth.users(id) on delete restrict,
+--   supplementary_owner_user_id uuid not null,
+-- 
+--   primary_consent_event_id text not null
+--     check (length(trim(primary_consent_event_id)) > 0),
+--   supplementary_consent_event_id text not null
+--     check (length(trim(supplementary_consent_event_id)) > 0),
+--   primary_consent_evidence_sha256 text not null
+--     check (primary_consent_evidence_sha256 ~ '^[0-9a-f]{64}$'),
+--   supplementary_consent_evidence_sha256 text not null
+--     check (supplementary_consent_evidence_sha256 ~ '^[0-9a-f]{64}$'),
+-- 
+--   primary_verified_at timestamptz not null,
+--   supplementary_verified_at timestamptz not null,
+--   reviewed_by_user_id uuid not null
+--     references auth.users(id) on delete restrict,
+--   reviewed_by text not null check (length(trim(reviewed_by)) > 0),
+-- 
+--   expires_at timestamptz not null,
+--   revoked_at timestamptz,
+--   revocation_reason text,
+--   created_at timestamptz not null default now(),
+-- 
+--   check (expires_at > greatest(primary_verified_at, supplementary_verified_at)),
+--   check (primary_verified_at <= created_at and supplementary_verified_at <= created_at),
+--   check ((revoked_at is null) = (revocation_reason is null)),
+--   check (revoked_at is null or revoked_at >= created_at),
+--   unique (primary_consent_event_id),
+--   unique (supplementary_consent_event_id)
+-- );
+-- 
+-- -- Supplementary refs belong to the separate CEO Back Office Development branch and cannot have local foreign keys;
+-- -- the trusted verifier must validate them in that branch's own Auth/database context on every read.
+-- -- One active (not revoked) mapping per workspace on either side.
+-- -- Expired records must be explicitly revoked before a replacement attestation is inserted.
+-- create unique index if not exists workspace_mapping_primary_active_unique
+--   on marketing_security.workspace_mapping_attestations(primary_workspace_id)
+--   where revoked_at is null;
+-- create unique index if not exists workspace_mapping_supplementary_active_unique
+--   on marketing_security.workspace_mapping_attestations(supplementary_workspace_id)
+--   where revoked_at is null;
+-- 
+-- alter table marketing_security.workspace_mapping_attestations enable row level security;
+-- alter table marketing_security.workspace_mapping_attestations force row level security;
+-- revoke all on marketing_security.workspace_mapping_attestations
+--   from public, anon, authenticated, service_role, supabase_read_only_user;
+-- 
+-- -- No policies and no EXECUTE grants: default deny for API-facing and service roles.
+-- -- A later trusted backend/RPC design must be separately reviewed after isolated restore
+-- -- and least-privilege audit; this template intentionally provides no read path.
+-- -- A trusted server must independently verify BOTH owner consent events against each
+-- -- branch's Auth context, validate evidence digests, reject replay/expiry/revocation,
+-- -- and re-check authorization on EVERY read.
+-- -- Do not store access tokens, JWTs, API keys, or customer records here.
+-- 
+-- commit;

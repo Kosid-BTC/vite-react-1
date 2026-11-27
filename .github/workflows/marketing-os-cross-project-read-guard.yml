@@ -1,0 +1,46 @@
+name: Marketing OS cross-project read guard
+on:
+  push:
+    branches:
+      - 'feat/marketing-os-ceo-backoffice-intelligence-contract'
+  pull_request:
+    paths:
+      - 'apps/marketing-os/src/lib/supabase/supplementary-boundary.ts'
+      - 'apps/marketing-os/src/lib/supabase/supplementary-input.ts'
+      - 'apps/marketing-os/src/lib/supabase/supplementary-readonly.ts'
+      - 'apps/marketing-os/scripts/verify-dual-supabase-boundary.mjs'
+      - 'apps/marketing-os/scripts/verify-supplementary-adapter-runtime.ts'
+      - 'apps/marketing-os/**'
+      - '.github/workflows/marketing-os-cross-project-read-guard.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cross-project-read-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/marketing-os
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify no cross-project read before security acceptance
+        run: node scripts/verify-dual-supabase-boundary.mjs
+      - name: Verify explicit workspace identifiers are own properties
+        run: npx tsx scripts/verify-explicit-workspace-own-properties.ts
+      - name: Exercise supplementary adapter fail-closed path
+        run: npx tsx scripts/verify-supplementary-adapter-runtime.ts
+      - name: Verify approved UX/UI V4 source contract
+        run: npm run test:approved-ui
+      - name: Typecheck Marketing OS
+        run: npm run typecheck -- --pretty false
+      - name: Build Marketing OS (offline placeholder environment)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.invalid
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-public-key
+        run: npm run build
