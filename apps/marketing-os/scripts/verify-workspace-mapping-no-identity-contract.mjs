@@ -31,7 +31,7 @@ for (const required of [
   assert.ok(doc.includes(required), `Missing no-identity mapping guardrail: ${required}`);
 }
 
-const payloadMatch = doc.match(/### Illustrative signed receipt payload[\\s\\S]*?```json\\s*([\\s\\S]*?)```/);
+const payloadMatch = doc.match(/### Illustrative signed receipt payload[\s\S]*?```json\s*([\s\S]*?)```/);
 assert.ok(payloadMatch, 'Illustrative signed receipt JSON must exist');
 const receipt = JSON.parse(payloadMatch[1]);
 for (const key of [
@@ -68,18 +68,18 @@ for (const forbidden of [
   assert.equal(Object.hasOwn(receipt, forbidden), false, `Receipt must not contain ${forbidden}`);
 }
 
-const sqlLines = sql.split(/\\r?\\n/).filter((line) => line.trim().length > 0);
+const sqlLines = sql.split(/\r?\n/).filter((line) => line.trim().length > 0);
 assert.ok(sqlLines.length > 0, 'Existing mapping SQL proposal must be present');
 assert.ok(
-  sqlLines.every((line) => /^\\s*--/.test(line)),
+  sqlLines.every((line) => /^\s*--/.test(line)),
   'Mapping SQL proposal must remain comment-only and non-executable',
 );
 
 assert.match(adapter, /WORKSPACE_MAPPING_UNVERIFIED/);
-assert.match(adapter, /return \\{ ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIED' \\}/);
+assert.match(adapter, /return \{ ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIED' \}/);
 assert.doesNotMatch(
   adapter,
-  /\\b(?:fetch|axios|XMLHttpRequest|WebSocket|EventSource)\\b|create(?:Server)?Client\\s*\\(|\\.rpc\\s*\\(|\\.from\\s*\\(/,
+  /\b(?:fetch|axios|XMLHttpRequest|WebSocket|EventSource)\b|create(?:Server)?Client\s*\(|\.rpc\s*\(|\.from\s*\(/,
   'Disabled supplementary adapter must not perform cross-project network or database access',
 );
 
