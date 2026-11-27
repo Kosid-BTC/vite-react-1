@@ -164,7 +164,7 @@
      desktop `order` values must not form two indivisible groups, otherwise the
      side column can jump ahead of Performance in Chromium. */
   .dashboard-main-column { order: initial !important; display: contents; }
-  .dashboard-side-column { display: none; }
+  .dashboard-body-grid > .dashboard-side-column { display: none; }
   .mobile-dashboard-panel { display: block; }
   .performance-panel,
   .ai-panel,
@@ -228,4 +228,90 @@
   .metric-grid { grid-auto-columns: minmax(195px, 78vw); }
   .genome-body { grid-template-columns: 62px minmax(0,1fr); }
   .mit-body { grid-template-columns: 96px minmax(0,1fr); }
+}
+
+/* Detailed Dashboard / Campaign Content — separate target for locked reference 2. */
+.detail-dashboard-content { max-width: 1600px; }
+.detail-title-row { margin-bottom: 10px; }
+.detail-workspace-strip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+  margin: 10px 0 12px; padding: 10px 13px; border: 1px solid #ececf4;
+  border-radius: 10px; background: #fff; color: #697086; font-size: 11px;
+}
+.detail-workspace-strip strong { color: #4b5063; margin-right: 4px; }
+.detail-main-grid {
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(310px, 1fr);
+  gap: 12px; align-items: start; margin-top: 12px;
+}
+.detail-panel { min-width: 0; overflow: hidden; }
+.detail-panel .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.detail-state {
+  flex: 0 0 auto; border-radius: 999px; padding: 4px 8px; background: #f4f1ff;
+  color: #6d4bd1; font-size: 8px; font-weight: 700; letter-spacing: .03em;
+}
+.detail-campaign-performance { grid-column: 1; grid-row: 1; }
+.detail-top-content { grid-column: 2; grid-row: 1; }
+.detail-content-calendar { grid-column: 1; grid-row: 2; }
+.detail-channels { grid-column: 2; grid-row: 2; }
+.detail-audience-insights { grid-column: 1; grid-row: 3; }
+.detail-ai-insight { grid-column: 2; grid-row: 3; }
+.detail-business-genome { grid-column: 1; grid-row: 4; }
+.detail-next-actions { grid-column: 2; grid-row: 4; }
+.detail-mit-steps { grid-column: 1; grid-row: 5; }
+.detail-activity { grid-column: 2; grid-row: 5; }
+.detail-platform-status { grid-column: 1 / -1; grid-row: 6; }
+.detail-campaign-list, .detail-content-list { display: grid; gap: 7px; padding: 8px 13px 12px; }
+.detail-campaign-row, .detail-content-row {
+  display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 10px;
+  align-items: center; padding: 9px 10px; border: 1px solid #eff0f5; border-radius: 9px;
+  background: #fff; min-width: 0;
+}
+.detail-campaign-row strong, .detail-content-row strong {
+  display: block; color: #303448; font-size: 11px; line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.detail-campaign-row small, .detail-content-row small {
+  display: block; margin-top: 3px; color: #8b90a2; font-size: 8px; line-height: 1.4;
+}
+.detail-status {
+  display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 7px;
+  background: #f6f7fb; color: #70768b; font-size: 8px; font-weight: 700;
+}
+.detail-value { min-width: 42px; text-align: right; color: #777d91; font-size: 13px; }
+.detail-evidence-note { margin: 0; padding: 0 13px 12px; color: #9297a8; font-size: 8px; line-height: 1.5; }
+.detail-empty-state { margin: 0; padding: 18px 14px; color: #8a90a2; font-size: 10px; line-height: 1.5; }
+.detail-content-hints { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 13px 12px; color: #8b90a2; font-size: 8px; }
+.detail-channel-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; padding: 9px 12px 12px; }
+.detail-channel-card {
+  display: flex; min-height: 58px; flex-direction: column; justify-content: center; gap: 5px;
+  padding: 9px 10px; border: 1px solid #eff0f5; border-radius: 9px; background: #fff;
+}
+.detail-channel-card strong { color: #41465b; font-size: 10px; }
+.detail-channel-card span { color: #9297a8; font-size: 8px; font-weight: 700; }
+.detail-placeholder-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; padding: 10px 12px 12px; }
+.detail-placeholder-grid > div { min-height: 54px; padding: 9px; border: 1px solid #eff0f5; border-radius: 9px; background: #fff; }
+.detail-placeholder-grid small { display: block; color: #8c91a2; font-size: 8px; }
+.detail-placeholder-grid strong { display: block; margin-top: 5px; color: #777d91; font-size: 9px; }
+.detail-mit-summary { display: flex; align-items: baseline; gap: 7px; padding: 12px 14px 0; }
+.detail-mit-summary strong { color: #6d4bd1; font-size: 24px; }
+.detail-mit-summary span { color: #8b90a2; font-size: 9px; }
+@media (min-width: 1281px) {
+  .detail-metric-grid { grid-template-columns: repeat(6,minmax(0,1fr)); }
+}
+@media (max-width: 1280px) and (min-width: 761px) {
+  .detail-main-grid { grid-template-columns: minmax(0,1fr) minmax(270px,.9fr); }
+  .detail-channel-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .detail-dashboard-content { padding: 14px 12px 28px; }
+  .detail-workspace-strip { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; font-size: 8px; }
+  .detail-main-grid { display: flex; flex-direction: column; gap: 10px; }
+  .detail-panel { width: 100%; }
+  .detail-campaign-row, .detail-content-row { grid-template-columns: minmax(0,1fr) auto; gap: 7px; }
+  .detail-campaign-row .detail-value { grid-column: 2; }
+  .detail-content-row > small:last-child { grid-column: 1 / -1; }
+  .detail-channel-grid { grid-template-columns: 1fr; }
+  .detail-placeholder-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .detail-panel .panel-heading { min-height: 44px; padding: 11px 12px 0; }
+  .detail-panel .panel-heading h2 { font-size: 12px; }
 }

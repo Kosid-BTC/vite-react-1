@@ -1,12 +1,23 @@
 name: Marketing OS Exact SHA Production Release
 
 on:
-  push:
-    branches:
-      - release/marketing-os-production
+  # Production promotion is manual and exact-SHA approved.
+  # A push to the release branch must never deploy Production automatically.
+  workflow_dispatch:
+    inputs:
+      approved_production_sha:
+        description: "Exact candidate SHA explicitly approved for Production"
+        required: true
+        type: string
+      approval_reference:
+        description: "GitHub PR/review URL recording approval for this exact SHA"
+        required: true
+        type: string
 
 permissions:
   contents: read
+  pull-requests: read
+  actions: read
 
 concurrency:
   group: marketing-os-production-release
@@ -14,6 +25,9 @@ concurrency:
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/release/marketing-os-production' && inputs.approved_production_sha == github.sha
+    environment:
+      name: marketing-os-production
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -24,11 +38,62 @@ jobs:
       VERCEL_PROJECT_ID: prj_hfiFu2Ho2LQqSDlqy1oA0TaT4MWw
       VERCEL_ORG_ID: team_oryw9VGF4TLakA4qBU6pGx43
       VERCEL_TEAM_SLUG: kosid-btcs-projects
+      MARKETING_OS_E2E_EMAIL: ${{ secrets.MARKETING_OS_E2E_EMAIL }}
+      MARKETING_OS_E2E_PASSWORD: ${{ secrets.MARKETING_OS_E2E_PASSWORD }}
+      MARKETING_OS_E2E_WORKSPACE_SLUG: ${{ vars.MARKETING_OS_E2E_WORKSPACE_SLUG }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      MARKETING_OS_EVIDENCE_REPO_TOKEN: ${{ secrets.MARKETING_OS_EVIDENCE_REPO_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+
+      - name: Require merged PR review approval for this exact Production SHA
+        id: approval
+        env:
+          APPROVED_PRODUCTION_SHA_INPUT: ${{ inputs.approved_production_sha }}
+          APPROVAL_REFERENCE: ${{ inputs.approval_reference }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$APPROVED_PRODUCTION_SHA_INPUT" = "$GITHUB_SHA"
+          if [[ "$APPROVAL_REFERENCE" =~ ^https://github\.com/Kosid-BTC/vite-react-1/pull/([0-9]+)$ ]]; then
+            PR_NUMBER="${BASH_REMATCH[1]}"
+          else
+            echo "::error::EXPLICIT_APPROVAL_REFERENCE_REQUIRED"
+            exit 1
+          fi
+
+          pr_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
+          merged="$(jq -r '.merged' <<<"$pr_json")"
+          base_ref="$(jq -r '.base.ref' <<<"$pr_json")"
+          merge_sha="$(jq -r '.merge_commit_sha' <<<"$pr_json")"
+          head_sha="$(jq -r '.head.sha' <<<"$pr_json")"
+          author="$(jq -r '.user.login' <<<"$pr_json")"
+          if [ "$merged" != "true" ] || [ "$base_ref" != "release/marketing-os-production" ] || [ "$merge_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::APPROVAL_PR_NOT_MERGED_TO_RELEASE_AT_EXACT_SHA"
+            exit 1
+          fi
+
+          head_tree="$(gh api "repos/$GITHUB_REPOSITORY/commits/$head_sha" --jq '.commit.tree.sha')"
+          merge_tree="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --jq '.commit.tree.sha')"
+          if [ "$head_tree" != "$merge_tree" ]; then
+            echo "::error::RELEASE_MERGE_TREE_DIFFERS_FROM_APPROVED_PR_HEAD"
+            exit 1
+          fi
+
+          reviews_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews?per_page=100")"
+          approved_count="$(jq --arg sha "$head_sha" --arg author "$author" '[.[] | select(.state == "APPROVED" and .commit_id == $sha and .user.login != $author)] | length' <<<"$reviews_json")"
+          if [ "$approved_count" -lt 1 ]; then
+            echo "::error::NO_NON_AUTHOR_APPROVAL_FOR_EXACT_PR_HEAD"
+            exit 1
+          fi
+          echo "pr_head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "approval_pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "MERGED_PR_EXACT_SHA_REVIEW_APPROVAL=PASS"
+          echo "APPROVED_PRODUCTION_SHA=$GITHUB_SHA"
 
       - name: Assert exact release SHA and merged PR ancestry
         shell: bash
@@ -36,8 +101,100 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git fetch origin feat/marketing-os-phase1 --depth=100
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/feat/marketing-os-phase1
+          git merge-base --is-ancestor origin/feat/marketing-os-phase1 "$GITHUB_SHA"
           echo PRODUCTION_RELEASE_SHA_VERIFIED="$GITHUB_SHA"
+
+      - name: Verify exact-SHA CI, authoritative Preview and visual fixture artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_PR_HEAD_SHA: ${{ steps.approval.outputs.pr_head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$APPROVED_PR_HEAD_SHA"
+          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$APPROVED_PR_HEAD_SHA&per_page=100")"
+          require_success() {
+            local path="$1"
+            local run_id
+            run_id="$(jq -r --arg path "$path" --arg sha "$APPROVED_PR_HEAD_SHA" '[.workflow_runs[] | select(.path == $path and .head_sha == $sha and .conclusion == "success")] | sort_by(.run_started_at) | last | .id // empty' <<<"$runs")"
+            if [ -z "$run_id" ]; then
+              echo "::error::EXACT_SHA_WORKFLOW_NOT_GREEN: $path"
+              exit 1
+            fi
+            printf '%s' "$run_id"
+          }
+
+          full_gate_run="$(require_success '.github/workflows/marketing-os-approved-ui-v4-full-gate.yml')"
+          preview_run="$(require_success '.github/workflows/marketing-os-isolated-preview.yml')"
+          visual_run="$(require_success '.github/workflows/marketing-os-approved-ui-v4-deployed-visual-gate.yml')"
+          artifact_name="approved-ui-v4-deployed-visual-qa-$APPROVED_PR_HEAD_SHA"
+          artifact_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$visual_run/artifacts" --jq ".artifacts[] | select(.name == \"$artifact_name\" and .expired == false) | .id" | head -n 1)"
+          if [ -z "$artifact_id" ]; then
+            echo "::error::EXACT_SHA_APPROVED_V4_VISUAL_ARTIFACT_MISSING"
+            exit 1
+          fi
+          echo "EXACT_SHA_FULL_GATE_RUN=$full_gate_run"
+          echo "EXACT_SHA_AUTHORITATIVE_PREVIEW_RUN=$preview_run"
+          echo "EXACT_SHA_VISUAL_FIXTURE_RUN=$visual_run"
+          echo "EXACT_SHA_VISUAL_FIXTURE_ARTIFACT=$artifact_id"
+          echo "PR_HEAD_SOURCE_SHA=$APPROVED_PR_HEAD_SHA"
+          echo "RELEASE_MERGE_SHA=$GITHUB_SHA"
+
+      - name: Fail closed on outdated Approved V4 visual authority
+        shell: bash
+        working-directory: apps/marketing-os
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const locked = [
+            '0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg',
+            '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg',
+          ];
+          const source = readFileSync('APPROVED_UI_V4_SOURCE.md', 'utf8');
+          const fingerprints = JSON.parse(readFileSync('config/approved-ui-v4-visual-fingerprints.json', 'utf8'));
+          if (locked.some(name => !source.includes(name))) {
+            throw new Error('LOCKED_V4_SOURCE_CONTRACT_MISMATCH');
+          }
+          const expectedHashes = [
+            'db7bbd69b7646d4a81156c6c6b01d83a4f107302fd94fb3601ff02994f8fa2c6',
+            '609493e33900606862e9e73c413ddf2b9d10b32600a957b20d58351a9d56d738',
+          ];
+          if (!Array.isArray(fingerprints.sources) || fingerprints.sources.length !== locked.length ||
+              locked.some((name, i) => fingerprints.sources[i]?.filename !== name || fingerprints.sources[i]?.sha256 !== expectedHashes[i])) {
+            throw new Error('LOCKED_V4_VISUAL_FINGERPRINTS_STALE: stop release; obtain the two exact user uploads, regenerate and verify evidence');
+          }
+          console.log('LOCKED_V4_VISUAL_AUTHORITY_METADATA=PASS (NOT a visual parity PASS)');
+          NODE
+
+      - name: Hold until backup, rollback, security and authenticated Preview gates are attested
+        shell: bash
+        env:
+          APPROVED_SHA: ${{ vars.MARKETING_OS_APPROVED_PRODUCTION_SHA }}
+          PREVIEW_AUTH_SHA: ${{ vars.MARKETING_OS_PREVIEW_AUTH_E2E_SHA }}
+          PREVIEW_VISUAL_SHA: ${{ vars.MARKETING_OS_V4_PREVIEW_VISUAL_SHA }}
+          BACKUP_RESTORE_ROLLBACK_SHA: ${{ vars.MARKETING_OS_BACKUP_RESTORE_ROLLBACK_SHA }}
+          SECURITY_GATE_SHA: ${{ vars.MARKETING_OS_SECURITY_GATE_SHA }}
+          APPROVED_PR_HEAD_SHA: ${{ steps.approval.outputs.pr_head_sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$APPROVED_SHA" ] || [ "$APPROVED_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::APPROVED_MERGE_SHA_MISMATCH"
+            exit 1
+          fi
+          for key in PREVIEW_AUTH_SHA PREVIEW_VISUAL_SHA BACKUP_RESTORE_ROLLBACK_SHA SECURITY_GATE_SHA; do
+            if [ -z "${!key:-}" ] || [ "${!key}" != "$APPROVED_PR_HEAD_SHA" ]; then
+              echo "::error::MISSING_EXACT_SHA_RELEASE_ATTESTATION: $key; expected PR head $APPROVED_PR_HEAD_SHA"
+              exit 1
+            fi
+          done
+          for key in MARKETING_OS_E2E_EMAIL MARKETING_OS_E2E_PASSWORD MARKETING_OS_E2E_WORKSPACE_SLUG VERCEL_AUTOMATION_BYPASS_SECRET MARKETING_OS_EVIDENCE_REPO_TOKEN; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::MISSING_REQUIRED_PRODUCTION_ACCEPTANCE_INPUT: $key"
+              exit 1
+            fi
+          done
+          echo "EXACT_SHA_BACKUP_SECURITY_PREVIEW_AND_E2E_ATTESTATIONS_PRESENT=PASS"
 
       - name: Resolve Vercel credential
         shell: bash
@@ -51,6 +208,32 @@ jobs:
           echo "::add-mask::$token"
           echo "VERCEL_TOKEN=$token" >> "$GITHUB_ENV"
 
+      - name: Verify authoritative Vercel project root and framework (fail closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          project_json="$(curl --fail --silent --show-error --retry 2 \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")"
+          PROJECT_CONFIG_JSON="$project_json" node --input-type=module <<'NODE'
+          const project = JSON.parse(process.env.PROJECT_CONFIG_JSON || '{}');
+          const expected = {
+            id: process.env.VERCEL_PROJECT_ID,
+            name: 'ceo-ai-marketing-os',
+            rootDirectory: 'apps/marketing-os',
+            framework: 'nextjs',
+          };
+          const mismatches = Object.entries(expected)
+            .filter(([key, value]) => project[key] !== value)
+            .map(([key]) => key);
+          if (mismatches.length) {
+            console.error('P0_WRONG_APPLICATION_BUILD_MAPPING: authoritative Vercel project settings mismatch: ' + mismatches.join(', '));
+            console.error('Release blocked. Do not change shared Vercel project settings without approval; verify isolated Preview and authenticated visual gates first.');
+            process.exit(1);
+          }
+          console.log('AUTHORITATIVE_MARKETING_OS_PROJECT_BUILD_MAPPING=PASS');
+          NODE
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -63,6 +246,7 @@ jobs:
           set -euo pipefail
           npm ci --no-audit --no-fund
           node scripts/verify-interaction-routes.mjs
+          npm run test:approved-ui
           npm run typecheck
 
       - name: Bind project and pull Production environment
@@ -73,21 +257,21 @@ jobs:
           rm -rf .vercel
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          npx --yes vercel@59.11.7 pull --yes --environment=production --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          npx --yes vercel@59.11.7 pull --yes --environment=production --scope="$VERCEL_TEAM_SLUG"
           grep -q '^NEXT_PUBLIC_SUPABASE_URL="https://' .vercel/.env.production.local
           grep -q '^NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_' .vercel/.env.production.local
           echo SUPABASE_PRODUCTION_PUBLIC_CONFIG=VERIFIED
 
       - name: Build exact Production artifact
         working-directory: apps/marketing-os
-        run: npx --yes vercel@59.11.7 build --prod --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@59.11.7 build --prod --scope="$VERCEL_TEAM_SLUG"
 
       - name: Record rollback target
         working-directory: apps/marketing-os
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes vercel@59.11.7 list ceo-ai-marketing-os --environment production --status READY --limit 20 --format json --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" > /tmp/production-deployments.json
+          npx --yes vercel@59.11.7 list ceo-ai-marketing-os --environment production --status READY --limit 20 --format json --scope="$VERCEL_TEAM_SLUG" > /tmp/production-deployments.json
           previous="$(node -e "const d=require('/tmp/production-deployments.json'); const x=(d.deployments||d)[0]; if(!x) process.exit(1); process.stdout.write('https://'+(x.url||x.name));")"
           echo PREVIOUS_PRODUCTION_URL="$previous" >> "$GITHUB_ENV"
           echo ROLLBACK_TARGET_RECORDED=YES
@@ -98,7 +282,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          url="$(npx --yes vercel@59.11.7 deploy --prebuilt --prod --skip-domain --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN")"
+          url="$(npx --yes vercel@59.11.7 deploy --prebuilt --prod --skip-domain --scope="$VERCEL_TEAM_SLUG")"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo PRODUCTION_CANDIDATE_URL="$url"
 
@@ -113,25 +297,71 @@ jobs:
           grep -q 'เข้าสู่ระบบ' /tmp/candidate-login.html
           echo PRODUCTION_CANDIDATE_SMOKE=PASS
 
-      - name: Promote exact candidate and rollback on failed smoke
+      - name: Install authenticated UX/UI acceptance browser
+        working-directory: apps/marketing-os
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright@1.55.0 sharp@0.34.3
+          npx playwright install --with-deps chromium
+
+      - name: Authenticated candidate UX/UI acceptance before Production promotion
+        working-directory: apps/marketing-os
+        env:
+          BASE_URL: ${{ steps.candidate.outputs.url }}
+          EXPECTED_SOURCE_SHA: ${{ github.sha }}
+          ACCEPTANCE_TARGET: candidate
+          ARTIFACT_DIR: /tmp/marketing-os-candidate-acceptance
+        run: |
+          set -euo pipefail
+          node --check scripts/verify-production-acceptance.mjs
+          node scripts/verify-production-acceptance.mjs
+
+      - name: Promote exact candidate and rollback on failed live acceptance
         working-directory: apps/marketing-os
         env:
           CANDIDATE_URL: ${{ steps.candidate.outputs.url }}
+          GH_TOKEN: ${{ secrets.MARKETING_OS_EVIDENCE_REPO_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           rollback() {
-            npx --yes vercel@59.11.7 rollback "$PREVIOUS_PRODUCTION_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" || true
+            npx --yes vercel@59.11.7 rollback "$PREVIOUS_PRODUCTION_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG" || true
           }
           trap 'status=$?; if [ "$status" -ne 0 ]; then rollback; fi; exit "$status"' EXIT
-          npx --yes vercel@59.11.7 promote "$CANDIDATE_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN"
+          npx --yes vercel@59.11.7 promote "$CANDIDATE_URL" --yes --timeout 5m --scope="$VERCEL_TEAM_SLUG"
           npx --yes vercel@59.11.7 --scope="$VERCEL_TEAM_SLUG" curl https://ceo-ai-marketing-os.vercel.app/login > /tmp/production-login.html
           grep -q 'เข้าสู่ระบบ' /tmp/production-login.html
-          logs="$(npx --yes vercel@59.11.7 logs --environment production --status-code 500 --since 5m --json --limit 100 --scope="$VERCEL_TEAM_SLUG" --token="$VERCEL_TOKEN" || true)"
+
+          BASE_URL="https://ceo-ai-marketing-os.vercel.app" \
+            EXPECTED_SOURCE_SHA="$GITHUB_SHA" \
+            ACCEPTANCE_TARGET=production \
+            ARTIFACT_DIR=production-acceptance-artifacts \
+            VERCEL_AUTOMATION_BYPASS_SECRET="" \
+            node scripts/verify-production-acceptance.mjs
+
+          for file in production-acceptance-artifacts/desktop-1536x1024.png production-acceptance-artifacts/mobile-390x844.png production-acceptance-artifacts/manifest.json; do
+            test -s "$file"
+            relative_path="marketing-os-evidence/$GITHUB_SHA/$(basename "$file")"
+            encoded="$(base64 -w0 "$file")"
+            existing_sha="$(gh api "repos/Kosid-BTC/CEOAITHAILAND/contents/$relative_path?ref=main" --jq '.sha' 2>/dev/null || true)"
+            if [ -n "$existing_sha" ]; then
+              gh api --method PUT "repos/Kosid-BTC/CEOAITHAILAND/contents/$relative_path" \
+                -f message="marketing-os: update authenticated Production evidence $GITHUB_SHA" \
+                -f content="$encoded" -f branch=main -f sha="$existing_sha" >/dev/null
+            else
+              gh api --method PUT "repos/Kosid-BTC/CEOAITHAILAND/contents/$relative_path" \
+                -f message="marketing-os: add authenticated Production evidence $GITHUB_SHA" \
+                -f content="$encoded" -f branch=main >/dev/null
+            fi
+          done
+          echo "PRIVATE_PRODUCTION_EVIDENCE=Kosid-BTC/CEOAITHAILAND/marketing-os-evidence/$GITHUB_SHA"
+
+          logs="$(npx --yes vercel@59.11.7 logs --environment production --status-code 500 --since 5m --json --limit 100 --scope="$VERCEL_TEAM_SLUG" || true)"
           if printf '%s' "$logs" | grep -Eq 'MIDDLEWARE_INVOCATION_FAILED|MARKETING_OS_AUTH_CONFIG=UNAVAILABLE|URL and Key are required'; then
             echo PRODUCTION_RUNTIME_REGRESSION=DETECTED
             false
           fi
           trap - EXIT
           echo PRODUCTION_PROMOTION=PASS
+          echo PRODUCTION_AUTHENTICATED_VISUAL_ACCEPTANCE=PASS
           echo PRODUCTION_RUNTIME_500_SCAN=PASS

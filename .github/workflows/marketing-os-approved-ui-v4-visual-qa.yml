@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/marketing-os-approved-ui-v4
+      - fix/marketing-os-p0-release-preflight-20261024
   workflow_dispatch:
 
 permissions:
@@ -15,7 +16,7 @@ concurrency:
 
 jobs:
   visual-qa:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout exact head
@@ -115,20 +116,45 @@ jobs:
             await page.waitForLoadState('networkidle');
             if (!(await page.locator('text=Performance Overview').first().isVisible())) throw new Error('Dashboard did not render Performance Overview');
             if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Expected exactly six KPI cards');
-            await page.screenshot({ path: 'visual-qa-artifacts/desktop-1536x1024.png', fullPage: true });
+            const desktopViewport = page.viewportSize();
+            if (desktopViewport?.width !== 1536 || desktopViewport?.height !== 1024) throw new Error('Desktop evidence must use the exact 1536x1024 viewport');
+            await page.screenshot({ path: 'visual-qa-artifacts/desktop-1536x1024.png', fullPage: false });
             await page.setViewportSize({ width: 390, height: 844 });
+            const mobileViewport = page.viewportSize();
+            if (mobileViewport?.width !== 390 || mobileViewport?.height !== 844) throw new Error('Mobile evidence must use the exact 390x844 viewport');
             await page.waitForTimeout(500);
+            const sideColumn = page.locator('.dashboard-body-grid > .dashboard-side-column');
+            if (!(await sideColumn.isHidden())) throw new Error('Mobile must hide the desktop side column to prevent duplicate AI/Activity panels');
+            const mobileAi = page.locator('.ai-panel.mobile-dashboard-panel');
+            const mobileActivity = page.locator('.recent-panel.mobile-dashboard-panel');
+            if ((await mobileAi.count()) !== 1 || !(await mobileAi.first().isVisible())) throw new Error('Expected one visible mobile AI Recommendations panel');
+            if ((await mobileActivity.count()) !== 1 || !(await mobileActivity.first().isVisible())) throw new Error('Expected one visible mobile Recent Activity panel');
             const pBox = await page.locator('.performance-panel').boundingBox();
-            const aBox = await page.locator('.ai-panel').boundingBox();
+            const aBox = await mobileAi.first().boundingBox();
             if (!pBox || !aBox || pBox.y >= aBox.y) throw new Error('Mobile hierarchy regression: Performance must precede AI Recommendations');
-            if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Mobile must retain all six KPI cards');
-            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: true });
+            const metricGrid = page.locator('.metric-grid');
+            const metricCards = page.locator('.metric-card');
+            if ((await metricCards.count()) !== 6) throw new Error('Mobile must retain all six KPI cards');
+            const hiddenCards = await metricCards.evaluateAll(nodes => nodes.filter(node => getComputedStyle(node).display === 'none').length);
+            if (hiddenCards !== 0) throw new Error('Mobile must not hide any KPI cards');
+            const rail = await metricGrid.evaluate(el => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+            if (rail.scrollWidth <= rail.clientWidth) throw new Error('Expected a horizontally scrollable six-card KPI rail on mobile');
+            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844.png', fullPage: false });
+            await metricGrid.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+            await page.waitForTimeout(200);
+            const lastCardVisible = await metricCards.last().evaluate(el => {
+              const card = el.getBoundingClientRect();
+              const railBox = el.parentElement.getBoundingClientRect();
+              return card.left >= railBox.left - 1 && card.right <= railBox.right + 1;
+            });
+            if (!lastCardVisible) throw new Error('The sixth KPI card must be reachable within the mobile KPI rail');
+            await page.screenshot({ path: 'visual-qa-artifacts/mobile-390x844-kpi-rail-end.png', fullPage: false });
             console.log('AUTHENTICATED_VISUAL_QA_CAPTURE=PASS');
           } catch (error) {
             console.error(`VISUAL_QA_FAILURE_URL=${page.url()}`);
             console.error(`VISUAL_QA_FAILURE_TITLE=${await page.title()}`);
             console.error(`VISUAL_QA_FAILURE_BODY=${(await page.locator('body').innerText().catch(() => '')).slice(0, 4000)}`);
-            await page.screenshot({ path: 'visual-qa-artifacts/failure.png', fullPage: true }).catch(() => {});
+            await page.screenshot({ path: 'visual-qa-artifacts/failure.png', fullPage: false }).catch(() => {});
             throw error;
           } finally {
             await browser.close();
@@ -144,7 +170,7 @@ jobs:
         with:
           name: approved-ui-v4-visual-qa-${{ github.sha }}
           path: apps/marketing-os/visual-qa-artifacts/*.png
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
       - name: Stop disposable local Supabase
         if: always()

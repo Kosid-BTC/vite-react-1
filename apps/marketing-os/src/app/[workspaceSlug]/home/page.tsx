@@ -4,7 +4,7 @@ import { getMarketingService } from '@/server/services';
 
 type SidebarNavItem = {
   label: string;
-  key?: 'dashboard' | 'campaigns';
+  key?: 'dashboard' | 'campaigns' | 'detail';
 };
 
 type SidebarGroup = {
@@ -27,7 +27,7 @@ const sidebarGroups: SidebarGroup[] = [
   { title: 'CONTENT FACTORY', items: [{ label: 'Content Calendar' }, { label: 'Content Items' }, { label: 'Create Content' }] },
   { title: 'APPROVAL', items: [{ label: 'Review & Approve' }, { label: 'Content Library' }] },
   { title: 'DISTRIBUTION', items: [{ label: 'Channels' }, { label: 'Publishing' }, { label: 'UTM & Tracking' }] },
-  { title: 'ANALYTICS', items: [{ label: 'Overview' }, { label: 'Campaigns', key: 'campaigns' }, { label: 'Content Performance' }, { label: 'Audience Insights' }, { label: 'Attribution' }] },
+  { title: 'ANALYTICS', items: [{ label: 'Overview' }, { label: 'Campaigns', key: 'campaigns' }, { label: 'Campaign Dashboard', key: 'detail' }, { label: 'Content Performance' }, { label: 'Audience Insights' }, { label: 'Attribution' }] },
   { title: 'EXPERIMENTS', items: [{ label: 'A/B Tests' }] },
   { title: 'AI INSIGHTS', items: [{ label: 'Business Genome' }, { label: 'Next Best Actions' }] },
   { title: 'SYSTEM', items: [{ label: 'Environment' }, { label: 'Migration' }, { label: 'RLS / Security' }, { label: 'Supabase Staging' }, { label: 'Production Readiness' }] },
@@ -115,9 +115,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
               {group.items.map((item) => {
                 const href = item.key === 'dashboard'
                   ? withVisualQa(`/${workspaceSlug}/home`)
-                  : item.key === 'campaigns'
+                   : item.key === 'campaigns'
                     ? withVisualQa(`/${workspaceSlug}/campaigns`)
-                    : null;
+                    : item.key === 'detail'
+                      ? withVisualQa(`/${workspaceSlug}/dashboard`)
+                      : null;
                 const active = item.key === 'dashboard';
 
                 return href ? (
@@ -300,7 +302,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </aside>
           </section>
 
-          <footer className="dashboard-footer"><span>CEO AI Thailand · Marketing OS · Reference UI V2</span><span>Powered by AI | Built for Sustainable Growth</span></footer>
+          <footer className="dashboard-footer"><span>CEO AI Thailand · Marketing OS · Approved UX/UI V4</span><span>Powered by AI | Built for Sustainable Growth</span></footer>
         </div>
       </section>
     </main>

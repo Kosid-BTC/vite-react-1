@@ -1,20 +1,20 @@
-name: Marketing OS Approved UI V4 Deployed Preview Visual Gate
+name: Marketing OS Approved UI V4 Authenticated Preview Visual Gate
 
 on:
   push:
-    branches: [feat/marketing-os-approved-ui-v4, fix/marketing-os-release-gates-v5]
+    branches: [feat/marketing-os-approved-ui-v4, fix/marketing-os-release-gates-v5, fix/marketing-os-p0-release-preflight-20261024]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: marketing-os-approved-ui-v4-deployed-visual-gate
+  group: marketing-os-approved-ui-v4-deployed-visual-gate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deployed-visual-gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       VERCEL_TOKEN_PRIMARY: ${{ secrets.VERCEL_TOKEN }}
@@ -69,27 +69,36 @@ jobs:
           grep -q "$VERCEL_PROJECT_ID" .vercel/project.json
           echo "AUTHORITATIVE_VERCEL_PROJECT=ceo-ai-marketing-os"
 
-      - name: Inject verified public Supabase config
+      - name: Validate authoritative Preview Supabase public config
+        working-directory: apps/marketing-os
         run: |
           set -euo pipefail
-          git fetch origin 'ops/deploy-rc-2bd740b9:refs/remotes/origin/ops/deploy-rc-2bd740b9' --depth=1
-          python - <<'PY'
-          import re, subprocess
-          from pathlib import Path
-          source = subprocess.check_output(['git','show','refs/remotes/origin/ops/deploy-rc-2bd740b9:.github/workflows/deploy-marketing-os-rc-production.yml'], text=True)
-          url = re.search(r'SUPABASE_PUBLIC_URL:\s*(\S+)', source)
-          key = re.search(r'SUPABASE_PUBLISHABLE_KEY:\s*(\S+)', source)
-          if not url or not key: raise SystemExit('verified Supabase public config unavailable')
-          url = url.group(1).strip().strip('"').strip("'")
-          key = key.group(1).strip().strip('"').strip("'")
-          if not url.startswith('https://') or not key.startswith('sb_publishable_'): raise SystemExit('unexpected public config format')
-          p = Path('apps/marketing-os/.vercel/.env.preview.local')
-          old = p.read_text() if p.exists() else ''
-          kept = [x for x in old.splitlines() if not x.startswith('NEXT_PUBLIC_SUPABASE_URL=') and not x.startswith('NEXT_PUBLIC_SUPABASE_ANON_KEY=')]
-          kept += [f'NEXT_PUBLIC_SUPABASE_URL="{url}"', f'NEXT_PUBLIC_SUPABASE_ANON_KEY="{key}"']
-          p.write_text('\n'.join(kept) + '\n')
-          print('SUPABASE_PREVIEW_PUBLIC_CONFIG=VERIFIED')
-          PY
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = '.vercel/.env.preview.local';
+          if (!fs.existsSync(path)) {
+            console.error('::error::AUTHORITATIVE_PREVIEW_ENV_FILE_MISSING');
+            process.exit(1);
+          }
+          process.loadEnvFile(path);
+          const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+          const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+          if (!url || !key) {
+            console.error('::error::AUTHORITATIVE_PREVIEW_PUBLIC_AUTH_CONFIG_MISSING');
+            process.exit(1);
+          }
+          try {
+            if (new URL(url).protocol !== 'https:') throw new Error();
+          } catch {
+            console.error('::error::AUTHORITATIVE_PREVIEW_SUPABASE_URL_INVALID');
+            process.exit(1);
+          }
+          if (!(key.startsWith('sb_publishable_') || key.startsWith('eyJ'))) {
+            console.error('::error::AUTHORITATIVE_PREVIEW_PUBLIC_KEY_FORMAT_UNVERIFIED');
+            process.exit(1);
+          }
+          console.log('AUTHORITATIVE_PREVIEW_SUPABASE_PUBLIC_CONFIG=PASS (values redacted)');
+          NODE
 
       - name: Build exact-SHA preview
         working-directory: apps/marketing-os
@@ -121,151 +130,24 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.55.0 vercel@59.11.7 sharp@0.34.3
           npx playwright install --with-deps chromium
 
-      - name: Capture and compare deployed visual evidence
+      - name: Capture authenticated desktop/mobile against both locked references
         working-directory: apps/marketing-os
         env:
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
-        run: |
-          set -euo pipefail
-          mkdir -p deployed-visual-qa-artifacts
-          node --input-type=module <<'NODE'
-          import { chromium } from 'playwright';
-          import sharp from 'sharp';
-          import { execFile } from 'node:child_process';
-          import { promisify } from 'node:util';
-          import { extname } from 'node:path';
-          import { readFile } from 'node:fs/promises';
-
-          const execFileAsync = promisify(execFile);
-          const deployment = process.env.DEPLOYMENT_URL;
-          const sha = process.env.GITHUB_SHA;
-          const team = process.env.VERCEL_TEAM_SLUG;
-          if (!deployment || !sha || !process.env.VERCEL_TOKEN || !team) throw new Error('Missing deployed visual QA inputs');
-
-          const contract = JSON.parse(await readFile('config/approved-ui-v4-visual-fingerprints.json', 'utf8'));
-          const main = contract.sources.find((source) => source.key === 'main');
-          const variant = contract.sources.find((source) => source.key === 'variant');
-          const duplicate = contract.sources.find((source) => source.key === 'main-duplicate-confirmation');
-          if (!main || !variant || !duplicate) throw new Error('Approved screenshot fingerprint contract incomplete');
-          if (main.sha256 !== 'db7bbd69b7646d4a81156c6c6b01d83a4f107302fd94fb3601ff02994f8fa2c6') throw new Error('Main approved screenshot authority hash drifted');
-          if (variant.sha256 !== '609493e33900606862e9e73c413ddf2b9d10b32600a957b20d58351a9d56d738') throw new Error('Variant approved screenshot authority hash drifted');
-          if (duplicate.duplicateOf !== 'main') throw new Error('Duplicate approved screenshot confirmation drifted');
-          if (contract.method.width !== 24 || contract.method.height !== 16 || contract.method.blurRadius !== 6) throw new Error('Visual fingerprint method drifted');
-
-          const mime = (url, resourceType) => {
-            const ext = extname(new URL(url).pathname).toLowerCase();
-            if (resourceType === 'document' || ext === '.html') return 'text/html; charset=utf-8';
-            if (ext === '.js' || ext === '.mjs' || resourceType === 'script') return 'application/javascript; charset=utf-8';
-            if (ext === '.css' || resourceType === 'stylesheet') return 'text/css; charset=utf-8';
-            if (ext === '.svg') return 'image/svg+xml';
-            if (ext === '.png') return 'image/png';
-            if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
-            if (ext === '.webp') return 'image/webp';
-            if (ext === '.woff2') return 'font/woff2';
-            if (ext === '.woff') return 'font/woff';
-            return 'application/octet-stream';
-          };
-
-          const normalizedMse = (a, b) => {
-            if (a.length !== b.length) throw new Error('Visual fingerprint dimensions differ');
-            let sum = 0;
-            for (let i = 0; i < a.length; i += 1) {
-              const delta = (Number(a[i]) - Number(b[i])) / 255;
-              sum += delta * delta;
-            }
-            return sum / a.length;
-          };
-
-          const correlation = (a, b) => {
-            if (a.length !== b.length) throw new Error('Visual fingerprint dimensions differ');
-            const meanA = a.reduce((sum, value) => sum + Number(value), 0) / a.length;
-            const meanB = b.reduce((sum, value) => sum + Number(value), 0) / b.length;
-            let numerator = 0, denomA = 0, denomB = 0;
-            for (let i = 0; i < a.length; i += 1) {
-              const da = Number(a[i]) - meanA;
-              const db = Number(b[i]) - meanB;
-              numerator += da * db;
-              denomA += da * da;
-              denomB += db * db;
-            }
-            if (!denomA || !denomB) return 0;
-            return numerator / Math.sqrt(denomA * denomB);
-          };
-
-          const deployedFingerprint = async (png) => Array.from(await sharp(png)
-            .greyscale()
-            .blur(contract.method.blurRadius)
-            .resize(contract.method.width, contract.method.height, { fit: 'fill' })
-            .raw()
-            .toBuffer());
-
-          const browser = await chromium.launch({ headless: true });
-          const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: 1 });
-          await page.route('**/*', async (route) => {
-            const request = route.request();
-            const url = request.url();
-            if (!url.startsWith(`${deployment}/`)) return route.continue();
-            try {
-              const { stdout } = await execFileAsync(
-                './node_modules/.bin/vercel',
-                [`--scope=${team}`, 'curl', url],
-                { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024, env: process.env },
-              );
-              await route.fulfill({ status: 200, body: stdout, contentType: mime(url, request.resourceType()) });
-            } catch (error) {
-              console.error(`VERCEL_CURL_PROXY_FAILURE=${url}`);
-              console.error(error?.stderr?.toString?.().slice(0, 2000) ?? error);
-              await route.abort();
-            }
-          });
-
-          try {
-            await page.goto(`${deployment}/visual-qa/home?visualQa=${encodeURIComponent(sha)}`, { waitUntil: 'networkidle' });
-            const root = page.locator('[data-visual-qa="preview-fixture"]');
-            await root.waitFor({ state: 'visible', timeout: 20000 });
-            if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Approved desktop requires exactly six KPI cards');
-            for (const selector of ['.performance-panel','.traffic-source','.ai-panel','.genome-panel','.mit-panel','.recent-panel','.platform-panel']) {
-              if (!(await page.locator(`${selector}:visible`).isVisible())) throw new Error(`Approved desktop missing ${selector}`);
-            }
-
-            const desktop = await page.screenshot({ path: 'deployed-visual-qa-artifacts/desktop-1536x1024.png', fullPage: false });
-            const deployed = await deployedFingerprint(desktop);
-            const mainMse = normalizedMse(deployed, main.fingerprint);
-            const variantMse = normalizedMse(deployed, variant.fingerprint);
-            const mainCorrelation = correlation(deployed, main.fingerprint);
-            console.log(`APPROVED_MAIN_VISUAL_MSE=${mainMse.toFixed(6)}`);
-            console.log(`APPROVED_VARIANT_VISUAL_MSE=${variantMse.toFixed(6)}`);
-            console.log(`APPROVED_MAIN_VISUAL_CORRELATION_INFORMATIONAL=${mainCorrelation.toFixed(6)}`);
-            if (mainMse > contract.thresholds.main.mseMax || variantMse > contract.thresholds.variant.mseMax) {
-              throw new Error(`Deployed screenshot diverges from approved sources: mainMse=${mainMse.toFixed(6)}, variantMse=${variantMse.toFixed(6)}`);
-            }
-
-            await page.setViewportSize({ width: 390, height: 844 });
-            await page.waitForTimeout(600);
-            if ((await page.locator('.metric-card').count()) !== 6) throw new Error('Approved mobile requires all six KPI cards');
-            const performanceBox = await page.locator('.performance-panel:visible').boundingBox();
-            const aiBox = await page.locator('.ai-panel.mobile-dashboard-panel').boundingBox();
-            if (!performanceBox || !aiBox || performanceBox.y >= aiBox.y) throw new Error('Approved mobile hierarchy requires Performance before AI Recommendations');
-            const mobileTitle = page.locator('.dashboard-title-row h1:visible');
-            if (!(await mobileTitle.isVisible()) || (await mobileTitle.textContent())?.trim() !== 'CEO AI Thailand') throw new Error('CEO AI title branding missing on mobile');
-            const mobileLogoBackground = await page.locator('.topbar:visible').evaluate((node) => getComputedStyle(node, '::before').backgroundImage);
-            if (!mobileLogoBackground.includes('ceo-ai-reference-logo.svg')) throw new Error('CEO AI logo branding missing on mobile');
-            await page.screenshot({ path: 'deployed-visual-qa-artifacts/mobile-390x844.png', fullPage: true });
-
-            console.log(`DEPLOYED_VISUAL_QA_SHA=${sha}`);
-            console.log('DEPLOYED_VISUAL_STRUCTURE=PASS');
-            console.log('DEPLOYED_APPROVED_SOURCE_FIDELITY=PASS');
-            console.log('APPROVED_SOURCE_CONTRACT=0D291464-3F4B-4AD2-B7BE-C5409EC56B4F.jpeg|4C6D6E63-535F-4E43-BD88-FD10F31624DC.jpeg|0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(1).jpeg');
-          } finally {
-            await browser.close();
-          }
-          NODE
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          EXPECTED_SOURCE_SHA: ${{ github.sha }}
+          ACCEPTANCE_TARGET: candidate
+          ARTIFACT_DIR: deployed-visual-qa-artifacts
+          MARKETING_OS_E2E_EMAIL: ${{ secrets.MARKETING_OS_E2E_EMAIL }}
+          MARKETING_OS_E2E_PASSWORD: ${{ secrets.MARKETING_OS_E2E_PASSWORD }}
+          MARKETING_OS_E2E_WORKSPACE_SLUG: ${{ vars.MARKETING_OS_E2E_WORKSPACE_SLUG }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/verify-production-acceptance.mjs
 
       - name: Upload deployed visual QA evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: approved-ui-v4-deployed-visual-qa-${{ github.sha }}
-          path: apps/marketing-os/deployed-visual-qa-artifacts/*.png
+          path: apps/marketing-os/deployed-visual-qa-artifacts/*
           if-no-files-found: error
           retention-days: 7
