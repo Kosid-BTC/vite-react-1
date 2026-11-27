@@ -16,6 +16,10 @@ const adapter = readFileSync(
   resolve(process.cwd(), 'src/lib/supabase/supplementary-readonly.ts'),
   'utf8',
 );
+const intelligenceContract = readFileSync(
+  resolve(process.cwd(), 'src/lib/marketing-intelligence/ceo-backoffice-contract.ts'),
+  'utf8',
+);
 
 for (const required of [
   'DESIGN ONLY / DEVELOPMENT ONLY / NOT IMPLEMENTED',
@@ -74,6 +78,13 @@ assert.ok(
   sqlLines.every((line) => /^\s*--/.test(line)),
   'Mapping SQL proposal must remain comment-only and non-executable',
 );
+
+if (/\\b(?:ownerUserId|reviewedByUserId)\\b/.test(intelligenceContract)) {
+  assert.ok(
+    doc.includes('incompatible with the no-identity contract'),
+    'Legacy offline owner identifiers must remain explicitly recorded as a blocker until refactored',
+  );
+}
 
 assert.match(adapter, /WORKSPACE_MAPPING_UNVERIFIED/);
 assert.match(adapter, /return \{ ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIED' \}/);
