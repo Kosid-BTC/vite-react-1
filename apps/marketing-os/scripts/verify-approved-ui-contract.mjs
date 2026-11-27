@@ -62,8 +62,8 @@ requireOrder(home, [
   'การเชื่อมต่อกับแพลตฟอร์ม',
 ], 'dashboard hierarchy');
 
-const metricsBlock = home.match(/const metrics = \[(.*?)\]\s+as const;/s)?.[1] ?? '';
-const metricDefinitions = metricsBlock.match(/\blabel:\s*'/g)?.length ?? 0;
+const metricsBlock = home.match(/const metrics = \\[(.*?)\\]\\s+as const;/s)?.[1] ?? '';
+const metricDefinitions = metricsBlock.match(/\\blabel:\\s*'/g)?.length ?? 0;
 if (metricDefinitions !== 6) failures.push(`dashboard: expected 6 KPI definitions, found ${metricDefinitions}`);
 
 for (const token of [
@@ -80,14 +80,20 @@ requireText(css, 'Performance first, AI second', 'mobile contract');
 requireText(loginCss, '.approved-login-shell', 'login css');
 if (login.includes('login-preview-kpis')) failures.push('login continuity: dashboard preview must not substitute for authenticated dashboard parity');
 
-
 for (const token of [
-  '0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg',
-  '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg',
+  'IMG_1789.jpeg',
+  'IMG_1788.jpeg',
   '1536x1024',
   '390x844',
   'READY FOR USE means Approved UX/UI V4 is actually running on Production',
 ]) requireText(contract, token, 'locked V4 acceptance');
+
+for (const staleReference of [
+  '0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg',
+  '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg',
+]) {
+  if (contract.includes(staleReference)) failures.push(`locked V4 acceptance: stale reference remains ${staleReference}`);
+}
 
 if (failures.length) {
   console.error('APPROVED_UI_CONTRACT_FAIL');
@@ -97,6 +103,7 @@ if (failures.length) {
 
 console.log('APPROVED_UI_CONTRACT_PASS');
 console.log(JSON.stringify({
+  lockedReferenceImages: ['IMG_1789.jpeg', 'IMG_1788.jpeg'],
   kpiCards: 6,
   dashboardOrder: ['KPI', 'Performance', 'Traffic Sources', 'AI', 'Business Genome', 'MIT 24 Steps', 'Recent Activity', 'Platform Connections'],
   loginContinuity: true,
