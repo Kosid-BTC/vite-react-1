@@ -28,6 +28,10 @@ const primaryContractTests = readFileSync(
   resolve(process.cwd(), 'scripts/verify-ceo-backoffice-contract.ts'),
   'utf8',
 );
+const explicitWorkspaceTests = readFileSync(
+  resolve(process.cwd(), 'scripts/verify-explicit-workspace-offline-regression.ts'),
+  'utf8',
+);
 
 for (const required of [
   'DESIGN ONLY / DEVELOPMENT ONLY / NOT IMPLEMENTED',
@@ -91,6 +95,7 @@ for (const [label, source] of [
   ['mapping envelope', intelligenceContract],
   ['offline regression fixture', offlineContract],
   ['primary contract regression fixture', primaryContractTests],
+  ['explicit-workspace regression fixture', explicitWorkspaceTests],
 ]) {
   assert.doesNotMatch(
     source,
