@@ -1,14 +1,20 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Database } from '@/types/database.types';
+import type { MarketingOSDatabase } from '@/types/marketing-os-database.types';
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(
+  const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA?.trim() || 'marketing_os';
+  if (schema !== 'marketing_os') {
+    throw new Error('MARKETING_OS_SCHEMA_MISMATCH');
+  }
+
+  return createServerClient<MarketingOSDatabase, 'marketing_os'>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      db: { schema },
       cookies: {
         getAll() {
           return cookieStore.getAll();
