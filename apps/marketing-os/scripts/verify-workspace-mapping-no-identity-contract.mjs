@@ -79,7 +79,7 @@ assert.ok(
   'Mapping SQL proposal must remain comment-only and non-executable',
 );
 
-if (/\\b(?:ownerUserId|reviewedByUserId)\\b/.test(intelligenceContract)) {
+if (/\b(?:ownerUserId|reviewedByUserId)\b/.test(intelligenceContract)) {
   assert.ok(
     doc.includes('incompatible with the no-identity contract'),
     'Legacy offline owner identifiers must remain explicitly recorded as a blocker until refactored',
