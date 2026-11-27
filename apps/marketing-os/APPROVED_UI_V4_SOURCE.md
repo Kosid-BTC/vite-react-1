@@ -1,11 +1,11 @@
 # CEO AI Thailand Marketing OS — Approved UX/UI V4
 
-Authoritative visual source: ONLY the two user-approved Library images locked on 2026-09-27:
+Authoritative visual source: ONLY the two locked user-approved Library images used by the Marketing OS UX/UI V4 acceptance record:
 
-1. `IMG_1789.jpeg` — primary dashboard hierarchy: six KPI cards, Performance Overview, Traffic Sources, AI Recommendations, Business Genome, MIT 24 Steps, Recent Activity, and platform integrations.
-2. `IMG_1788.jpeg` — supporting campaign/content detail: campaign performance, top-performing content, channels/integrations, content calendar, content factory, audience insights, AI insight, and next-best actions.
+1. `0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg` — primary Marketing OS overview.
+2. `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg` — detailed Dashboard and campaign-content reference.
 
-The 2026-09-27 pair supersedes earlier reference filenames recorded in older drafts, including `0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg` and `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg`. Do not substitute generated mockups, Figma alternatives, older screenshots/concepts, Executive Growth mockups, duplicates, or rejected PR #8.
+Do not replace these locked references with `IMG_1788.jpeg`, `IMG_1789.jpeg`, generated mockups, Figma alternatives, older concepts, duplicates, or rejected PR #8. Do not substitute generated mockups, Figma alternatives, older screenshots/concepts, Executive Growth mockups, duplicates, or rejected PR #8.
 
 ## Non-negotiable visual contract
 
