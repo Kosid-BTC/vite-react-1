@@ -1,4 +1,4 @@
-name: Marketing OS Approved UI V4 Preview Fixture Visual Gate
+name: Marketing OS Approved UI V4 Authenticated Preview Visual Gate
 
 on:
   push:
@@ -130,17 +130,24 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.55.0 vercel@59.11.7 sharp@0.34.3
           npx playwright install --with-deps chromium
 
-      - name: Capture and compare both locked reference targets
+      - name: Capture authenticated desktop/mobile against both locked references
         working-directory: apps/marketing-os
         env:
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
-        run: node scripts/verify-two-reference-visuals.mjs
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          EXPECTED_SOURCE_SHA: ${{ github.sha }}
+          ACCEPTANCE_TARGET: candidate
+          ARTIFACT_DIR: deployed-visual-qa-artifacts
+          MARKETING_OS_E2E_EMAIL: ${{ secrets.MARKETING_OS_E2E_EMAIL }}
+          MARKETING_OS_E2E_PASSWORD: ${{ secrets.MARKETING_OS_E2E_PASSWORD }}
+          MARKETING_OS_E2E_WORKSPACE_SLUG: ${{ vars.MARKETING_OS_E2E_WORKSPACE_SLUG }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/verify-production-acceptance.mjs
 
       - name: Upload deployed visual QA evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: approved-ui-v4-deployed-visual-qa-${{ github.sha }}
-          path: apps/marketing-os/deployed-visual-qa-artifacts/*.png
+          path: apps/marketing-os/deployed-visual-qa-artifacts/*
           if-no-files-found: error
           retention-days: 7
