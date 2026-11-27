@@ -45,3 +45,9 @@
 3. Trusted dual-owner mapping, non-BYPASSRLS Tenant A/B, adapter E2E, authoritative exact-SHA authenticated Preview, and visual acceptance.
 
 **NO-GO — NOT PRODUCTION COMPLETE.** Cross-project application-data Read remains OFF; Production remains LOCKED.
+
+## Additional effective TRUNCATE privilege audit (catalog-only)
+- Marketing Development: effective `TRUNCATE` privilege is true for `anon` and `authenticated` on 36 public base tables each (36 distinct tables per role).
+- CEO Back Office Development: effective `TRUNCATE` privilege is true for `anon` on 31 public base tables and for `authenticated` on 62 public base tables.
+- This privilege is not protected by row-level policies; it is a high-priority privilege review finding. Do not assume the REST API exposes TRUNCATE directly; assess RPC/role paths and platform-managed ACL origin before remediation.
+- No TRUNCATE, REVOKE, DDL/DML, or application-row read was performed. Keep the finding scoped to Development metadata and remediate only after backup/restore/rollback preconditions.
