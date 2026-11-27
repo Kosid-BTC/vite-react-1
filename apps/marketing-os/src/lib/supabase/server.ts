@@ -1,14 +1,21 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Database } from '@/types/database.types';
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(
+  const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA?.trim() || 'marketing_os';
+  if (schema !== 'marketing_os') {
+    throw new Error('MARKETING_OS_SCHEMA_MISMATCH');
+  }
+
+  // Schema-specific Database types must be generated from the target schema
+  // before strict table inference can be restored.
+  return createServerClient<any>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      db: { schema },
       cookies: {
         getAll() {
           return cookieStore.getAll();
