@@ -13,21 +13,26 @@ const mapping: DevelopmentMappingAttestation = {
   primary: {
     projectRef: 'roprejhnhoaqlctltwfs',
     workspaceId: primary,
-    ownerUserId: 'tenant-a-primary-owner',
     consentEventId: 'primary-consent-a',
-    evidenceSha256: 'a'.repeat(64),
+    consentReceiptSha256: 'a'.repeat(64),
+    issuerKeyId: 'marketing-dev-key-1',
+    challengeId: 'challenge-a',
+    audience: 'marketing-os-workspace-mapping',
+    scope: 'marketing.backoffice.export',
     verifiedAt: '2026-11-18T00:00:00.000Z',
   },
   supplementary: {
     projectRef: 'tdeuyycqbbktacmxgktn',
     workspaceId: secondary,
-    ownerUserId: 'tenant-a-backoffice-owner',
     consentEventId: 'supplementary-consent-a',
-    evidenceSha256: 'b'.repeat(64),
+    consentReceiptSha256: 'b'.repeat(64),
+    issuerKeyId: 'backoffice-dev-key-1',
+    challengeId: 'challenge-a',
+    audience: 'marketing-os-workspace-mapping',
+    scope: 'marketing.backoffice.export',
     verifiedAt: '2026-11-18T01:00:00.000Z',
   },
-  reviewedByUserId: 'reviewer-user-a',
-  reviewedBy: 'independent-security-reviewer',
+  challengeId: 'challenge-a',
   expiresAt: '2026-11-20T00:00:00.000Z',
   revokedAt: null,
   revocationReason: null,
@@ -54,12 +59,15 @@ assert.equal(build({ supplementaryWorkspaceId: '' }), null, 'missing explicit su
 assert.equal(build({ primaryWorkspaceId: '33333333-3333-4333-8333-333333333333' }), null, 'first workspace fallback must deny');
 assert.equal(build({ supplementaryWorkspaceId: '44444444-4444-4444-8444-444444444444' }), null, 'first supplementary workspace fallback must deny');
 
-// MAP-02 / MAP-04: both independent owner proofs are required; malformed evidence must deny.
-assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, ownerUserId: '' } } }), null, 'missing supplementary owner proof must deny');
+// MAP-02 / MAP-04: both signed consent receipts are required; malformed evidence must deny.
+assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, consentReceiptSha256: '' } } }), null, 'missing supplementary consent receipt digest must deny');
 assert.equal(build({ mapping: { ...mapping, primary: { ...mapping.primary, consentEventId: '' } } }), null, 'missing primary consent event must deny');
-assert.equal(build({ mapping: { ...mapping, primary: { ...mapping.primary, evidenceSha256: 'forged' } } }), null, 'forged primary evidence digest must deny');
-assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, evidenceSha256: 'f'.repeat(63) } } }), null, 'wrong digest length must deny');
-assert.equal(build({ mapping: { ...mapping, reviewedByUserId: '' } }), null, 'missing reviewer identity must deny');
+assert.equal(build({ mapping: { ...mapping, primary: { ...mapping.primary, consentReceiptSha256: 'forged' } } }), null, 'forged primary evidence digest must deny');
+assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, consentReceiptSha256: 'f'.repeat(63) } } }), null, 'wrong digest length must deny');
+assert.equal(build({ mapping: { ...mapping, challengeId: '' } }), null, 'missing challenge must deny');
+assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, challengeId: 'other-challenge' } } }), null, 'mismatched receipt challenge must deny');
+assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, audience: 'wrong-audience' } } as unknown as DevelopmentMappingAttestation }), null, 'wrong receipt audience must deny');
+assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, scope: 'marketing.user.export' } } as unknown as DevelopmentMappingAttestation }), null, 'forbidden receipt scope must deny');
 
 // MAP-05 / MAP-06 / MAP-07: expiration, revocation, and cross-tenant mismatch.
 assert.equal(build({ now: new Date(mapping.expiresAt) }), null, 'expiry boundary must deny');
@@ -68,12 +76,12 @@ assert.equal(build({ mapping: { ...mapping, revocationReason: 'missing timestamp
 assert.equal(build({ primaryWorkspaceId: '55555555-5555-4555-8555-555555555555' }), null, 'tenant B primary must deny');
 assert.equal(build({ supplementaryWorkspaceId: '66666666-6666-4666-8666-666666666666' }), null, 'tenant B supplementary must deny');
 assert.equal(build({ mapping: null }), null, 'missing mapping must deny');
-assert.equal(build({ mapping: { ...mapping, primary: { ...mapping.primary, verifiedAt: '2026-11-20T00:00:01.000Z' } } }), null, 'future primary owner attestation must deny');
+assert.equal(build({ mapping: { ...mapping, primary: { ...mapping.primary, verifiedAt: '2026-11-20T00:00:01.000Z' } } }), null, 'future primary consent receipt must deny');
 assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, verifiedAt: '2026-11-20T00:00:01.000Z' } } }), null, 'future supplementary owner attestation must deny');
-assert.equal(build({ mapping: { ...mapping, expiresAt: mapping.primary.verifiedAt } }), null, 'expiry before both owner proofs must deny');
+assert.equal(build({ mapping: { ...mapping, expiresAt: mapping.primary.verifiedAt } }), null, 'expiry before both consent receipts must deny');
 assert.equal(build({ mapping: { ...mapping, primary: { ...mapping.primary, projectRef: 'tdeuyycqbbktacmxgktn' } } as unknown as DevelopmentMappingAttestation }), null, 'wrong primary Auth project must deny');
 assert.equal(build({ mapping: { ...mapping, supplementary: { ...mapping.supplementary, projectRef: 'roprejhnhoaqlctltwfs' } } as unknown as DevelopmentMappingAttestation }), null, 'wrong supplementary Auth project must deny');
 
 assert.equal(isMappingAttested(mapping, primary, secondary, now), true, 'valid explicit dual-owner mapping passes offline contract only');
 assert.ok(build(), 'valid explicit mapping yields a pure offline snapshot');
-console.log('PASS: offline explicit-workspace and dual-owner negative contract checks (NOT authenticated tenant isolation)');
+console.log('PASS: offline explicit-workspace and dual-consent-receipt negative contract checks (NOT authenticated tenant isolation)');
