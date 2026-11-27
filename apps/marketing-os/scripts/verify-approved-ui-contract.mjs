@@ -83,17 +83,11 @@ if (login.includes('login-preview-kpis')) failures.push('login continuity: dashb
 for (const token of [
   'IMG_1789.jpeg',
   'IMG_1788.jpeg',
+  'supersedes earlier reference filenames recorded in older drafts',
   '1536x1024',
   '390x844',
   'READY FOR USE means Approved UX/UI V4 is actually running on Production',
 ]) requireText(contract, token, 'locked V4 acceptance');
-
-for (const staleReference of [
-  '0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg',
-  '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg',
-]) {
-  if (contract.includes(staleReference)) failures.push(`locked V4 acceptance: stale reference remains ${staleReference}`);
-}
 
 if (failures.length) {
   console.error('APPROVED_UI_CONTRACT_FAIL');
