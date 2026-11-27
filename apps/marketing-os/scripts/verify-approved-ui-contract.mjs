@@ -83,7 +83,7 @@ if (login.includes('login-preview-kpis')) failures.push('login continuity: dashb
 for (const token of [
   '0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg',
   '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg',
-  'supersedes earlier reference filenames recorded in older drafts',
+  'Do not replace these locked references with',
   '1536x1024',
   '390x844',
   'READY FOR USE means Approved UX/UI V4 is actually running on Production',
