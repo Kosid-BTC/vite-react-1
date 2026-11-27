@@ -105,7 +105,7 @@ The following are always excluded: website User/Auth tables, user profiles, PII,
 - The SQL connector session is `postgres` with `BYPASSRLS=true`; `service_role` and `supabase_read_only_user` also have `BYPASSRLS=true`. No dedicated non-BYPASSRLS Tenant A/B audit identity is evidenced.
 - PR #24 static/offline CI passes on its exact head, but these checks do not establish live RLS, owner receipts, Tenant A/B isolation, or a working API integration.
 - PR #37 is documentation-only. The legacy Vercel GitHub status is not authoritative Preview evidence. The authoritative Vercel project has no deployment records for the inspected PR #23, #24, or #37 exact SHAs; its latest deployment is on a different SHA with `target=null`.
-- The PR #24 pure TypeScript offline attestation model and its test fixtures still contain `ownerUserId` and `reviewedByUserId`. They perform no network/database access, but this shape is incompatible with the no-identity contract and must be refactored before any mapping acceptance; existing offline PASS does not certify the no-identity boundary.
+- The Development-only pure TypeScript envelope and offline fixtures now use opaque consent-receipt digests, issuer key IDs, a shared challenge, audience, and scope; they contain no cross-system owner or reviewer identifiers. The model validates shape/time only and does not verify signatures, issuer revocation, ownership, or RLS. The static guard rejects identity fields in the envelope and fixtures.
 - The live CEO AI Thailand website Back Office source/API, field dictionary, approved Development API endpoint, issuer keys, and dedicated Development machine credential remain unverified.
 
 ## 8. Release disposition

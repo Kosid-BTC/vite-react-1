@@ -19,21 +19,26 @@ const approved: DevelopmentMappingAttestation = {
   primary: {
     projectRef: 'roprejhnhoaqlctltwfs',
     workspaceId: primaryWorkspaceId,
-    ownerUserId: 'primary-owner-a',
     consentEventId: 'primary-consent-event-a',
-    evidenceSha256: 'a'.repeat(64),
+    consentReceiptSha256: 'a'.repeat(64),
+    issuerKeyId: 'marketing-dev-key-1',
+    challengeId: 'challenge-1',
+    audience: 'marketing-os-workspace-mapping',
+    scope: 'marketing.backoffice.export',
     verifiedAt: '2026-11-15T00:00:00.000Z',
   },
   supplementary: {
     projectRef: 'tdeuyycqbbktacmxgktn',
     workspaceId: supplementaryWorkspaceId,
-    ownerUserId: 'backoffice-owner-a',
     consentEventId: 'backoffice-consent-event-a',
-    evidenceSha256: 'b'.repeat(64),
+    consentReceiptSha256: 'b'.repeat(64),
+    issuerKeyId: 'backoffice-dev-key-1',
+    challengeId: 'challenge-1',
+    audience: 'marketing-os-workspace-mapping',
+    scope: 'marketing.backoffice.export',
     verifiedAt: '2026-11-15T01:00:00.000Z',
   },
-  reviewedByUserId: 'reviewer-user-1',
-  reviewedBy: 'independent-security-reviewer',
+  challengeId: 'challenge-1',
   expiresAt: '2026-11-17T00:00:00.000Z',
   revokedAt: null,
   revocationReason: null,
@@ -90,10 +95,13 @@ assert.equal(isMappingAttested({ ...approved, revocationReason: 'missing timesta
 assert.equal(isMappingAttested({ ...approved, expiresAt: now.toISOString() }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, projectRef: 'tdeuyycqbbktacmxgktn' } } as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, projectRef: 'roprejhnhoaqlctltwfs' } } as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
-assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, ownerUserId: '' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, consentEventId: ' ' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
-assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, evidenceSha256: 'invalid' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
-assert.equal(isMappingAttested({ ...approved, reviewedByUserId: ' ' }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, consentReceiptSha256: 'invalid' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested({ ...approved, primary: { ...approved.primary, issuerKeyId: ' ' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, challengeId: 'other-challenge' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, audience: 'wrong-audience' } } as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, scope: 'marketing.user.export' } } as unknown as DevelopmentMappingAttestation, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
+assert.equal(isMappingAttested({ ...approved, challengeId: ' ' }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested({ ...approved, supplementary: { ...approved.supplementary, verifiedAt: '2026-11-18T00:00:00.000Z' } }, primaryWorkspaceId, supplementaryWorkspaceId, now), false);
 assert.equal(isMappingAttested(approved, primaryWorkspaceId, '33333333-3333-4333-8333-333333333333', now), false);
 
@@ -124,4 +132,4 @@ const invalidSignals: MarketingSignal[] = [
   { ...validSignal, metric: 'gross_margin', value: 1.5, unit: 'ratio' },
 ];
 assert.equal(build({ signals: invalidSignals })?.signals.length, 0);
-console.log('PASS: offline CEO Back Office contract regression (dual owner evidence, audience, provenance, no live access)');
+console.log('PASS: offline CEO Back Office contract regression (opaque consent receipts, audience, provenance, no live access)');

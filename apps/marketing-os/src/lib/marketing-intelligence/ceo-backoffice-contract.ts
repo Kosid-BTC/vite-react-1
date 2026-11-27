@@ -1,7 +1,7 @@
 /**
  * CEO Back Office -> Marketing Intelligence contract.
  * Pure transformation only: no network, no privileged keys, no cross-project access.
- * Data is admitted only after independent identity, owner-attestation, audience and RLS gates.
+ * Data is admitted only after signed consent-receipt verification, audience and RLS gates.
  */
 export type AudienceSegmentCode = 'employee' | 'graduate' | 'newbie' | 'seller' | 'growth';
 export type AudienceAlias = 'sidebiz' | 'owner' | 'seller' | 'graduate' | 'newbie';
@@ -75,27 +75,29 @@ export type IntelligenceSnapshot = {
   unavailableMetrics: MarketingSignal['metric'][];
 };
 
-export type DevelopmentOwnerConsentAttestation = {
+export type DevelopmentConsentReceiptAttestation = {
   projectRef: 'roprejhnhoaqlctltwfs' | 'tdeuyycqbbktacmxgktn';
   workspaceId: string;
-  ownerUserId: string;
   consentEventId: string;
-  evidenceSha256: string;
+  consentReceiptSha256: string;
+  issuerKeyId: string;
+  challengeId: string;
+  audience: 'marketing-os-workspace-mapping';
+  scope: 'marketing.backoffice.export';
   verifiedAt: string;
 };
 
 /**
- * Development-only trusted-server attestation envelope.
- * Project refs are pinned to the two verified Development branches; Production refs
- * are intentionally not accepted by this contract. A client-supplied object is NOT
- * proof: a runtime service must independently authenticate both owners, verify both
- * consent events and evidence digests, and load the record from a protected registry.
+ * Development-only receipt envelope shape.
+ * This pure contract checks structure and time bounds only. It does NOT verify
+ * signatures, owner control, receipt revocation at the issuer, or RLS. A trusted
+ * Development verifier must do those checks independently before issuing this envelope.
+ * No cross-system person identifier or reviewer identity is represented here.
  */
 export type DevelopmentMappingAttestation = {
-  primary: DevelopmentOwnerConsentAttestation & { projectRef: 'roprejhnhoaqlctltwfs' };
-  supplementary: DevelopmentOwnerConsentAttestation & { projectRef: 'tdeuyycqbbktacmxgktn' };
-  reviewedByUserId: string;
-  reviewedBy: string;
+  primary: DevelopmentConsentReceiptAttestation & { projectRef: 'roprejhnhoaqlctltwfs' };
+  supplementary: DevelopmentConsentReceiptAttestation & { projectRef: 'tdeuyycqbbktacmxgktn' };
+  challengeId: string;
   expiresAt: string;
   revokedAt: string | null;
   revocationReason: string | null;
@@ -141,7 +143,7 @@ export function isMappingAttested(
 
   // Revocation is terminal for this attestation. Mismatched timestamp/reason pairs fail closed.
   if (mapping.revokedAt !== null || mapping.revocationReason !== null) return false;
-  if (!isNonBlank(mapping.reviewedByUserId) || !isNonBlank(mapping.reviewedBy)) return false;
+  if (!isNonBlank(mapping.challengeId)) return false;
 
   const primary = mapping.primary;
   const supplementary = mapping.supplementary;
@@ -154,17 +156,23 @@ export function isMappingAttested(
 
   const primaryValid = primary.projectRef === 'roprejhnhoaqlctltwfs'
     && primary.workspaceId === primaryWorkspaceId
-    && isNonBlank(primary.ownerUserId)
     && isNonBlank(primary.consentEventId)
-    && isSha256Digest(primary.evidenceSha256)
+    && isSha256Digest(primary.consentReceiptSha256)
+    && isNonBlank(primary.issuerKeyId)
+    && primary.challengeId === mapping.challengeId
+    && primary.audience === 'marketing-os-workspace-mapping'
+    && primary.scope === 'marketing.backoffice.export'
     && Number.isFinite(primaryVerified)
     && primaryVerified <= nowMs;
 
   const supplementaryValid = supplementary.projectRef === 'tdeuyycqbbktacmxgktn'
     && supplementary.workspaceId === supplementaryWorkspaceId
-    && isNonBlank(supplementary.ownerUserId)
     && isNonBlank(supplementary.consentEventId)
-    && isSha256Digest(supplementary.evidenceSha256)
+    && isSha256Digest(supplementary.consentReceiptSha256)
+    && isNonBlank(supplementary.issuerKeyId)
+    && supplementary.challengeId === mapping.challengeId
+    && supplementary.audience === 'marketing-os-workspace-mapping'
+    && supplementary.scope === 'marketing.backoffice.export'
     && Number.isFinite(supplementaryVerified)
     && supplementaryVerified <= nowMs;
 

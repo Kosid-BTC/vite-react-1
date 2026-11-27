@@ -81,8 +81,8 @@ requireText(loginCss, '.approved-login-shell', 'login css');
 if (login.includes('login-preview-kpis')) failures.push('login continuity: dashboard preview must not substitute for authenticated dashboard parity');
 
 for (const token of [
-  'IMG_1789.jpeg',
-  'IMG_1788.jpeg',
+  '0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg',
+  '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg',
   'supersedes earlier reference filenames recorded in older drafts',
   '1536x1024',
   '390x844',
@@ -97,7 +97,7 @@ if (failures.length) {
 
 console.log('APPROVED_UI_CONTRACT_PASS');
 console.log(JSON.stringify({
-  lockedReferenceImages: ['IMG_1789.jpeg', 'IMG_1788.jpeg'],
+  lockedReferenceImages: ['0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg', '4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg'],
   kpiCards: 6,
   dashboardOrder: ['KPI', 'Performance', 'Traffic Sources', 'AI', 'Business Genome', 'MIT 24 Steps', 'Recent Activity', 'Platform Connections'],
   loginContinuity: true,
