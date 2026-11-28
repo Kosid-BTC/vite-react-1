@@ -1,11 +1,11 @@
 # CEO AI Thailand Marketing OS — Approved UX/UI V4
 
-Authoritative visual source: ONLY the two user-approved Library images locked on 2026-09-27:
+Authoritative visual source: ONLY the two locked user-approved Library images used by the Marketing OS UX/UI V4 acceptance record:
 
-1. `IMG_1789.jpeg` — primary dashboard hierarchy: six KPI cards, Performance Overview, Traffic Sources, AI Recommendations, Business Genome, MIT 24 Steps, Recent Activity, and platform integrations.
-2. `IMG_1788.jpeg` — supporting campaign/content detail: campaign performance, top-performing content, channels/integrations, content calendar, content factory, audience insights, AI insight, and next-best actions.
+1. `0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg` — primary Marketing OS overview.
+2. `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg` — detailed Dashboard and campaign-content reference.
 
-The 2026-09-27 pair supersedes earlier reference filenames recorded in older drafts, including `0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg` and `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg`. Do not substitute generated mockups, Figma alternatives, older screenshots/concepts, Executive Growth mockups, duplicates, or rejected PR #8.
+Do not replace these locked references with `IMG_1788.jpeg`, `IMG_1789.jpeg`, generated mockups, Figma alternatives, older concepts, duplicates, or rejected PR #8. Do not substitute generated mockups, Figma alternatives, older screenshots/concepts, Executive Growth mockups, duplicates, or rejected PR #8.
 
 ## Non-negotiable visual contract
 
@@ -14,7 +14,7 @@ The 2026-09-27 pair supersedes earlier reference filenames recorded in older dra
 - Topbar/search/profile controls as applicable.
 - Dense desktop layout at 1536px reference width.
 - Primary dashboard order: topbar/search/profile → title/date/new campaign → greeting/connection health → all 6 KPI cards → Performance Overview → Traffic Sources → AI Recommendations after major analytics/performance content → Business Genome + MIT 24 Steps → Recent Activity → platform connections/status/footer.
-- Supporting campaign/content surfaces must preserve the hierarchy and content language shown in `IMG_1788.jpeg`; do not force every detail panel into the primary dashboard viewport.
+- Supporting campaign/content surfaces must preserve the hierarchy and content language shown in `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg`; do not force every detail panel into the primary dashboard viewport.
 - No arbitrary reordering on responsive layouts.
 - Mobile acceptance viewport is 390x844 and preserves the same visual language and information hierarchy: brand/topbar → compact title/CTA → connection strip → all six KPI cards → Performance Overview first → Traffic Sources/remaining analytics → AI Recommendations → Business Genome → MIT 24 Steps → Recent Activity → platform connections/status.
 - Do not hide KPI cards 5–6 on mobile.
@@ -30,7 +30,7 @@ Required evidence on the exact SHA:
 
 - An authenticated session protected by the authoritative project's SSO; use isolated Development test identities and synthetic Tenant A / Tenant B workspaces only.
 - Desktop capture at 1536x1024 and mobile capture at 390x844 after authentication.
-- Visual comparison against ONLY `IMG_1789.jpeg` and `IMG_1788.jpeg`; verify the complete six-KPI sequence and the agreed content order, including all six KPI cards on mobile.
+- Visual comparison against ONLY `0D291464-3F4B-4AD2-B7BE-C5409EC56B4F(6).jpeg` and `4C6D6E63-535F-4E43-BD88-FD10F31624DC(4).jpeg`; verify the complete six-KPI sequence and the agreed content order, including all six KPI cards on mobile.
 - A sanitized evidence manifest containing exact Git SHA, authoritative Vercel project ID, deployment ID, `target=preview`, deployment URL, capture timestamp, tester identity, test result, and SHA-256 digests of both screenshots.
 - No production customer data, access tokens, JWTs, cookies, API keys, or secrets in screenshots or evidence artifacts.
 

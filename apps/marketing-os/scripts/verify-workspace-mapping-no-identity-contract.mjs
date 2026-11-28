@@ -20,6 +20,18 @@ const intelligenceContract = readFileSync(
   resolve(process.cwd(), 'src/lib/marketing-intelligence/ceo-backoffice-contract.ts'),
   'utf8',
 );
+const offlineContract = readFileSync(
+  resolve(process.cwd(), 'scripts/verify-ceo-backoffice-offline-contract.ts'),
+  'utf8',
+);
+const primaryContractTests = readFileSync(
+  resolve(process.cwd(), 'scripts/verify-ceo-backoffice-contract.ts'),
+  'utf8',
+);
+const explicitWorkspaceTests = readFileSync(
+  resolve(process.cwd(), 'scripts/verify-explicit-workspace-offline-regression.ts'),
+  'utf8',
+);
 
 for (const required of [
   'DESIGN ONLY / DEVELOPMENT ONLY / NOT IMPLEMENTED',
@@ -79,12 +91,21 @@ assert.ok(
   'Mapping SQL proposal must remain comment-only and non-executable',
 );
 
-if (/\b(?:ownerUserId|reviewedByUserId)\b/.test(intelligenceContract)) {
-  assert.ok(
-    doc.includes('incompatible with the no-identity contract'),
-    'Legacy offline owner identifiers must remain explicitly recorded as a blocker until refactored',
+for (const [label, source] of [
+  ['mapping envelope', intelligenceContract],
+  ['offline regression fixture', offlineContract],
+  ['primary contract regression fixture', primaryContractTests],
+  ['explicit-workspace regression fixture', explicitWorkspaceTests],
+]) {
+  assert.doesNotMatch(
+    source,
+    /\b(?:ownerUserId|reviewedByUserId|owner_user_id|reviewed_by_user_id|user_id|email|phone|profile|session|jwt|refreshToken)\b/i,
+    `${label} must not contain cross-system user identifiers or credentials`,
   );
 }
+assert.match(intelligenceContract, /consentReceiptSha256/);
+assert.match(intelligenceContract, /challengeId/);
+assert.match(intelligenceContract, /marketing\.backoffice\.export/);
 
 assert.match(adapter, /WORKSPACE_MAPPING_UNVERIFIED/);
 assert.match(adapter, /return \{ ok: false, reason: 'WORKSPACE_MAPPING_UNVERIFIED' \}/);
